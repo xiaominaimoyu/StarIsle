@@ -1,0 +1,268 @@
+---
+import { MAX_ORIGINAL_BYTES } from "@/lib/image";
+
+const presets = [
+  "/presets/backgrounds/starry-night.svg",
+  "/presets/backgrounds/island-dawn.svg",
+  "/presets/backgrounds/calm-paper.svg",
+];
+---
+
+<div data-public-background-controller>
+  <button
+    id="background"
+    type="button"
+    data-background-open
+    aria-controls="background-dialog"
+    aria-expanded="false"
+    aria-label="背景设置"
+    title="背景设置"
+    class="inline-flex size-10 items-center justify-center rounded-md text-text-dim hover:bg-surface hover:text-text focus-ring"
+  >
+    <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <circle cx="8.5" cy="8.5" r="1.5" />
+      <path d="m21 15-5-5L5 21" />
+    </svg>
+    <span class="sr-only">背景设置</span>
+  </button>
+
+  <div id="background-dialog" data-public-modal data-background-dialog role="dialog" aria-modal="true" aria-labelledby="background-dialog-title" class="fixed inset-0 z-60 flex items-center justify-center p-4" hidden>
+    <button type="button" data-background-close class="absolute inset-0 cursor-default bg-black/60" aria-label="关闭背景设置"></button>
+    <div data-background-panel tabindex="-1" class="modal-enter card relative z-10 max-h-full w-full max-w-2xl overflow-y-auto p-6 shadow-2">
+      <div class="mb-4 flex items-center justify-between gap-4">
+        <h2 id="background-dialog-title" class="text-xl font-semibold text-text">自定义背景</h2>
+        <button type="button" data-background-close class="inline-flex size-10 shrink-0 items-center justify-center rounded-md text-text-dim hover:bg-bg hover:text-text focus-ring" aria-label="关闭背景设置">✕</button>
+      </div>
+
+      <div class="flex flex-col gap-4 text-base text-text-dim">
+        <div data-background-message role="alert" class="rounded-md border px-3 py-2 text-sm" hidden></div>
+
+        <div>
+          <p class="mb-2 text-sm font-medium text-text">预设背景</p>
+          <div class="grid grid-cols-3 gap-3">
+            {presets.map((url) => (
+              <button
+                type="button"
+                data-background-preset={url}
+                aria-label={`使用预设背景 ${url.split("/").pop()}`}
+                aria-pressed="false"
+                class="h-16 overflow-hidden rounded-md border-2 border-border bg-cover bg-center focus-ring hover:border-accent/50"
+                style={`background-image: url("${url}")`}
+              ></button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <p class="mb-2 text-sm font-medium text-text">本地上传</p>
+          <input data-background-file type="file" accept="image/*" class="hidden" aria-label="选择背景图片" />
+          <button type="button" data-background-file-trigger class="inline-flex h-10 items-center rounded-md border border-border px-4 text-sm hover:border-accent/60 focus-ring disabled:opacity-60">选择图片</button>
+          <p class="mt-2 text-xs text-text-dim">
+            仅保存在当前浏览器与设备；原图超过 {MAX_ORIGINAL_BYTES / 1024 / 1024} MB 会被拒绝，压缩后 Blob 目标不超过 1.5 MB。
+          </p>
+        </div>
+
+        <label class="flex flex-col gap-1">
+          <span class="text-sm font-medium text-text">scrim 遮罩透明度 <span data-background-scrim-value class="text-text-dim">45%</span></span>
+          <input data-background-scrim type="range" min="0" max="0.9" step="0.05" value="0.45" class="accent-[color:var(--accent)]" />
+        </label>
+
+        <label class="flex flex-col gap-1">
+          <span class="text-sm font-medium text-text">模糊 <span data-background-blur-value class="text-text-dim">0px</span></span>
+          <input data-background-blur type="range" min="0" max="20" step="1" value="0" class="accent-[color:var(--accent)]" />
+        </label>
+
+        <button type="button" data-background-reset class="inline-flex h-10 items-center justify-center rounded-md border border-border text-sm hover:border-danger/60 hover:text-danger focus-ring">恢复默认</button>
+        <div class="flex justify-end">
+          <button type="button" data-background-close class="inline-flex h-10 items-center rounded-md border border-border px-4 text-sm hover:border-accent/60 focus-ring">完成</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { clearPublicBackgroundBlob, savePublicBackgroundBlob } from "./public-background-storage";
+  import { compressImage } from "@/lib/image";
+  import {
+    clampNumber,
+    parsePublicBackgroundSettings,
+    type PublicBackgroundSettings,
+  } from "@/lib/public-ui";
+
+  const SETTINGS_KEY = "star-isle:background-settings";
+  const controller = document.querySelector<HTMLElement>("[data-public-background-controller]");
+
+  if (controller) {
+    const trigger = controller.querySelector<HTMLButtonElement>("[data-background-open]");
+    const dialog = controller.querySelector<HTMLElement>("[data-background-dialog]");
+    const panel = controller.querySelector<HTMLElement>("[data-background-panel]");
+    const message = controller.querySelector<HTMLElement>("[data-background-message]");
+    const fileInput = controller.querySelector<HTMLInputElement>("[data-background-file]");
+    const fileTrigger = controller.querySelector<HTMLButtonElement>("[data-background-file-trigger]");
+    const scrimInput = controller.querySelector<HTMLInputElement>("[data-background-scrim]");
+    const blurInput = controller.querySelector<HTMLInputElement>("[data-background-blur]");
+    const scrimValue = controller.querySelector<HTMLElement>("[data-background-scrim-value]");
+    const blurValue = controller.querySelector<HTMLElement>("[data-background-blur-value]");
+    const presets = Array.from(controller.querySelectorAll<HTMLButtonElement>("[data-background-preset]"));
+    let previousFocus: HTMLElement | null = null;
+    let settings = loadSettings();
+
+    function loadSettings(): PublicBackgroundSettings {
+      try {
+        return parsePublicBackgroundSettings(window.localStorage.getItem(SETTINGS_KEY));
+      } catch {
+        return parsePublicBackgroundSettings(null);
+      }
+    }
+
+    function persist(next: PublicBackgroundSettings): void {
+      try {
+        window.localStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
+      } catch {
+        // 隐私模式或存储配额不可用时仍保留当前会话中的可用状态。
+      }
+    }
+
+    function updateBodyScrollLock(): void {
+      document.body.classList.toggle(
+        "public-modal-open",
+        document.querySelectorAll("[data-public-modal]:not([hidden])").length > 0,
+      );
+    }
+
+    function focusables(): HTMLElement[] {
+      if (!panel) return [];
+      return Array.from(panel.querySelectorAll<HTMLElement>("a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])"));
+    }
+
+    function openDialog(source: HTMLElement = trigger ?? document.body): void {
+      if (!dialog) return;
+      previousFocus = source;
+      dialog.hidden = false;
+      trigger?.setAttribute("aria-expanded", "true");
+      updateBodyScrollLock();
+      focusables()[0]?.focus();
+    }
+
+    function closeDialog(): void {
+      if (!dialog || dialog.hidden) return;
+      dialog.hidden = true;
+      trigger?.setAttribute("aria-expanded", "false");
+      updateBodyScrollLock();
+      previousFocus?.focus();
+      previousFocus = null;
+    }
+
+    function showMessage(tone: "error" | "info", text: string): void {
+      if (!message) return;
+      message.hidden = false;
+      message.textContent = text;
+      message.className = `rounded-md border px-3 py-2 text-sm ${tone === "error" ? "border-danger/40 text-danger" : "border-accent/40 text-accent"}`;
+    }
+
+    function clearMessage(): void {
+      if (message) {
+        message.hidden = true;
+        message.textContent = "";
+      }
+    }
+
+    function syncControls(): void {
+      if (scrimInput) scrimInput.value = String(settings.scrimOpacity);
+      if (blurInput) blurInput.value = String(settings.blur);
+      if (scrimValue) scrimValue.textContent = `${Math.round(settings.scrimOpacity * 100)}%`;
+      if (blurValue) blurValue.textContent = `${settings.blur}px`;
+      for (const preset of presets) {
+        preset.setAttribute("aria-pressed", String(!settings.custom && settings.url === preset.dataset.backgroundPreset));
+        preset.classList.toggle("border-accent", !settings.custom && settings.url === preset.dataset.backgroundPreset);
+        preset.classList.toggle("border-border", settings.custom || settings.url !== preset.dataset.backgroundPreset);
+      }
+    }
+
+    function publish(next: PublicBackgroundSettings, blob?: Blob): void {
+      settings = next;
+      persist(settings);
+      syncControls();
+      window.dispatchEvent(new CustomEvent("star-isle:background-change", { detail: { settings, blob } }));
+    }
+
+    trigger?.addEventListener("click", () => openDialog(trigger));
+    controller.querySelectorAll<HTMLElement>("[data-background-close]").forEach((button) => {
+      button.addEventListener("click", closeDialog);
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (!dialog || dialog.hidden) return;
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeDialog();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const items = focusables();
+      if (!items.length) return;
+      const first = items[0]!;
+      const last = items[items.length - 1]!;
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    });
+
+    presets.forEach((preset) => {
+      preset.addEventListener("click", () => {
+        const url = preset.dataset.backgroundPreset;
+        if (!url) return;
+        clearMessage();
+        publish({ ...settings, url, custom: false });
+      });
+    });
+
+    scrimInput?.addEventListener("input", () => {
+      publish({ ...settings, scrimOpacity: clampNumber(scrimInput.value, 0, 0.9, settings.scrimOpacity) });
+    });
+    blurInput?.addEventListener("input", () => {
+      publish({ ...settings, blur: clampNumber(blurInput.value, 0, 20, settings.blur) });
+    });
+
+    fileTrigger?.addEventListener("click", () => fileInput?.click());
+    fileInput?.addEventListener("change", async () => {
+      const file = fileInput.files?.[0];
+      if (!file) return;
+      fileTrigger?.setAttribute("disabled", "");
+      clearMessage();
+      try {
+        const result = await compressImage(file);
+        if (!result.ok) {
+          showMessage("error", result.reason);
+          return;
+        }
+        try {
+          await savePublicBackgroundBlob(result.blob);
+        } catch {
+          const fallback = presets[0]?.dataset.backgroundPreset;
+          if (fallback) publish({ ...settings, url: fallback, custom: false });
+          showMessage("info", "当前浏览器不支持本地保存背景，本次访问将使用预设背景。");
+          return;
+        }
+        publish({ ...settings, url: null, custom: true }, result.blob);
+      } finally {
+        fileTrigger?.removeAttribute("disabled");
+        fileInput.value = "";
+      }
+    });
+
+    controller.querySelector<HTMLElement>("[data-background-reset]")?.addEventListener("click", () => {
+      publish({ ...settings, url: null, custom: false });
+      void clearPublicBackgroundBlob();
+      clearMessage();
+    });
+
+    syncControls();
+  }
+</script>

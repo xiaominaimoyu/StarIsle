@@ -1,0 +1,391 @@
+---
+interface Track {
+  id: string;
+  title: string;
+  artist: string;
+  src: string;
+  cover?: string;
+  duration?: number;
+}
+
+interface Props {
+  tracks: Track[];
+}
+
+const { tracks } = Astro.props;
+const current = tracks[0];
+---
+
+<section
+  id="player"
+  data-public-player
+  data-playlist={JSON.stringify(tracks)}
+  aria-label="音乐播放器"
+  class="minibar-enter no-print fixed inset-x-0 bottom-0 z-50 border-t border-border bg-surface/95 px-4 py-3 shadow-2 backdrop-blur"
+  style="padding-bottom: max(0.75rem, env(safe-area-inset-bottom))"
+>
+  <audio data-player-audio preload="none"></audio>
+  {tracks.length === 0 ? (
+    <div class="mx-auto max-w-6xl">
+      <button type="button" data-player-open aria-controls="player-dialog" aria-expanded="false" class="inline-flex h-10 items-center gap-2 rounded-md border border-border px-3 text-sm text-text-dim hover:border-accent/60 focus-ring">
+        <span aria-hidden="true">♪</span> 音乐播放器
+      </button>
+    </div>
+  ) : (
+    <div data-player-controls class="mx-auto flex max-w-6xl flex-wrap items-center gap-3">
+      <div class="flex min-w-0 flex-1 items-center gap-3">
+        <img data-player-cover src={current?.cover} alt="" class="size-10 shrink-0 rounded-md object-cover" loading="lazy" hidden={!current?.cover} />
+        <div data-player-cover-fallback class="flex size-10 shrink-0 items-center justify-center rounded-md bg-accent/15 text-accent" aria-hidden="true" hidden={Boolean(current?.cover)}>♪</div>
+        <div class="min-w-0">
+          <p data-player-title class="truncate text-sm font-medium text-text">{current?.title}</p>
+          <p data-player-artist class="truncate text-xs text-text-dim">{current?.artist}</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-1">
+        <button type="button" data-player-prev aria-label="上一首" class="inline-flex size-10 items-center justify-center rounded-md text-text-dim hover:text-text focus-ring">⏮</button>
+        <button type="button" data-player-toggle aria-label="播放" class="inline-flex size-11 items-center justify-center rounded-full bg-accent text-accent-foreground hover:brightness-110 focus-ring">▶</button>
+        <button type="button" data-player-next aria-label="下一首" class="inline-flex size-10 items-center justify-center rounded-md text-text-dim hover:text-text focus-ring">⏭</button>
+      </div>
+
+      <div class="hidden min-w-52 flex-1 md:block">
+        <input data-player-progress type="range" min="0" max={current?.duration ?? 0} step="0.1" value="0" aria-label="播放进度" disabled={!current?.duration} class="h-2 w-full cursor-pointer accent-[color:var(--accent)] disabled:cursor-not-allowed" />
+      </div>
+
+      <div class="flex items-center gap-1">
+        <input data-player-volume type="range" min="0" max="1" step="0.05" value="0.8" aria-label="音量" class="w-20 accent-[color:var(--accent)]" />
+        <button type="button" data-player-open aria-controls="player-dialog" aria-expanded="false" aria-label="打开歌单" class="inline-flex size-10 items-center justify-center rounded-md text-text-dim hover:text-text focus-ring">≡</button>
+      </div>
+    </div>
+  )}
+  <p data-player-error class="mt-1 text-center text-xs text-danger" role="alert" hidden>该曲目暂时无法播放，可手动切换到下一首。</p>
+</section>
+
+<div id="player-dialog" data-public-modal data-player-dialog role="dialog" aria-modal="true" aria-labelledby="player-dialog-title" class="fixed inset-0 z-60" hidden>
+  <button type="button" data-player-close class="absolute inset-0 cursor-default bg-black/60" aria-label="关闭歌单"></button>
+  <div data-player-panel tabindex="-1" class="modal-enter card absolute right-0 top-0 flex h-full w-80 flex-col p-4 shadow-2">
+    <div class="mb-3 flex items-center justify-between">
+      <h2 id="player-dialog-title" class="font-semibold text-text">歌单</h2>
+      <button type="button" data-player-close aria-label="关闭歌单" class="inline-flex size-10 items-center justify-center rounded-md text-text-dim hover:text-text focus-ring">✕</button>
+    </div>
+    <div class="flex-1 overflow-y-auto">
+      {tracks.length === 0 ? (
+        <p class="py-8 text-center text-sm text-text-dim">
+          暂无曲目。请将自有、授权或公版音频放入 <code class="font-mono">public/music/</code> 并更新播放列表。
+        </p>
+      ) : (
+        <ul data-player-list class="flex flex-col gap-1">
+          {tracks.map((track, index) => (
+            <li>
+              <button type="button" data-player-track-index={index} aria-current={index === 0 ? "true" : undefined} class="w-full rounded-md px-3 py-2 text-left text-sm text-text hover:bg-surface focus-ring aria-[current=true]:bg-accent/15 aria-[current=true]:text-accent">
+                <span class="block truncate font-medium">{track.title}</span>
+                <span class="block truncate text-xs text-text-dim">{track.artist}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  </div>
+</div>
+
+<script>
+  import { parsePublicPlayerVolume } from "@/lib/public-ui";
+
+  interface Track {
+    id: string;
+    title: string;
+    artist: string;
+    src: string;
+    cover?: string;
+    duration?: number;
+  }
+
+  const root = document.querySelector<HTMLElement>("[data-public-player]");
+
+  if (root) {
+    let queue: Track[] = [];
+    try {
+      const parsed = JSON.parse(root.dataset.playlist ?? "[]");
+      queue = Array.isArray(parsed) ? parsed : [];
+    } catch {
+      queue = [];
+    }
+
+    const VOLUME_KEY = "star-isle:player-volume";
+    const audio = root.querySelector<HTMLAudioElement>("[data-player-audio]");
+    const toggle = root.querySelector<HTMLButtonElement>("[data-player-toggle]");
+    const previous = root.querySelector<HTMLButtonElement>("[data-player-prev]");
+    const next = root.querySelector<HTMLButtonElement>("[data-player-next]");
+    const progress = root.querySelector<HTMLInputElement>("[data-player-progress]");
+    const volumeInput = root.querySelector<HTMLInputElement>("[data-player-volume]");
+    const title = root.querySelector<HTMLElement>("[data-player-title]");
+    const artist = root.querySelector<HTMLElement>("[data-player-artist]");
+    const cover = root.querySelector<HTMLImageElement>("[data-player-cover]");
+    const coverFallback = root.querySelector<HTMLElement>("[data-player-cover-fallback]");
+    const error = root.querySelector<HTMLElement>("[data-player-error]");
+    const dialog = document.querySelector<HTMLElement>("[data-player-dialog]");
+    const panel = dialog?.querySelector<HTMLElement>("[data-player-panel]");
+    const openButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-player-open], [data-open-public-playlist]"));
+    const trackButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-player-track-index]"));
+    let currentIndex = queue.length > 0 ? 0 : -1;
+    let position = 0;
+    let isPlaying = false;
+    let mediaError = false;
+    let previousFocus: HTMLElement | null = null;
+    let volume = 0.8;
+
+    try {
+      volume = parsePublicPlayerVolume(window.localStorage.getItem(VOLUME_KEY));
+    } catch {
+      // 存储不可用时继续使用默认音量。
+    }
+
+    function currentTrack(): Track | null {
+      return queue[currentIndex] ?? null;
+    }
+
+    function savedPosition(track: Track): number {
+      try {
+        const value = Number(window.localStorage.getItem(`star-isle:player-position:${track.id}`));
+        return Number.isFinite(value) && value > 0 ? value : 0;
+      } catch {
+        return 0;
+      }
+    }
+
+    function persistPosition(track: Track, value: number): void {
+      try {
+        window.localStorage.setItem(`star-isle:player-position:${track.id}`, String(value));
+      } catch {
+        // 存储失败不影响当前播放。
+      }
+    }
+
+    function durationFor(track: Track): number {
+      const actual = audio && Number.isFinite(audio.duration) ? audio.duration : 0;
+      return actual > 0 ? actual : track.duration ?? 0;
+    }
+
+    function render(): void {
+      const track = currentTrack();
+      if (!track) {
+        openButtons.forEach((button) => button.setAttribute("aria-expanded", String(!dialog?.hidden)));
+        return;
+      }
+      const duration = durationFor(track);
+      if (title) title.textContent = track.title;
+      if (artist) artist.textContent = track.artist;
+      if (cover) {
+        cover.hidden = !track.cover;
+        if (track.cover) cover.src = track.cover;
+      }
+      if (coverFallback) coverFallback.hidden = Boolean(track.cover);
+      if (toggle) {
+        toggle.textContent = isPlaying ? "⏸" : "▶";
+        toggle.setAttribute("aria-label", isPlaying ? "暂停" : "播放");
+      }
+      if (progress) {
+        progress.max = String(duration);
+        progress.value = String(Math.min(position, duration || 0));
+        progress.disabled = duration <= 0;
+      }
+      if (volumeInput) volumeInput.value = String(volume);
+      if (error) error.hidden = !mediaError;
+      trackButtons.forEach((button) => {
+        button.setAttribute("aria-current", String(Number(button.dataset.playerTrackIndex) === currentIndex));
+      });
+      openButtons.forEach((button) => button.setAttribute("aria-expanded", String(!dialog?.hidden)));
+    }
+
+    function loadTrack(index: number): Track | null {
+      if (!queue.length || !audio) return null;
+      currentIndex = (index + queue.length) % queue.length;
+      const track = currentTrack();
+      if (!track) return null;
+      mediaError = false;
+      position = savedPosition(track);
+      if (audio.dataset.trackId !== track.id) {
+        audio.pause();
+        isPlaying = false;
+        audio.dataset.trackId = track.id;
+        audio.src = track.src;
+        audio.volume = volume;
+        audio.addEventListener("loadedmetadata", () => {
+          const duration = durationFor(track);
+          if (position > 0 && (!duration || position < duration)) audio.currentTime = position;
+          render();
+        }, { once: true });
+        audio.load();
+      }
+      render();
+      return track;
+    }
+
+    function playAt(index: number): void {
+      const track = loadTrack(index);
+      if (!track || !audio) return;
+      void audio.play().then(() => {
+        isPlaying = true;
+        mediaError = false;
+        render();
+      }).catch(() => {
+        isPlaying = false;
+        mediaError = true;
+        render();
+      });
+    }
+
+    function togglePlayback(): void {
+      if (!queue.length || !audio) return;
+      if (!audio.src || currentIndex < 0) {
+        playAt(0);
+        return;
+      }
+      if (isPlaying) {
+        audio.pause();
+        isPlaying = false;
+        render();
+      } else {
+        playAt(currentIndex);
+      }
+    }
+
+    function updateBodyScrollLock(): void {
+      document.body.classList.toggle(
+        "public-modal-open",
+        document.querySelectorAll("[data-public-modal]:not([hidden])").length > 0,
+      );
+    }
+
+    function dialogFocusables(): HTMLElement[] {
+      if (!panel) return [];
+      return Array.from(panel.querySelectorAll<HTMLElement>("a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex='-1'])"));
+    }
+
+    function openDialog(source?: HTMLElement): void {
+      if (!dialog) return;
+      previousFocus = source ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
+      dialog.hidden = false;
+      updateBodyScrollLock();
+      render();
+      dialogFocusables()[0]?.focus();
+    }
+
+    function closeDialog(): void {
+      if (!dialog || dialog.hidden) return;
+      dialog.hidden = true;
+      updateBodyScrollLock();
+      render();
+      previousFocus?.focus();
+      previousFocus = null;
+    }
+
+    function isEditableTarget(target: EventTarget | null): boolean {
+      if (!(target instanceof HTMLElement)) return false;
+      return target.matches("input, textarea, select") || target.isContentEditable;
+    }
+
+    toggle?.addEventListener("click", togglePlayback);
+    previous?.addEventListener("click", () => playAt(currentIndex - 1));
+    next?.addEventListener("click", () => playAt(currentIndex + 1));
+    volumeInput?.addEventListener("input", () => {
+      volume = Number(volumeInput.value);
+      if (audio) audio.volume = volume;
+      try {
+        window.localStorage.setItem(VOLUME_KEY, String(volume));
+      } catch {
+        // 存储失败不影响当前播放。
+      }
+      render();
+    });
+    progress?.addEventListener("input", () => {
+      const track = currentTrack();
+      const value = Number(progress.value);
+      if (!track || !audio || !Number.isFinite(value)) return;
+      audio.currentTime = value;
+      position = value;
+      persistPosition(track, value);
+      render();
+    });
+    audio?.addEventListener("timeupdate", () => {
+      const track = currentTrack();
+      if (!track) return;
+      position = audio.currentTime;
+      persistPosition(track, position);
+      render();
+    });
+    audio?.addEventListener("play", () => {
+      isPlaying = true;
+      render();
+    });
+    audio?.addEventListener("pause", () => {
+      isPlaying = false;
+      render();
+    });
+    audio?.addEventListener("ended", () => playAt(currentIndex + 1));
+    audio?.addEventListener("error", () => {
+      mediaError = true;
+      isPlaying = false;
+      render();
+    });
+
+    document.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const opener = target.closest<HTMLElement>("[data-player-open], [data-open-public-playlist]");
+      if (opener) {
+        event.preventDefault();
+        openDialog(opener);
+      }
+    });
+    document.querySelectorAll<HTMLElement>("[data-player-close]").forEach((button) => button.addEventListener("click", closeDialog));
+    trackButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        playAt(Number(button.dataset.playerTrackIndex));
+        closeDialog();
+      });
+    });
+    window.addEventListener("star-isle:open-playlist", () => openDialog());
+    document.addEventListener("keydown", (event) => {
+      if (!dialog?.hidden) {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          closeDialog();
+          return;
+        }
+        if (event.key === "Tab") {
+          const items = dialogFocusables();
+          if (!items.length) return;
+          const first = items[0]!;
+          const last = items[items.length - 1]!;
+          if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+          } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+          }
+        }
+        return;
+      }
+      if (isEditableTarget(event.target)) return;
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      if (target?.closest("button, a, [role=button]")) return;
+      if (!currentTrack() || !audio) return;
+      if (event.code === "Space") {
+        event.preventDefault();
+        togglePlayback();
+      } else if (event.code === "ArrowLeft") {
+        event.preventDefault();
+        audio.currentTime = Math.max(0, audio.currentTime - 5);
+      } else if (event.code === "ArrowRight") {
+        event.preventDefault();
+        audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + 5);
+      }
+    });
+
+    if (audio) audio.volume = volume;
+    render();
+  }
+</script>

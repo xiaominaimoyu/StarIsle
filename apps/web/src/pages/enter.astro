@@ -1,0 +1,26 @@
+---
+import NarrativeEntry from "@/components/narrative/NarrativeEntry";
+import Base from "@/layouts/Base.astro";
+---
+
+<Base
+  title="开启信封 · 星屿 StarIsle"
+  description="一封可跳过的星屿来信。"
+  noindex
+  chrome={false}
+>
+  <main id="main" class="flex min-h-dvh items-center px-4 py-12">
+    <section class="mx-auto w-full max-w-xl text-center">
+      <p class="mb-3 text-sm tracking-[0.24em] text-accent-warm">STARISLE LETTER</p>
+      <h1 class="font-display text-3xl font-semibold tracking-tight text-text sm:text-4xl">来自星屿的一封信</h1>
+      <p class="mx-auto mt-4 max-w-lg text-base leading-7 text-text-dim">
+        这是一段可选择停留的入口。无论是否开启封印，你都可以继续前往公开星图，或使用既有登录页面。
+      </p>
+      <nav class="mt-6 flex flex-wrap justify-center gap-3" aria-label="继续前往">
+        <a class="rounded-md bg-accent px-4 py-3 font-medium text-accent-foreground focus-ring" href="/">前往星</a>
+        <a class="rounded-md border border-border px-4 py-3 font-medium text-text focus-ring" href="/login">普通登录</a>
+      </nav>
+      <NarrativeEntry client:load />
+    </section>
+  </main>
+</Base>

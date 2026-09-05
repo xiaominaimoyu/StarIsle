@@ -1,0 +1,34 @@
+# 星屿 StarIsle · Caddy 同源反代
+# 未设环境变量时只监听容器 8080，供本机同源验收；不会请求证书。
+# 这些变量必须由 compose.local.yml 或 compose.prod.yml 显式注入。要部署 HTTPS 时，
+# 生产覆盖层要求真实域名、真实 ACME 邮箱并发布 80/443；本仓库不声明外部部署已完成。
+
+{
+	email {$ACME_EMAIL:admin@example.invalid}
+}
+
+{$STAR_ISLE_SITE_ADDRESS::8080} {
+	root * /srv/web
+
+	# API 优先，路径不裁剪，保持 FastAPI 的 /api/v1 前缀。不要在此 block
+	# 使用 encode 或负值 flush_interval：Caddy 默认会流式转发 event-stream，并在客户端断开时取消上游请求。
+	handle /api/* {
+		reverse_proxy api:8000
+	}
+
+	# 静态站点只服务实际构建产物；未知路径返回 404，不把所有 404 伪装成首页。
+	handle {
+		encode gzip
+		try_files {path} {path}/ =404
+		file_server
+	}
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		X-Frame-Options SAMEORIGIN
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+	}
+
+	# 不启用访问日志，避免记录 Cookie、Authorization 或请求正文。
+}

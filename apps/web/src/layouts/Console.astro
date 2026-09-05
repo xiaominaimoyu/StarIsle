@@ -1,0 +1,77 @@
+---
+import Base from "./Base.astro";
+import ThemeToggle from "@/components/site/ThemeToggle";
+import LogoutButton from "@/components/auth/LogoutButton";
+
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+
+const items = [
+  { href: "/console", label: "概览", icon: "◈" },
+  { href: "/console/gallery", label: "相册", icon: "▧" },
+  { href: "/console/files", label: "文件", icon: "▤" },
+  { href: "/console/mail", label: "收件箱", icon: "✉" },
+  { href: "/console/kb", label: "知识库", icon: "❖" },
+];
+---
+
+<Base title={title} noindex chrome={false}>
+  <div class="flex min-h-dvh flex-col">
+    {/* 桌面侧边栏 + 顶栏 */}
+    <div class="flex flex-1">
+      <aside class="no-print sticky top-0 hidden h-dvh w-56 shrink-0 flex-col border-r border-border bg-surface/50 p-4 lg:flex">
+        <a href="/" class="mb-6 font-display text-lg font-semibold text-text focus-ring rounded">
+          <span aria-hidden="true">✦</span> 星屿
+        </a>
+        <nav aria-label="控制台导航" class="flex flex-1 flex-col gap-1">
+          {items.map((item) => (
+            <a
+              href={item.href}
+              aria-current={Astro.url.pathname === item.href ? "page" : undefined}
+              class="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-text-dim hover:bg-surface hover:text-text focus-ring aria-[current=page]:bg-accent/15 aria-[current=page]:text-accent"
+            >
+              <span aria-hidden="true">{item.icon}</span> {item.label}
+            </a>
+          ))}
+        </nav>
+        <a href="/" class="rounded-md px-3 py-2 text-sm text-text-dim hover:text-text focus-ring">
+          ← 返回门户
+        </a>
+      </aside>
+
+      <div class="flex min-w-0 flex-1 flex-col">
+        <header class="no-print sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border bg-bg/80 px-4 backdrop-blur">
+          <h1 class="truncate text-base font-semibold text-text">{title}</h1>
+          <div class="flex items-center gap-2">
+            <ThemeToggle client:idle />
+            <LogoutButton client:idle />
+          </div>
+        </header>
+        <main id="main" class="flex-1 px-4 py-6 pb-24 lg:px-8 lg:pb-6">
+          <slot />
+        </main>
+      </div>
+    </div>
+
+    {/* 移动端底部标签栏 */}
+    <nav
+      aria-label="控制台导航"
+      class="no-print fixed inset-x-0 bottom-0 z-40 flex border-t border-border bg-surface/95 backdrop-blur lg:hidden"
+      style="padding-bottom: env(safe-area-inset-bottom)"
+    >
+      {items.map((item) => (
+        <a
+          href={item.href}
+          aria-current={Astro.url.pathname === item.href ? "page" : undefined}
+          class="flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-xs text-text-dim focus-ring aria-[current=page]:text-accent"
+        >
+          <span aria-hidden="true" class="text-base">{item.icon}</span>
+          {item.label}
+        </a>
+      ))}
+    </nav>
+  </div>
+</Base>

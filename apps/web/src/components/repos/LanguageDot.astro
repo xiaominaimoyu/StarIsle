@@ -1,0 +1,33 @@
+---
+interface Props {
+  language: string | null;
+}
+const { language } = Astro.props;
+
+const palette: Record<string, string> = {
+  TypeScript: "#3178c6",
+  JavaScript: "#f1e05a",
+  Python: "#3572a5",
+  HTML: "#e34c26",
+  CSS: "#563d7c",
+  Rust: "#dea584",
+  Go: "#00add8",
+  Java: "#b07219",
+  C: "#555555",
+  "C++": "#f34b7d",
+  Vue: "#41b883",
+  Shell: "#89e051",
+  Dockerfile: "#384d54",
+};
+---
+
+{language ? (
+  <span class="inline-flex items-center gap-1.5 text-xs text-text-dim">
+    <span
+      aria-hidden="true"
+      class="inline-block size-2.5 rounded-full"
+      style={`background-color: ${palette[language] ?? "#9aa5c4"}`}
+    />
+    <span>{language}</span>
+  </span>
+) : null}

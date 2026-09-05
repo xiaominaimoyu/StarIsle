@@ -1,0 +1,40 @@
+---
+import type { Repo } from "@star-isle/contracts";
+import LanguageDot from "./LanguageDot.astro";
+import { formatDate } from "@/lib/format";
+
+interface Props {
+  repo: Repo;
+}
+const { repo } = Astro.props;
+---
+
+<a
+  href={repo.url}
+  target="_blank"
+  rel="noopener noreferrer"
+  class="card card-hover group flex h-full flex-col gap-2 p-4 focus-ring"
+>
+  <div class="flex items-start justify-between gap-2">
+    <span class="truncate font-semibold text-text group-hover:text-accent">{repo.name}</span>
+    <div class="flex shrink-0 gap-1">
+      {repo.featured ? (
+        <span class="inline-flex items-center rounded-full border border-accent-warm/50 px-2 py-0.5 text-xs text-accent-warm">精选</span>
+      ) : null}
+      <span
+        class={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs ${repo.source === "github" ? "border-border text-text-dim" : "border-border text-text-dim"}`}
+      >
+        {repo.source === "github" ? "GitHub" : "Gitee"}
+      </span>
+    </div>
+  </div>
+  <p class="line-clamp-2 flex-1 text-sm text-text-dim">
+    {repo.description ?? "暂无描述"}
+  </p>
+  <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-dim">
+    <LanguageDot language={repo.language} />
+    <span aria-label={`${repo.stars} 星`}>★ {repo.stars}</span>
+    <span aria-label={`${repo.forks} 分支`}>⑂ {repo.forks}</span>
+    <span>更新于 {formatDate(repo.updatedAt)}</span>
+  </div>
+</a>

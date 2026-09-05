@@ -1,0 +1,34 @@
+# Deny by default: the image only needs the Dockerfile, requirements and app source.
+**
+!Dockerfile
+!requirements.txt
+!app/
+!app/**
+!.dockerignore
+
+# A later deny list remains authoritative even if a future allow rule is added.
+.env
+.env.*
+**/.env
+**/.env.*
+*.key
+*.pem
+*.crt
+*.cert
+*.p12
+*.pfx
+**/*.key
+**/*.pem
+**/*.crt
+**/*.cert
+**/*.p12
+**/*.pfx
+*.log
+**/*.log
+.venv/
+venv/
+tests/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+**/*.py[cod]

@@ -1,0 +1,11 @@
+---
+import Console from "@/layouts/Console.astro";
+import SessionGate from "@/components/auth/SessionGate";
+import MailInbox from "@/components/mail/MailInbox";
+---
+
+<Console title="收件箱">
+  <SessionGate client:load>
+    <MailInbox client:load />
+  </SessionGate>
+</Console>

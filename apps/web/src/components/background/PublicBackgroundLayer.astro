@@ -1,0 +1,80 @@
+---
+---
+
+<div data-public-background-layer aria-hidden="true" class="pointer-events-none fixed inset-0 z-0" hidden>
+  <div data-public-background-image class="absolute inset-0 bg-cover bg-center"></div>
+  <div data-public-background-scrim class="scrim absolute inset-0"></div>
+</div>
+
+<script>
+  import { loadPublicBackgroundBlob } from "./public-background-storage";
+  import { parsePublicBackgroundSettings, type PublicBackgroundSettings } from "@/lib/public-ui";
+
+  const SETTINGS_KEY = "star-isle:background-settings";
+  const layer = document.querySelector<HTMLElement>("[data-public-background-layer]");
+  const image = layer?.querySelector<HTMLElement>("[data-public-background-image]");
+  const scrim = layer?.querySelector<HTMLElement>("[data-public-background-scrim]");
+  let activeObjectUrl: string | null = null;
+
+  function readSettings(): PublicBackgroundSettings {
+    try {
+      return parsePublicBackgroundSettings(window.localStorage.getItem(SETTINGS_KEY));
+    } catch {
+      return parsePublicBackgroundSettings(null);
+    }
+  }
+
+  function clearObjectUrl(): void {
+    if (activeObjectUrl) {
+      URL.revokeObjectURL(activeObjectUrl);
+      activeObjectUrl = null;
+    }
+  }
+
+  function render(settings: PublicBackgroundSettings, blob?: Blob | null): void {
+    if (!layer || !image || !scrim) return;
+    clearObjectUrl();
+    const url = settings.custom && blob ? URL.createObjectURL(blob) : settings.url;
+    if (settings.custom && url) activeObjectUrl = url;
+
+    if (!url) {
+      layer.hidden = true;
+      image.style.backgroundImage = "";
+      return;
+    }
+
+    layer.hidden = false;
+    image.style.backgroundImage = `url(${JSON.stringify(url)})`;
+    image.style.filter = settings.blur > 0 ? `blur(${settings.blur}px)` : "";
+    image.style.transform = settings.blur > 0 ? "scale(1.05)" : "";
+    image.style.animation = "fade-in 250ms ease-out";
+    scrim.style.opacity = String(settings.scrimOpacity);
+  }
+
+  async function restoreCustomBackground(settings: PublicBackgroundSettings): Promise<void> {
+    try {
+      render(settings, await loadPublicBackgroundBlob());
+    } catch {
+      render({ ...settings, custom: false, url: null });
+    }
+  }
+
+  const initial = readSettings();
+  if (initial.custom) {
+    void restoreCustomBackground(initial);
+  } else {
+    render(initial);
+  }
+
+  window.addEventListener("star-isle:background-change", (event) => {
+    const detail = (event as CustomEvent<{ settings?: PublicBackgroundSettings; blob?: Blob }>).detail;
+    if (!detail?.settings) return;
+    if (detail.settings.custom && !detail.blob) {
+      void restoreCustomBackground(detail.settings);
+      return;
+    }
+    render(detail.settings, detail.blob);
+  });
+
+  window.addEventListener("pagehide", clearObjectUrl, { once: true });
+</script>

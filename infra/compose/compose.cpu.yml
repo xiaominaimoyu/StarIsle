@@ -1,0 +1,77 @@
+# 可选 CPU 本地模型覆盖层。
+# 仅配合 compose.yml 且 `--profile cpu` 使用；本文件才会让 api/worker 指向内部服务名。
+
+services:
+  api:
+    environment:
+      LLAMA_CHAT_BASE_URL: http://llama-chat:8080
+      LLAMA_EMBED_BASE_URL: http://llama-embed:8081
+      CHAT_MODEL_ID: ${CHAT_MODEL_ID:-starisle-chat}
+      EMBEDDING_MODEL_ID: ${EMBEDDING_MODEL_ID:-starisle-embed}
+      EMBEDDING_DIM: ${EMBEDDING_DIM:-384}
+    depends_on:
+      llama-chat:
+        condition: service_healthy
+      llama-embed:
+        condition: service_healthy
+
+  worker:
+    environment:
+      LLAMA_CHAT_BASE_URL: http://llama-chat:8080
+      LLAMA_EMBED_BASE_URL: http://llama-embed:8081
+      CHAT_MODEL_ID: ${CHAT_MODEL_ID:-starisle-chat}
+      EMBEDDING_MODEL_ID: ${EMBEDDING_MODEL_ID:-starisle-embed}
+      EMBEDDING_DIM: ${EMBEDDING_DIM:-384}
+    depends_on:
+      llama-chat:
+        condition: service_healthy
+      llama-embed:
+        condition: service_healthy
+
+  llama-chat:
+    image: ghcr.io/ggml-org/llama.cpp:server-cpu
+    profiles: [cpu]
+    restart: unless-stopped
+    environment:
+      # profile 开启但未提供模型时容器会诚实失败，不影响基础栈。
+      LLAMA_ARG_MODEL: /models/${CHAT_MODEL_FILE:-CHANGE-ME.gguf}
+      LLAMA_ARG_HOST: 0.0.0.0
+      LLAMA_ARG_PORT: "8080"
+      LLAMA_ARG_CTX_SIZE: "8192"
+      LLAMA_ARG_ALIAS: ${CHAT_MODEL_ID:-starisle-chat}
+    volumes:
+      - type: bind
+        source: ${MODEL_HOST_ROOT:?MODEL_HOST_ROOT must be explicitly set}
+        target: /models
+        read_only: true
+        bind:
+          create_host_path: false
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+  llama-embed:
+    image: ghcr.io/ggml-org/llama.cpp:server-cpu
+    profiles: [cpu]
+    restart: unless-stopped
+    environment:
+      LLAMA_ARG_MODEL: /models/${EMBED_MODEL_FILE:-CHANGE-ME.gguf}
+      LLAMA_ARG_HOST: 0.0.0.0
+      LLAMA_ARG_PORT: "8081"
+      LLAMA_ARG_EMBEDDINGS: "1"
+      LLAMA_ARG_POOLING: mean
+      LLAMA_ARG_ALIAS: ${EMBEDDING_MODEL_ID:-starisle-embed}
+    volumes:
+      - type: bind
+        source: ${MODEL_HOST_ROOT:?MODEL_HOST_ROOT must be explicitly set}
+        target: /models
+        read_only: true
+        bind:
+          create_host_path: false
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8081/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5

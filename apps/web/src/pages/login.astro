@@ -1,0 +1,20 @@
+---
+import Base from "@/layouts/Base.astro";
+import AuthCard from "@/components/auth/AuthCard";
+import LoginForm from "@/components/auth/LoginForm";
+---
+
+<Base title="登录 · 星屿 StarIsle" description="登录进入你的岛屿控制台" noindex>
+  <div class="flex min-h-dvh flex-col">
+    <header class="sticky top-0 z-40 border-b border-border bg-bg/80 backdrop-blur">
+      <div class="mx-auto flex h-16 max-w-6xl items-center px-4">
+        <a href="/" class="font-display text-lg font-semibold text-text focus-ring rounded">
+          <span aria-hidden="true">✦</span> 星屿 StarIsle
+        </a>
+      </div>
+    </header>
+    <AuthCard title="登录 StarIsle" message="进入你的岛屿控制台。">
+      <LoginForm client:load />
+    </AuthCard>
+  </div>
+</Base>

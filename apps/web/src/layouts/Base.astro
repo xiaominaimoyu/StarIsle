@@ -1,0 +1,79 @@
+---
+import "../styles/global.css";
+import PublicBackgroundLayer from "@/components/background/PublicBackgroundLayer.astro";
+import PublicMusicPlayer from "@/components/player/PublicMusicPlayer.astro";
+import { getPublicSiteUrl, publicSiteUrlForPath } from "@/lib/seo";
+import playlist from "@/site-data/playlist.json";
+
+interface Props {
+  title: string;
+  description?: string;
+  canonical?: string;
+  noindex?: boolean;
+  /** 是否挂载背景层与播放器(控制台内部页可关闭) */
+  chrome?: boolean;
+}
+
+const {
+  title,
+  description = "星屿 StarIsle · 个人全栈门户",
+  canonical,
+  noindex = false,
+  chrome = true,
+} = Astro.props;
+
+const siteUrl = getPublicSiteUrl(import.meta.env.PUBLIC_SITE_URL);
+const canonicalUrl = noindex ? undefined : canonical ?? publicSiteUrlForPath(siteUrl, Astro.url.pathname);
+---
+
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    {canonicalUrl ? <link rel="canonical" href={canonicalUrl} /> : null}
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    {canonicalUrl ? <meta property="og:url" content={canonicalUrl} /> : null}
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="星屿 StarIsle" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    {noindex ? <meta name="robots" content="noindex" /> : null}
+    <meta name="generator" content={Astro.generator} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <script is:inline>
+      // 防闪烁:只恢复主题偏好(不碰背景),避免 FOUC
+      (() => {
+        try {
+          var t = localStorage.getItem("star-isle:theme");
+          if (t === "light") document.documentElement.dataset.theme = "light";
+        } catch (e) {}
+      })();
+    </script>
+    <style is:global>
+      @keyframes fade-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+    </style>
+  </head>
+  <body class="flex min-h-dvh flex-col font-body">
+    <a
+      href="#main"
+      class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-70 focus:rounded-md focus:bg-accent focus:px-4 focus:py-2 focus:text-accent-foreground"
+    >
+      跳转到主内容
+    </a>
+    {chrome ? (
+      <>
+        <PublicBackgroundLayer />
+        <PublicMusicPlayer tracks={playlist.tracks} />
+      </>
+    ) : null}
+    <slot />
+  </body>
+</html>

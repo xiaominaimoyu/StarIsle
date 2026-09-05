@@ -1,0 +1,118 @@
+---
+import type { Repo, RepoSnapshot } from "@star-isle/contracts";
+import RepoCard from "./RepoCard.astro";
+
+interface Props {
+  snapshot: RepoSnapshot;
+  repos: Repo[];
+}
+
+const { snapshot, repos } = Astro.props;
+const sourcesOk = snapshot.sources.filter((source) => source.ok).length;
+const snapshotDate = snapshot.fetchedAt ? new Date(snapshot.fetchedAt).toLocaleDateString("zh-CN") : "未知时间";
+---
+
+{snapshot.sources.length === 0 ? (
+  <div class="card p-6 text-center">
+    <h3 class="text-lg font-semibold text-text">暂未配置仓库来源</h3>
+    <p class="mt-2 text-sm text-text-dim">构建时已跳过抓取。配置 GITHUB_USERNAME / GITEE_USERNAME 后重新构建即可展示。</p>
+  </div>
+) : (
+  <section data-public-repo-grid aria-label="仓库快照" class="flex flex-col gap-4">
+    {sourcesOk < snapshot.sources.length ? (
+      <div class="flex items-center gap-2 rounded-md border border-accent/40 bg-surface px-3 py-2 text-sm text-accent" role="status">
+        <span aria-hidden="true">ℹ</span>
+        <span>以下为构建期快照，采集于 {snapshotDate}；部分来源抓取失败，已显示最近成功缓存；最新数据请访问来源平台。</span>
+      </div>
+    ) : null}
+
+    <div class="flex flex-wrap items-center gap-2" role="group" aria-label="仓库筛选">
+      <div class="flex overflow-hidden rounded-md border border-border" role="group" aria-label="按来源筛选">
+        <button type="button" data-repo-source="all" aria-pressed="true" class="bg-accent px-3 py-1.5 text-sm text-accent-foreground focus-ring">全部</button>
+        <button type="button" data-repo-source="github" aria-pressed="false" class="bg-transparent px-3 py-1.5 text-sm text-text-dim hover:text-text focus-ring">GitHub</button>
+        <button type="button" data-repo-source="gitee" aria-pressed="false" class="bg-transparent px-3 py-1.5 text-sm text-text-dim hover:text-text focus-ring">Gitee</button>
+      </div>
+      <div class="flex overflow-hidden rounded-md border border-border" role="group" aria-label="排序方式">
+        <button type="button" data-repo-sort="featured" aria-pressed="true" class="bg-accent px-3 py-1.5 text-sm text-accent-foreground focus-ring">精选优先</button>
+        <button type="button" data-repo-sort="updated" aria-pressed="false" class="bg-transparent px-3 py-1.5 text-sm text-text-dim hover:text-text focus-ring">最近更新</button>
+      </div>
+    </div>
+
+    <p data-repo-empty class="card p-6 text-center text-sm text-text-dim" hidden>该筛选下暂无仓库。换一个来源或排序方式试试；快照数据来自构建期抓取。</p>
+    <ul data-repo-list class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {repos.map((repo, index) => (
+        <li data-repo-card data-repo-source={repo.source} data-repo-featured={String(repo.featured)} data-repo-updated-at={repo.updatedAt} data-repo-order={index}>
+          <RepoCard repo={repo} />
+        </li>
+      ))}
+    </ul>
+  </section>
+)}
+
+<script>
+  const grids = document.querySelectorAll<HTMLElement>("[data-public-repo-grid]");
+
+  grids.forEach((grid) => {
+    const list = grid.querySelector<HTMLElement>("[data-repo-list]");
+    const empty = grid.querySelector<HTMLElement>("[data-repo-empty]");
+    if (!list || !empty) return;
+    const repoList = list;
+    const emptyState = empty;
+    const cards = Array.from(repoList.querySelectorAll<HTMLElement>("[data-repo-card]")).map((element, index) => ({ element, index }));
+    const sourceButtons = Array.from(grid.querySelectorAll<HTMLButtonElement>("[data-repo-source]"));
+    const sortButtons = Array.from(grid.querySelectorAll<HTMLButtonElement>("[data-repo-sort]"));
+    let source = "all";
+    let sort = "featured";
+
+    function timestamp(value: string | undefined): number {
+      if (!value) return 0;
+      const parsed = Date.parse(value);
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    function render(): void {
+      const visible = cards
+        .filter(({ element }) => source === "all" || element.dataset.repoSource === source)
+        .sort((left, right) => {
+          const leftFeatured = left.element.dataset.repoFeatured === "true";
+          const rightFeatured = right.element.dataset.repoFeatured === "true";
+          if (sort === "featured" && leftFeatured !== rightFeatured) return leftFeatured ? -1 : 1;
+          const dateDifference = timestamp(right.element.dataset.repoUpdatedAt) - timestamp(left.element.dataset.repoUpdatedAt);
+          return dateDifference || left.index - right.index;
+        });
+      const visibleElements = new Set(visible.map(({ element }) => element));
+      cards.forEach(({ element }) => {
+        element.hidden = !visibleElements.has(element);
+      });
+      repoList.append(...visible.map(({ element }) => element), ...cards.filter(({ element }) => !visibleElements.has(element)).map(({ element }) => element));
+      emptyState.hidden = visible.length !== 0;
+
+      sourceButtons.forEach((button) => {
+        const active = button.dataset.repoSource === source;
+        button.setAttribute("aria-pressed", String(active));
+        button.classList.toggle("bg-accent", active);
+        button.classList.toggle("text-accent-foreground", active);
+        button.classList.toggle("bg-transparent", !active);
+        button.classList.toggle("text-text-dim", !active);
+      });
+      sortButtons.forEach((button) => {
+        const active = button.dataset.repoSort === sort;
+        button.setAttribute("aria-pressed", String(active));
+        button.classList.toggle("bg-accent", active);
+        button.classList.toggle("text-accent-foreground", active);
+        button.classList.toggle("bg-transparent", !active);
+        button.classList.toggle("text-text-dim", !active);
+      });
+    }
+
+    sourceButtons.forEach((button) => button.addEventListener("click", () => {
+      source = button.dataset.repoSource ?? "all";
+      render();
+    }));
+    sortButtons.forEach((button) => button.addEventListener("click", () => {
+      sort = button.dataset.repoSort ?? "featured";
+      render();
+    }));
+    render();
+  });
+</script>

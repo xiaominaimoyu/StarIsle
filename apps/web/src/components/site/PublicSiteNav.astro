@@ -1,0 +1,114 @@
+---
+interface Props {
+  showAuth?: boolean;
+}
+
+const { showAuth = true } = Astro.props;
+const links = [
+  { href: "/", label: "首页" },
+  { href: "/projects", label: "项目" },
+  { href: "/resume", label: "简历" },
+];
+const normalizedPath = Astro.url.pathname.replace(/\/+$/, "") || "/";
+const isCurrent = (href: string) => (href === "/" ? normalizedPath === "/" : normalizedPath === href);
+---
+
+<nav aria-label="主导航" class="hidden items-center gap-1 md:flex">
+  {links.map((link) => (
+    <a href={link.href} aria-current={isCurrent(link.href) ? "page" : undefined} class="rounded-md px-3 py-2 text-sm text-text-dim hover:text-text focus-ring">
+      {link.label}
+    </a>
+  ))}
+  {showAuth ? <a href="/console" class="rounded-md px-3 py-2 text-sm text-text-dim hover:text-text focus-ring">控制台</a> : null}
+</nav>
+
+<button
+  type="button"
+  data-public-nav-trigger
+  class="inline-flex size-10 items-center justify-center rounded-md text-text-dim hover:bg-surface hover:text-text focus-ring md:hidden"
+  aria-expanded="false"
+  aria-controls="mobile-navigation-dialog"
+  aria-label="打开导航菜单"
+>
+  <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+    <path d="M4 6h16M4 12h16M4 18h16" />
+  </svg>
+</button>
+
+<div id="mobile-navigation-dialog" data-public-modal data-public-nav-dialog role="dialog" aria-modal="true" aria-labelledby="mobile-navigation-title" class="fixed inset-0 z-60 md:hidden" hidden>
+  <button type="button" data-public-nav-close class="absolute inset-0 cursor-default bg-black/60" aria-label="关闭导航菜单"></button>
+  <div data-public-nav-panel tabindex="-1" class="modal-enter absolute right-0 top-0 flex h-full w-64 flex-col gap-1 border-l border-border bg-surface p-4 shadow-2">
+    <div class="mb-3 flex items-center justify-between">
+      <h2 id="mobile-navigation-title" class="font-display text-lg font-semibold text-text"><span aria-hidden="true">✦</span> 导航菜单</h2>
+      <button type="button" data-public-nav-close class="inline-flex size-10 items-center justify-center rounded-md text-text-dim hover:bg-bg focus-ring" aria-label="关闭导航菜单">✕</button>
+    </div>
+    {links.map((link) => (
+      <a href={link.href} aria-current={isCurrent(link.href) ? "page" : undefined} class="rounded-md px-3 py-2 text-sm text-text-dim hover:text-text focus-ring">
+        {link.label}
+      </a>
+    ))}
+    {showAuth ? <a href="/console" class="rounded-md px-3 py-2 text-sm text-text-dim hover:text-text focus-ring">控制台</a> : null}
+  </div>
+</div>
+
+<script>
+  const trigger = document.querySelector<HTMLButtonElement>("[data-public-nav-trigger]");
+  const dialog = document.querySelector<HTMLElement>("[data-public-nav-dialog]");
+  const panel = dialog?.querySelector<HTMLElement>("[data-public-nav-panel]");
+  let previousFocus: HTMLElement | null = null;
+
+  function updateBodyScrollLock(): void {
+    document.body.classList.toggle(
+      "public-modal-open",
+      document.querySelectorAll("[data-public-modal]:not([hidden])").length > 0,
+    );
+  }
+
+  function focusables(): HTMLElement[] {
+    if (!panel) return [];
+    return Array.from(panel.querySelectorAll<HTMLElement>("a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex='-1'])"));
+  }
+
+  function openDialog(): void {
+    if (!dialog || !trigger) return;
+    previousFocus = trigger;
+    dialog.hidden = false;
+    trigger.setAttribute("aria-expanded", "true");
+    updateBodyScrollLock();
+    focusables()[0]?.focus();
+  }
+
+  function closeDialog(): void {
+    if (!dialog || dialog.hidden) return;
+    dialog.hidden = true;
+    trigger?.setAttribute("aria-expanded", "false");
+    updateBodyScrollLock();
+    previousFocus?.focus();
+    previousFocus = null;
+  }
+
+  trigger?.addEventListener("click", openDialog);
+  dialog?.querySelectorAll<HTMLElement>("[data-public-nav-close], a[href]").forEach((element) => {
+    element.addEventListener("click", closeDialog);
+  });
+  document.addEventListener("keydown", (event) => {
+    if (!dialog || dialog.hidden) return;
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeDialog();
+      return;
+    }
+    if (event.key !== "Tab") return;
+    const items = focusables();
+    if (!items.length) return;
+    const first = items[0]!;
+    const last = items[items.length - 1]!;
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  });
+</script>

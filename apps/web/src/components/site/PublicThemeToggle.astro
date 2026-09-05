@@ -1,0 +1,55 @@
+---
+---
+
+<button
+  type="button"
+  data-public-theme-toggle
+  aria-label="切换到亮色主题"
+  title="切换到亮色主题"
+  class="inline-flex size-10 items-center justify-center rounded-md text-text-dim hover:bg-surface hover:text-text focus-ring"
+>
+  <span data-public-theme-icon aria-hidden="true">☾</span>
+  <span data-public-theme-label class="sr-only">切换到亮色主题</span>
+</button>
+
+<script>
+  import { nextPublicTheme, parsePublicTheme } from "@/lib/public-ui";
+
+  const THEME_KEY = "star-isle:theme";
+  const button = document.querySelector<HTMLButtonElement>("[data-public-theme-toggle]");
+  const icon = button?.querySelector<HTMLElement>("[data-public-theme-icon]");
+  const label = button?.querySelector<HTMLElement>("[data-public-theme-label]");
+
+  function readTheme() {
+    try {
+      return parsePublicTheme(window.localStorage.getItem(THEME_KEY));
+    } catch {
+      return parsePublicTheme(document.documentElement.dataset.theme);
+    }
+  }
+
+  function render(theme: "dark" | "light"): void {
+    const nextLabel = theme === "light" ? "切换到暗色主题" : "切换到亮色主题";
+    document.documentElement.dataset.theme = theme;
+    if (button) {
+      button.setAttribute("aria-label", nextLabel);
+      button.title = nextLabel;
+    }
+    if (icon) icon.textContent = theme === "light" ? "☀" : "☾";
+    if (label) label.textContent = nextLabel;
+  }
+
+  render(readTheme());
+  button?.addEventListener("click", () => {
+    const next = nextPublicTheme(parsePublicTheme(document.documentElement.dataset.theme));
+    render(next);
+    try {
+      window.localStorage.setItem(THEME_KEY, next);
+    } catch {
+      // 存储失败不影响本页切换。
+    }
+  });
+  window.addEventListener("storage", (event) => {
+    if (event.key === THEME_KEY) render(parsePublicTheme(event.newValue));
+  });
+</script>

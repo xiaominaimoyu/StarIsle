@@ -1,0 +1,28 @@
+{
+  "name": "star-isle",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "description": "星屿 StarIsle - 个人全栈门户(公开求职展示 + 私有数据入口 + RAG 知识库)",
+  "packageManager": "pnpm@9.15.4",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "lint": "pnpm -r lint",
+    "test": "pnpm test:email-worker && pnpm -r test",
+    "test:contracts": "pnpm --filter @star-isle/contracts test",
+    "test:email-worker": "node --test scripts/email-worker.test.mjs",
+    "build": "pnpm --filter @star-isle/contracts build && pnpm --filter @star-isle/web build",
+    "release:gate": "python -B scripts/release_artifact_gate.py",
+    "build:release": "python -B scripts/release_artifact_gate.py --config-only && pnpm build && python -B scripts/release_artifact_gate.py",
+    "fetch:repos": "tsx scripts/fetch-repos.ts",
+    "dev": "pnpm --filter @star-isle/web dev"
+  },
+  "devDependencies": {
+    "@star-isle/contracts": "workspace:^",
+    "@types/node": "^26.4.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}

@@ -1,0 +1,11 @@
+---
+import Console from "@/layouts/Console.astro";
+import SessionGate from "@/components/auth/SessionGate";
+import FileTable from "@/components/files/FileTable";
+---
+
+<Console title="文件">
+  <SessionGate client:load>
+    <FileTable client:load />
+  </SessionGate>
+</Console>

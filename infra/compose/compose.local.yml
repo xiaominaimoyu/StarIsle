@@ -1,0 +1,20 @@
+# 星屿 StarIsle · 仅本机 loopback 入口覆盖层。
+# 必须与 compose.yml 合并使用；默认 API env_file 仅供开发，且为 optional/raw。
+
+services:
+  caddy:
+    ports:
+      - "127.0.0.1:${CADDY_HOST_PORT:-8080}:8080/tcp"
+    environment:
+      STAR_ISLE_SITE_ADDRESS: ":8080"
+      ACME_EMAIL: "admin@example.invalid"
+
+  api:
+    env_file:
+      - path: ${STAR_ISLE_API_ENV_FILE:-../../apps/api/.env}
+        required: false
+        # Argon2id 哈希含 $；raw 防止 Compose 将其误当变量展开。
+        format: raw
+    environment:
+      STAR_ISLE_ENV: development
+      COOKIE_SECURE: "false"

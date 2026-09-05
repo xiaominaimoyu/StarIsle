@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "datasetId": "synthetic-smoke-v1",
+  "kind": "synthetic-smoke",
+  "corpus": {
+    "id": "synthetic-corpus",
+    "version": "v1",
+    "authorized": false,
+    "documentIds": [
+      "synthetic-doc-alpha",
+      "synthetic-doc-backup",
+      "synthetic-doc-profile"
+    ]
+  },
+  "questions": [
+    {
+      "id": "synthetic-q-1",
+      "query": "synthetic alpha retrieval",
+      "relevantDocumentIds": ["synthetic-doc-alpha"]
+    },
+    {
+      "id": "synthetic-q-2",
+      "query": "synthetic backup verification",
+      "relevantDocumentIds": ["synthetic-doc-backup"]
+    },
+    {
+      "id": "synthetic-q-3",
+      "query": "synthetic profile isolation",
+      "relevantDocumentIds": ["synthetic-doc-profile"]
+    }
+  ]
+}

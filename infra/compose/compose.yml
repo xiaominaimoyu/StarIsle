@@ -1,0 +1,101 @@
+# 星屿 StarIsle · Docker Compose 内部基础层。
+# 不可单独启动；必须与 compose.local.yml 或 compose.prod.yml 合并。
+# 基础文件不连接模型服务；仅在同时提供 compose.cpu.yml 且开启 cpu profile 时才覆盖为服务名。
+
+services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    # 所有服务显式声明 json-file 轮转，避免容器 stdout JSONL 无界增长。
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    volumes:
+      - type: bind
+        source: ../caddy/Caddyfile
+        target: /etc/caddy/Caddyfile
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ../../apps/web/dist
+        target: /srv/web
+        read_only: true
+        bind:
+          create_host_path: false
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "caddy", "version"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  api:
+    build: ../../apps/api
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    environment:
+      DATA_ROOT: /data
+      # API/worker 共用的非 secret 运行参数必须由 Compose topology env 统一覆盖。
+      MAIL_RETENTION_DAYS: ${MAIL_RETENTION_DAYS:-30}
+      IDEMPOTENCY_RETENTION_DAYS: ${IDEMPOTENCY_RETENTION_DAYS:-30}
+      EMBEDDING_DIM: ${EMBEDDING_DIM:-384}
+      # 基础栈明确不接模型；不能由 .env 中的宿主 URL 意外变成容器依赖。
+      LLAMA_CHAT_BASE_URL: ""
+      LLAMA_EMBED_BASE_URL: ""
+    volumes:
+      # 必须由启动方显式指向隔离或持久运行时目录，绝不回退到仓库 data/。
+      - type: bind
+        source: ${DATA_HOST_ROOT:?DATA_HOST_ROOT must be explicitly set}
+        target: /data
+        bind:
+          create_host_path: false
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health/ready').read()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  worker:
+    build: ../../apps/api
+    command: python -m app.worker_runner
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    environment:
+      DATA_ROOT: /data
+      # worker 不接收 API 的 JWT、管理员哈希或邮件 HMAC；仅保留运行必需的非 secret 配置。
+      MAIL_RETENTION_DAYS: ${MAIL_RETENTION_DAYS:-30}
+      IDEMPOTENCY_RETENTION_DAYS: ${IDEMPOTENCY_RETENTION_DAYS:-30}
+      # audit 保留期清理由 worker 执行；API 不读取这两个变量。
+      AUDIT_RETENTION_DAYS: ${AUDIT_RETENTION_DAYS:-90}
+      AUDIT_SOFT_CAP_ROWS: ${AUDIT_SOFT_CAP_ROWS:-100000}
+      # 与 api 一样，基础栈不连接任何模型服务。
+      LLAMA_CHAT_BASE_URL: ""
+      LLAMA_EMBED_BASE_URL: ""
+      CHAT_MODEL_ID: ${CHAT_MODEL_ID:-}
+      EMBEDDING_MODEL_ID: ${EMBEDDING_MODEL_ID:-}
+      EMBEDDING_DIM: ${EMBEDDING_DIM:-384}
+    volumes:
+      - type: bind
+        source: ${DATA_HOST_ROOT:?DATA_HOST_ROOT must be explicitly set}
+        target: /data
+        bind:
+          create_host_path: false
+
+volumes:
+  caddy_data:
+  caddy_config:
