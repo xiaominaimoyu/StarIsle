@@ -288,12 +288,17 @@ async def upload_photo(
 
     # 解码资源校验:先依据 header 拒绝超大图，再完整解码验证内容。
     try:
-        from PIL import Image
+        from PIL import Image, ImageOps
         import io
 
-        img = Image.open(io.BytesIO(data))
-        w, h = _validate_image_header_dimensions(img)
-        img.load()
+        with Image.open(io.BytesIO(data)) as img:
+            _validate_image_header_dimensions(img)
+            img.load()
+            oriented = ImageOps.exif_transpose(img)
+            try:
+                w, h = oriented.size
+            finally:
+                oriented.close()
     except HTTPException:
         raise
     except Exception:
@@ -401,30 +406,45 @@ def delete_photo(
 
 
 def _make_thumbnail(data: bytes, mime: str) -> bytes:
-    from PIL import Image
+    from PIL import Image, ImageOps
     import io
 
-    img = Image.open(io.BytesIO(data))
-    _validate_image_header_dimensions(img)
-    img = img.convert("RGB")
-    img.thumbnail((settings.thumbnail_max_edge, settings.thumbnail_max_edge))
-    buf = io.BytesIO()
-    img.save(buf, format="WEBP", quality=settings.thumbnail_quality)
-    return buf.getvalue()
+    with Image.open(io.BytesIO(data)) as img:
+        _validate_image_header_dimensions(img)
+        img.load()
+        oriented = ImageOps.exif_transpose(img)
+        try:
+            thumbnail = oriented.convert("RGB")
+        finally:
+            oriented.close()
+    try:
+        thumbnail.thumbnail((settings.thumbnail_max_edge, settings.thumbnail_max_edge))
+        buf = io.BytesIO()
+        thumbnail.save(buf, format="WEBP", quality=settings.thumbnail_quality)
+        return buf.getvalue()
+    finally:
+        thumbnail.close()
 
 
 def _read_exif_capture(data: bytes) -> str | None:
     """仅读取拍摄时间摘要;GPS 默认不投影到 UI。"""
     try:
-        from PIL import Image
-        from PIL.ExifTags import TAGS
+        from PIL import ExifTags, Image
         import io
 
-        img = Image.open(io.BytesIO(data))
-        exif = img.getexif()
-        for tag_id, value in exif.items():
-            if TAGS.get(tag_id) == "DateTimeOriginal" and value:
-                return normalize_photo_capture_at(value)
+        with Image.open(io.BytesIO(data)) as img:
+            exif = img.getexif()
+            try:
+                nested_value = exif.get_ifd(ExifTags.IFD.Exif).get(0x9003)
+            except Exception:
+                # Malformed camera metadata must not suppress a valid historical
+                # top-level fallback or reject the otherwise-decodable upload.
+                nested_value = None
+            # 标准 Exif 子 IFD 优先；顶层值仅用于兼容既有非标准图片。
+            for value in (nested_value, exif.get(0x9003)):
+                normalized = normalize_photo_capture_at(value)
+                if normalized is not None:
+                    return normalized
     except Exception:
         pass
     return None

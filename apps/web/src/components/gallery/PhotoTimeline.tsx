@@ -103,6 +103,7 @@ export default function PhotoTimeline() {
       setLoadMoreError(null);
       setPhotos((prev) => prev.filter((item) => item.id !== photo.id));
       setPendingDelete(null);
+      void load();
     } catch (err) {
       if (mountedRef.current) {
         setDeleteError(err instanceof Error ? err.message : "删除失败,请重试。");

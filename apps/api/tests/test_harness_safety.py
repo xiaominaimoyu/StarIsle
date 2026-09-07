@@ -605,6 +605,57 @@ def test_browser_external_credentials_and_argon_helper_keep_password_out_of_argv
     assert all(canary not in "\0".join(command) for command in argv_seen)
 
 
+def test_browser_fixture_db_requires_parent_owned_temp_capability(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+):
+    browser = _browser_module()
+    live_root = tmp_path / "live-data"
+    live_db = live_root / "db" / "star-isle.db"
+    live_db.parent.mkdir(parents=True)
+    live_db.write_bytes(b"PRIVATE_CANARY_DATABASE")
+    entered_flow = False
+
+    def unexpected_flow(*_args, **_kwargs):
+        nonlocal entered_flow
+        entered_flow = True
+        raise AssertionError("PRIVATE_CANARY_FLOW")
+
+    monkeypatch.setenv(browser.BROWSER_TEST_PASSWORD_ENV, "test-only-browser-password")
+    monkeypatch.setenv("MAIL_HMAC_KEY", "test-only-mail-hmac")
+    monkeypatch.setenv("DATA_ROOT", str(live_root))
+    monkeypatch.delenv(browser.FIXTURE_CAPABILITY_ENV, raising=False)
+    monkeypatch.setattr(browser, "_browser_flow", unexpected_flow)
+    assert browser.main(
+        [
+            "--external-services",
+            "--base",
+            "http://127.0.0.1:4321",
+            "--api-base",
+            "http://127.0.0.1:8000",
+            "--isolated-fixture-db",
+            str(live_db),
+        ]
+    ) == 1
+    captured = capsys.readouterr()
+    assert not entered_flow
+    assert live_db.read_bytes() == b"PRIVATE_CANARY_DATABASE"
+    assert captured.out == ""
+    assert captured.err == "BROWSER_E2E_FAILED\n"
+    assert "PRIVATE_CANARY" not in captured.out + captured.err
+
+    with browser.owned_temporary_directory("starisle-browser-e2e-") as temporary:
+        temporary_root = Path(temporary)
+        data_root = temporary_root / "data"
+        fixture_db = data_root / "db" / "star-isle.db"
+        fixture_db.parent.mkdir(parents=True)
+        fixture_db.write_bytes(b"disposable")
+        capability = "parent-owned-test-capability"
+        (temporary_root / browser.FIXTURE_CAPABILITY_FILE).write_text(capability, encoding="ascii")
+        monkeypatch.setenv("DATA_ROOT", str(data_root))
+        monkeypatch.setenv(browser.FIXTURE_CAPABILITY_ENV, capability)
+        assert browser._validated_isolated_fixture_db(fixture_db) == fixture_db.resolve()
+
+
 def test_browser_receipt_rejects_live_roots_and_cleanup_failure_is_nonzero(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ):

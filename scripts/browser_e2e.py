@@ -30,6 +30,8 @@ from harness_safety import (
     HarnessSafetyError,
     OwnedProcess,
     OwnedProcessError,
+    has_link_or_reparse_component,
+    is_within,
     is_loopback_origin,
     new_temporary_directory_path,
     new_temporary_file_path,
@@ -37,6 +39,7 @@ from harness_safety import (
     safe_request_label,
     spawn_owned_process,
     stop_owned_process,
+    validated_system_temp_root,
     wait_for_owned_process,
 )
 try:
@@ -48,6 +51,8 @@ except ImportError:  # Allows stdlib lifecycle regression tests without browser 
 
 EVIDENCE: Path | None = None
 BROWSER_TEST_PASSWORD_ENV = "STAR_ISLE_E2E_TEST_PASSWORD"
+FIXTURE_CAPABILITY_ENV = "STAR_ISLE_E2E_FIXTURE_CAPABILITY"
+FIXTURE_CAPABILITY_FILE = ".starisle-browser-e2e-capability"
 FIXTURE_CANCELLED_UI_TEXT = "已取消。已生成的部分不会保存为完整回答。"
 
 PNG_1PX = base64.b64decode(
@@ -1018,6 +1023,51 @@ def _verify_isolated_mail_raw(data_root: Path) -> bool:
         return False
 
 
+def _validated_isolated_fixture_db(value: str | Path | None) -> Path | None:
+    """Accept a fixture DB only from this harness's parent-owned temporary stack."""
+
+    if value is None:
+        return None
+    capability = os.environ.pop(FIXTURE_CAPABILITY_ENV, "")
+    data_root_value = os.environ.get("DATA_ROOT", "")
+    if not capability or not data_root_value:
+        raise HarnessSafetyError("isolated fixture capability unavailable")
+
+    supplied = Path(value).expanduser()
+    configured_data_root = Path(data_root_value).expanduser()
+    if has_link_or_reparse_component(supplied) or has_link_or_reparse_component(configured_data_root):
+        raise HarnessSafetyError("isolated fixture path contains a link or reparse point")
+    try:
+        fixture_db = supplied.resolve(strict=True)
+        data_root = configured_data_root.resolve(strict=True)
+        expected_db = (data_root / "db" / "star-isle.db").resolve(strict=True)
+    except OSError as exc:
+        raise HarnessSafetyError("isolated fixture path is unavailable") from exc
+
+    temporary_root = data_root.parent
+    system_temp = validated_system_temp_root()
+    if (
+        not fixture_db.is_file()
+        or fixture_db != expected_db
+        or data_root.name != "data"
+        or not temporary_root.name.startswith("starisle-browser-e2e-")
+        or temporary_root.parent != system_temp
+        or not is_within(fixture_db, temporary_root)
+    ):
+        raise HarnessSafetyError("isolated fixture path is not parent-owned")
+
+    marker = temporary_root / FIXTURE_CAPABILITY_FILE
+    if has_link_or_reparse_component(marker) or not marker.is_file() or marker.stat().st_size > 256:
+        raise HarnessSafetyError("isolated fixture capability is invalid")
+    try:
+        marker_value = marker.read_text(encoding="ascii")
+    except (OSError, UnicodeError) as exc:
+        raise HarnessSafetyError("isolated fixture capability is unreadable") from exc
+    if not secrets.compare_digest(marker_value, capability):
+        raise HarnessSafetyError("isolated fixture capability does not match")
+    return fixture_db
+
+
 def _wait_for_owned_child(
     process: OwnedProcess, *, timeout_seconds: float = 240
 ) -> tuple[int, bool]:
@@ -1132,6 +1182,7 @@ def _run_isolated_local_e2e(args) -> int:
         web_env = os.environ.copy()
         web_env.update({"API_DEV_PROXY_TARGET": api_base})
         child_env = os.environ.copy()
+        fixture_capability = secrets.token_urlsafe(48)
         child_env.update(
             {
                 "DATA_ROOT": str(data_root),
@@ -1139,6 +1190,7 @@ def _run_isolated_local_e2e(args) -> int:
                 "MAIL_HMAC_KEY": hmac_key,
                 "MAIL_MAX_BYTES": api_env["MAIL_MAX_BYTES"],
                 BROWSER_TEST_PASSWORD_ENV: test_password,
+                FIXTURE_CAPABILITY_ENV: fixture_capability,
             }
         )
         child_env.pop("STAR_ISLE_E2E_EVIDENCE", None)
@@ -1146,6 +1198,9 @@ def _run_isolated_local_e2e(args) -> int:
         try:
             data_root.mkdir(mode=0o700)
             data_host_root.mkdir(mode=0o700)
+            capability_file = new_temporary_file_path(temporary_root / FIXTURE_CAPABILITY_FILE)
+            with capability_file.open("x", encoding="ascii") as handle:
+                handle.write(fixture_capability)
             new_temporary_file_path(
                 receipt_file,
                 protected_roots=(*_receipt_protected_roots(), data_root, data_host_root),
@@ -1448,11 +1503,7 @@ def _browser_flow(args, sample_txt: Path, sample_png: Path, receipt_file: Path) 
         if args.isolated_fixture_db:
             _seed_photo_capture_group(Path(args.isolated_fixture_db))
             page.reload(wait_until="networkidle")
-            capture_day = page.evaluate(
-                """() => new Date(2026, 8, 5, 12, 0, 0).toLocaleDateString('zh-CN', {
-                  year: 'numeric', month: '2-digit', day: '2-digit'
-                })"""
-            )
+            capture_day = "2026/09/05"
             same_day_photos = page.get_by_role("img", name=f"照片 {capture_day}", exact=True)
             expect(same_day_photos).to_have_count(2, timeout=15_000)
             timeline_labels = page.locator("section[aria-label]").evaluate_all(
@@ -2157,7 +2208,10 @@ def main(argv: list[str] | None = None) -> int:
                 except RuntimeError:
                     print("BROWSER_E2E_TEST_CREDENTIALS_REQUIRED", file=sys.stderr)
                     return 1
+                args.isolated_fixture_db = _validated_isolated_fixture_db(args.isolated_fixture_db)
             else:
+                if args.isolated_fixture_db:
+                    raise HarnessSafetyError("isolated fixture DB is child-only")
                 return _run_isolated_local_e2e(args)
         with _evidence_directory(args) as evidence, _mail_receipt_file(args) as receipt_file:
             EVIDENCE = evidence

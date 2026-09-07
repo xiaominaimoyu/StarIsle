@@ -3,6 +3,7 @@ import type { PhotoSummary } from "@star-isle/contracts";
 import {
   appendUniquePhotos,
   groupPhotosByCaptureDay,
+  normalizePhotoCaptureAt,
   UNKNOWN_CAPTURE_DAY,
 } from "./photo-timeline-state";
 
@@ -42,5 +43,12 @@ describe("photo timeline state", () => {
 
     expect(merged.map((item) => item.id)).toEqual(["photo-003", "photo-002", "photo-001"]);
     expect(merged[1]).toBe(existing);
+  });
+
+  it("validates floating wall-clock fields without applying the browser timezone", () => {
+    expect(normalizePhotoCaptureAt("2024:02:29 23:59:59")).toBe("2024-02-29T23:59:59");
+    expect(normalizePhotoCaptureAt("2026-03-08T02:30:00")).toBe("2026-03-08T02:30:00");
+    expect(normalizePhotoCaptureAt("2023:02:29 10:00:00")).toBeNull();
+    expect(normalizePhotoCaptureAt("2026:09:05 24:00:00")).toBeNull();
   });
 });

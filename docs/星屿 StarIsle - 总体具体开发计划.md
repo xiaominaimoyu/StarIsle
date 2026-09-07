@@ -6,6 +6,7 @@
 
 版本：v1.0  
 编制日期：2026-08-27  
+最近修订：2026-09-07（冻结照片墙钟时间、版本化复合游标与兼容边界；实现状态与验收证据见 `开发进度.md`）
 状态：Planned / Not implemented  
 读者：项目所有者、后续实施者、代码审阅者与部署维护者  
 历史输入：[星屿StarIsle-个人全栈门户项目计划书.docx](./星屿StarIsle-个人全栈门户项目计划书.docx) v1.0（2026-08-27）
@@ -253,7 +254,7 @@ star-isle/
 | `POST /files` | `multipart/form-data` 的文件与可选标签 | 已登录 + CSRF + `Idempotency-Key`；201、413、415、422 |
 | `GET /files/{fileId}/download` | 短生命周期下载响应，不暴露真实路径 | 已登录；200、404 |
 | `DELETE /files/{fileId}` | 无业务体 | 已登录 + CSRF；204、404；按保留策略软删后清理 |
-| `GET /photos` | 时间游标与缩略图元数据 | 已登录；200 |
+| `GET /photos` | 版本化复合 keyset 游标与缩略图元数据；`captureAt` 为 canonical 秒级墙钟或 `null` | 已登录；200 |
 | `POST /photos` | 图片上传；响应 `{ id, status, thumbnailState }` | 已登录 + CSRF + 幂等；201 或 202 |
 | `DELETE /photos/{photoId}` | 无业务体 | 已登录 + CSRF；204 |
 | `GET /mail` | 列表游标、未读过滤 | 已登录；200 |

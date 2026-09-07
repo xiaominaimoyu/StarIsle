@@ -108,6 +108,12 @@ def test_photo_header_dimension_gate_rejects_before_full_decode(
     class HeaderImage:
         size = dimensions
 
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args) -> bool:
+            return False
+
         def load(self) -> None:
             calls["load"] += 1
             pytest.fail("oversized image header must be rejected before load")
@@ -141,7 +147,7 @@ def test_photo_thumbnail_header_gate_cleans_temporary_original(monkeypatch: pyte
     init_db()
     client = TestClient(app, raise_server_exceptions=False)
     _login(client)
-    from PIL import Image
+    from PIL import Image, ImageOps
 
     calls = {"load": 0, "convert": 0}
     saved_subdirs: list[str] = []
@@ -149,11 +155,26 @@ def test_photo_thumbnail_header_gate_cleans_temporary_original(monkeypatch: pyte
     class SafeHeaderImage:
         size = (3, 3)
 
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args) -> bool:
+            return False
+
         def load(self) -> None:
             calls["load"] += 1
 
+        def close(self) -> None:
+            pass
+
     class OversizedHeaderImage:
         size = (8001, 1)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args) -> bool:
+            return False
 
         def convert(self, *_args, **_kwargs):
             calls["convert"] += 1
@@ -167,6 +188,7 @@ def test_photo_thumbnail_header_gate_cleans_temporary_original(monkeypatch: pyte
         return saved(data, subdir, suffix)
 
     monkeypatch.setattr(Image, "open", lambda *_args, **_kwargs: next(opened))
+    monkeypatch.setattr(ImageOps, "exif_transpose", lambda image: image)
     monkeypatch.setattr(storage, "save", record_save)
     monkeypatch.setattr(files_router, "_read_exif_capture", lambda _data: pytest.fail("EXIF must not run"))
     idempotency_key = "oversized-thumbnail-header"

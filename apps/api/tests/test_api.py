@@ -244,13 +244,15 @@ def test_photo_upload_and_thumbnail():
 def test_photo_upload_normalizes_exif_without_guessing_timezone():
     _login()
     token = _csrf()
-    from PIL import Image
+    from PIL import ExifTags, Image
 
     image = Image.new("RGB", (4, 4), (40, 80, 120))
     exif = Image.Exif()
-    exif[36867] = "2026:09:05 10:02:03"  # DateTimeOriginal
-    exif[36881] = "+08:00"  # OffsetTimeOriginal is intentionally not inferred into capture_at.
-    exif[37521] = "456"  # SubSecTimeOriginal is outside the seconds-level contract.
+    exif[ExifTags.IFD.Exif] = {
+        0x9003: "2026:09:05 10:02:03",  # DateTimeOriginal
+        0x9011: "+08:00",  # OffsetTimeOriginal is intentionally not inferred into capture_at.
+        0x9291: "456",  # SubSecTimeOriginal is outside the seconds-level contract.
+    }
     buf = io.BytesIO()
     image.save(buf, format="JPEG", exif=exif)
 
@@ -274,6 +276,61 @@ def test_photo_upload_normalizes_exif_without_guessing_timezone():
     assert listing.status_code == 200
     summary = next(item for item in listing.json()["items"] if item["id"] == photo_id)
     assert summary["captureAt"] == "2026-09-05T10:02:03"
+
+
+def test_photo_exif_uses_top_level_fallback_when_nested_ifd_is_unreadable(monkeypatch):
+    from PIL import Image
+    from app.routers import files as files_router
+
+    class BrokenNestedExif:
+        def get_ifd(self, _ifd):
+            raise OSError("synthetic malformed Exif IFD")
+
+        def get(self, key):
+            return "2026:09:05 11:12:13" if key == 0x9003 else None
+
+    class FakeImage:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args) -> bool:
+            return False
+
+        def getexif(self):
+            return BrokenNestedExif()
+
+    monkeypatch.setattr(Image, "open", lambda *_args, **_kwargs: FakeImage())
+    assert files_router._read_exif_capture(b"synthetic image bytes") == "2026-09-05T11:12:13"
+
+
+def test_photo_upload_applies_exif_orientation_to_dimensions_and_thumbnail():
+    _login()
+    token = _csrf()
+    from PIL import Image
+
+    image = Image.new("RGB", (8, 12), (40, 80, 120))
+    exif = Image.Exif()
+    exif[0x0112] = 6  # 旋转 90 度；视觉尺寸应从 8x12 变为 12x8。
+    buf = io.BytesIO()
+    image.save(buf, format="JPEG", exif=exif)
+
+    response = client.post(
+        "/api/v1/photos",
+        files={"file": ("oriented.jpg", io.BytesIO(buf.getvalue()), "image/jpeg")},
+        headers={"X-CSRF-Token": token, "Origin": "http://testserver"},
+    )
+    assert response.status_code == 201
+    photo_id = response.json()["id"]
+
+    listing = client.get("/api/v1/photos", params={"limit": 200})
+    summary = next(item for item in listing.json()["items"] if item["id"] == photo_id)
+    assert (summary["width"], summary["height"]) == (12, 8)
+
+    thumbnail_response = client.get(f"/api/v1/photos/{photo_id}/thumbnail")
+    assert thumbnail_response.status_code == 200
+    with Image.open(io.BytesIO(thumbnail_response.content)) as thumbnail:
+        assert thumbnail.size == (12, 8)
+        assert thumbnail.getexif().get(0x0112) is None
 
 
 def test_photo_list_cursor_pagination():

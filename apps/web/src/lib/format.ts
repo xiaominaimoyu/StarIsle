@@ -1,52 +1,8 @@
 /** 日期与字节格式化 */
 
-const EXIF_LOCAL_DATETIME =
-  /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})$/;
-const CANONICAL_LOCAL_DATETIME =
-  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})$/;
-
-/**
- * EXIF DateTimeOriginal is a timezone-free local wall-clock value and is not
- * accepted by every browser Date parser. Build it component-by-component so
- * the display never relies on implementation-specific string parsing.
- */
-export function parseDateInput(input: string | Date): Date | null {
-  if (input instanceof Date) {
-    return Number.isNaN(input.getTime()) ? null : input;
-  }
-
-  const localWallClock = EXIF_LOCAL_DATETIME.exec(input)
-    ?? CANONICAL_LOCAL_DATETIME.exec(input);
-  if (localWallClock) {
-    const [, year, month, day, hour, minute, second] = localWallClock;
-    const parsed = new Date(
-      Number(year),
-      Number(month) - 1,
-      Number(day),
-      Number(hour),
-      Number(minute),
-      Number(second),
-    );
-    if (
-      parsed.getFullYear() === Number(year)
-      && parsed.getMonth() === Number(month) - 1
-      && parsed.getDate() === Number(day)
-      && parsed.getHours() === Number(hour)
-      && parsed.getMinutes() === Number(minute)
-      && parsed.getSeconds() === Number(second)
-    ) {
-      return parsed;
-    }
-    return null;
-  }
-
-  const parsed = new Date(input);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
 export function formatDate(input: string | Date): string {
-  const d = parseDateInput(input);
-  if (!d) return String(input);
+  const d = typeof input === "string" ? new Date(input) : input;
+  if (Number.isNaN(d.getTime())) return String(input);
   return d.toLocaleDateString("zh-CN", {
     year: "numeric",
     month: "2-digit",
@@ -55,8 +11,8 @@ export function formatDate(input: string | Date): string {
 }
 
 export function formatDateTime(input: string | Date): string {
-  const d = parseDateInput(input);
-  if (!d) return String(input);
+  const d = typeof input === "string" ? new Date(input) : input;
+  if (Number.isNaN(d.getTime())) return String(input);
   return d.toLocaleString("zh-CN", {
     year: "numeric",
     month: "2-digit",
@@ -86,8 +42,7 @@ export function formatDuration(seconds: number): string {
 }
 
 export function formatRelativeTime(input: string | Date): string {
-  const d = parseDateInput(input);
-  if (!d) return String(input);
+  const d = typeof input === "string" ? new Date(input) : input;
   const diff = Date.now() - d.getTime();
   if (diff < 60_000) return "刚刚";
   if (diff < 3_600_000) return `${Math.floor(diff / 60_000)} 分钟前`;
