@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { ApiError } from "./client";
 import { cancelJob, deleteDocument, fetchConversation, fetchStorageStats, listConversations, listJobs, listPhotos, ragQuery } from "./modules";
 
 const encoder = new TextEncoder();
@@ -26,6 +27,92 @@ const callbacks = () => ({
 afterEach(() => vi.unstubAllGlobals());
 
 describe("ragQuery SSE consumption", () => {
+  it("normalizes a non-success response as ApiError and preserves its request ID", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      error: {
+        code: "CSRF_REQUIRED",
+        message: "CSRF 校验失败。",
+        requestId: "request-http-1",
+      },
+    }), {
+      status: 403,
+      headers: { "Content-Type": "application/json", "X-Request-Id": "request-header-ignored" },
+    })));
+
+    const rejection = ragQuery(undefined, "问题", "csrf", new AbortController().signal, callbacks());
+
+    await expect(rejection).rejects.toBeInstanceOf(ApiError);
+    await expect(rejection).rejects.toMatchObject({
+      code: "CSRF_REQUIRED",
+      message: "CSRF 校验失败。",
+      status: 403,
+      requestId: "request-http-1",
+    });
+  });
+
+  it("normalizes an SSE error as ApiError and keeps the response request ID", async () => {
+    const response = sseResponse([
+      'data: {"event":"token","token":"partial"}\n\n',
+      'data: {"event":"error","code":"INDEX_NOT_READY","message":"索引尚未就绪"}\n\n',
+    ]);
+    response.headers.set("X-Request-Id", "request-stream-1");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response));
+    const cb = callbacks();
+
+    const rejection = ragQuery(undefined, "问题", "csrf", new AbortController().signal, cb);
+
+    await expect(rejection).rejects.toBeInstanceOf(ApiError);
+    await expect(rejection).rejects.toMatchObject({
+      code: "INDEX_NOT_READY",
+      message: "索引尚未就绪",
+      status: 200,
+      requestId: "request-stream-1",
+    });
+    expect(cb.onError).toHaveBeenCalledWith("INDEX_NOT_READY", "索引尚未就绪");
+  });
+
+  it("cancels an unfinished response stream after rejecting a malformed event", async () => {
+    const cancel = vi.fn();
+    const response = new Response(new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(encoder.encode("data: not-json\n\n"));
+      },
+      cancel,
+    }), { status: 200, headers: { "Content-Type": "text/event-stream" } });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response));
+
+    await expect(
+      ragQuery(undefined, "问题", "csrf", new AbortController().signal, callbacks()),
+    ).rejects.toMatchObject({ code: "INTERNAL", message: "回答流格式无效,请重试。" });
+
+    expect(cancel).toHaveBeenCalledOnce();
+    expect(response.body?.locked).toBe(false);
+  });
+
+  it.each([
+    ["invalid JSON", ["data: not-json\n\n"]],
+    ["an unknown event", ['data: {"event":"future"}\n\n']],
+    ["a token without text", [
+      'data: {"event":"token"}\n\n',
+      'data: {"event":"done","messageId":"m1","citations":[]}\n\n',
+    ]],
+    ["an invalid done citation", [
+      'data: {"event":"token","token":"answer"}\n\n',
+      'data: {"event":"done","messageId":"m1","citations":[{"chunkId":"only"}]}\n\n',
+    ]],
+  ])("rejects %s instead of coercing malformed SSE fields", async (_name, chunks) => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(sseResponse(chunks)));
+
+    const rejection = ragQuery(undefined, "问题", "csrf", new AbortController().signal, callbacks());
+
+    await expect(rejection).rejects.toBeInstanceOf(ApiError);
+    await expect(rejection).rejects.toMatchObject({
+      code: "INTERNAL",
+      message: "回答流格式无效,请重试。",
+      status: 200,
+    });
+  });
+
   it("removes data prefix and combines arbitrarily split successful events", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(sseResponse([
       'data: {"event":"stage","stage":"retrieving"}\n\n',

@@ -3,7 +3,11 @@ import { fetchMe, fetchCsrf, refresh } from "@/lib/api/modules";
 import { ApiError } from "@/lib/api/client";
 import { setAuthenticated, setAnonymous, setCsrf, getCsrf } from "@/stores/session";
 
-type GateStatus = "checking" | "authed" | "anonymous" | "forbidden";
+type GateStatus = "checking" | "authed" | "anonymous" | "forbidden" | "error";
+
+function isAuthenticationFailure(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 401 && error.code === "AUTH_REQUIRED";
+}
 
 /**
  * SessionGate:校验中显示骨架屏(标题块 + 卡片块,不做整屏 spinner);
@@ -12,9 +16,11 @@ type GateStatus = "checking" | "authed" | "anonymous" | "forbidden";
  */
 export default function SessionGate({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<GateStatus>("checking");
+  const [retryVersion, setRetryVersion] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
+    setStatus("checking");
     (async () => {
       // 先确保 CSRF token 就绪,供后续写操作使用
       if (!getCsrf()) {
@@ -50,19 +56,26 @@ export default function SessionGate({ children }: { children: ReactNode }) {
             setAuthenticated(user);
             setStatus("authed");
             return;
-          } catch {
-            // refresh 不重试、不递归；失败后才按匿名会话处理。
+          } catch (refreshError) {
+            if (cancelled) return;
+            // refresh 不重试、不递归；只有明确的鉴权失败才按匿名会话处理。
+            if (isAuthenticationFailure(refreshError)) {
+              setAnonymous();
+              const redirect = encodeURIComponent(window.location.pathname + window.location.search);
+              window.location.href = `/login?redirect=${redirect}`;
+              return;
+            }
+            setStatus("error");
+            return;
           }
         }
-        setAnonymous();
-        const redirect = encodeURIComponent(window.location.pathname + window.location.search);
-        window.location.href = `/login?redirect=${redirect}`;
+        setStatus("error");
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [retryVersion]);
 
   if (status === "checking") {
     return (
@@ -84,6 +97,22 @@ export default function SessionGate({ children }: { children: ReactNode }) {
       <div className="card p-8 text-center">
         <h2 className="mb-2 text-lg font-semibold text-text">无权访问</h2>
         <p className="text-sm text-text-dim">当前会话无权访问该内容,请重新登录。</p>
+      </div>
+    );
+  }
+
+  if (status === "error") {
+    return (
+      <div className="card p-8 text-center">
+        <h2 className="mb-2 text-lg font-semibold text-text">会话校验失败</h2>
+        <p role="alert" className="mb-4 text-sm text-text-dim">服务暂时不可用,请检查连接后重试。</p>
+        <button
+          type="button"
+          className="inline-flex h-11 items-center rounded-md border border-border px-4 text-sm text-text-dim hover:border-accent/60 hover:text-text focus-ring"
+          onClick={() => setRetryVersion((current) => current + 1)}
+        >
+          重试
+        </button>
       </div>
     );
   }

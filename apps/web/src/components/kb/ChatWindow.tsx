@@ -25,6 +25,7 @@ interface RetryRequest {
 const MOBILE_DISCLOSURE_QUERY = "(max-width: 1023px)";
 const INTERRUPTED_MESSAGE = "回答中断,可重试;已生成的部分不会保存为完整回答。";
 const CANCELLED_MESSAGE = "已取消。已生成的部分不会保存为完整回答。";
+const MISSING_CSRF_MESSAGE = "会话安全校验信息缺失,请刷新页面后重试。";
 
 function emptyStream(): StreamState {
   return { stage: null, text: "", citations: [], error: null, heartbeatAt: 0 };
@@ -357,7 +358,11 @@ export default function ChatWindow() {
     // React 状态尚未重新渲染前插入乐观消息并消费滚动锚点。
     if (!query || sendInFlightRef.current || messageLoadingRef.current) return;
     const csrfToken = getCsrf();
-    if (!csrfToken) return;
+    if (!csrfToken) {
+      retryRef.current = null;
+      setStream({ ...emptyStream(), error: MISSING_CSRF_MESSAGE });
+      return;
+    }
 
     const generation = revisionRef.current + 1;
     revisionRef.current = generation;

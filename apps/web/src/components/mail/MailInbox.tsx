@@ -7,6 +7,77 @@ import EmptyState from "@/components/ui/EmptyState";
 import StatusBanner from "@/components/ui/StatusBanner";
 import DOMPurify from "dompurify";
 
+type MailListMergeMode = "refresh" | "append";
+const EMPTY_MAIL_IDS: ReadonlySet<string> = new Set();
+
+/** 合并独立完成的首屏与游标请求，不丢行且保持稳定顺序。 */
+export function mergeMailListPage(
+  current: MailSummary[],
+  incoming: MailSummary[],
+  mode: MailListMergeMode,
+  preserveReadIds: ReadonlySet<string> = EMPTY_MAIL_IDS,
+): MailSummary[] {
+  const currentById = preserveReadIds.size > 0
+    ? new Map(current.map((mail) => [mail.id, mail]))
+    : null;
+  const protectedIncoming = incoming.map((mail) => {
+    const currentMail = currentById?.get(mail.id);
+    return currentMail && preserveReadIds.has(mail.id)
+      ? { ...mail, read: currentMail.read }
+      : mail;
+  });
+  const ordered = mode === "refresh"
+    ? [...protectedIncoming, ...current]
+    : [...current, ...protectedIncoming];
+  const seen = new Set<string>();
+  return ordered.filter((mail) => {
+    if (seen.has(mail.id)) return false;
+    seen.add(mail.id);
+    return true;
+  });
+}
+
+/** 游标页允许跨刷新代际完成；首屏刷新只接受最新一次结果。 */
+export function canApplyMailListResponse(
+  requestLifecycle: number,
+  currentLifecycle: number,
+  requestRefreshGeneration: number | null,
+  latestRefreshGeneration: number,
+): boolean {
+  return requestLifecycle === currentLifecycle
+    && (requestRefreshGeneration === null
+      || requestRefreshGeneration === latestRefreshGeneration);
+}
+
+export function canApplyMailDetailResponse(
+  requestLifecycle: number,
+  currentLifecycle: number,
+  requestGeneration: number,
+  latestGeneration: number,
+): boolean {
+  return requestLifecycle === currentLifecycle && requestGeneration === latestGeneration;
+}
+
+export function canRollbackMailRead(
+  requestLifecycle: number,
+  currentLifecycle: number,
+  requestGeneration: number,
+  latestGeneration: number,
+  alreadyConfirmedRead: boolean,
+): boolean {
+  return requestLifecycle === currentLifecycle
+    && requestGeneration === latestGeneration
+    && !alreadyConfirmedRead;
+}
+
+export function shouldPreserveMailRead(
+  mailReadRevision: number,
+  requestReadRevision: number,
+  mutationInFlight: boolean,
+): boolean {
+  return mutationInFlight || mailReadRevision > requestReadRevision;
+}
+
 /**
  * 收件箱:桌面双栏(列表 + 阅读器),移动单栏互斥切换。
  * 纯文本优先;已清洗 HTML 在受限容器渲染(DOMPurify 浏览器侧补充),远程图片默认阻止。
@@ -26,58 +97,190 @@ export default function MailInbox() {
   const [htmlView, setHtmlView] = useState(false);
   const [view, setView] = useState<"list" | "reader">("list");
   const timerRef = useRef<number | null>(null);
+  const mountedRef = useRef(false);
+  const lifecycleRef = useRef(0);
+  const refreshGenerationRef = useRef(0);
+  const paginationGenerationRef = useRef(0);
+  const activeListRequestsRef = useRef(0);
+  const detailGenerationRef = useRef(0);
+  const readStateRevisionRef = useRef(0);
+  const readStateRevisionByMailRef = useRef(new Map<string, number>());
+  const readMutationGenerationRef = useRef(new Map<string, number>());
+  const pendingReadMutationRef = useRef(new Map<string, number>());
+  const confirmedReadIdsRef = useRef(new Set<string>());
+
+  const advanceReadStateRevision = useCallback((mailId: string) => {
+    readStateRevisionRef.current += 1;
+    readStateRevisionByMailRef.current.set(mailId, readStateRevisionRef.current);
+  }, []);
 
   const load = useCallback(async (cursor?: string) => {
+    if (!mountedRef.current) return;
+    const mode: MailListMergeMode = cursor === undefined ? "refresh" : "append";
+    const requestLifecycle = lifecycleRef.current;
+    const requestRefreshGeneration = mode === "refresh"
+      ? refreshGenerationRef.current + 1
+      : null;
+    if (requestRefreshGeneration !== null) {
+      refreshGenerationRef.current = requestRefreshGeneration;
+    }
+    const paginationGenerationAtStart = paginationGenerationRef.current;
+    const readStateRevisionAtStart = readStateRevisionRef.current;
+    const isCurrentRequest = () => mountedRef.current && canApplyMailListResponse(
+      requestLifecycle,
+      lifecycleRef.current,
+      requestRefreshGeneration,
+      refreshGenerationRef.current,
+    );
+
+    activeListRequestsRef.current += 1;
     setLoading(true);
     setLoadError(null);
     try {
       const res: MailListResponse = await listMail(cursor);
-      setMails((prev) => (cursor ? [...prev, ...res.items] : res.items));
-      setNextCursor(res.nextCursor);
+      if (!isCurrentRequest()) return;
+      if (mode === "append") {
+        paginationGenerationRef.current += 1;
+        setNextCursor(res.nextCursor);
+      } else if (
+        paginationGenerationAtStart === 0
+        && paginationGenerationRef.current === 0
+      ) {
+        // 已加载更早页后，后台首屏刷新不能把游标退回并让该页消失。
+        setNextCursor(res.nextCursor);
+      }
+      const preserveReadIds = new Set<string>();
+      for (const mail of res.items) {
+        const mailReadRevision = readStateRevisionByMailRef.current.get(mail.id) ?? 0;
+        const preserveRead = shouldPreserveMailRead(
+          mailReadRevision,
+          readStateRevisionAtStart,
+          pendingReadMutationRef.current.has(mail.id),
+        );
+        if (mail.read) {
+          confirmedReadIdsRef.current.add(mail.id);
+        } else if (!preserveRead) {
+          confirmedReadIdsRef.current.delete(mail.id);
+        }
+        if (preserveRead) {
+          preserveReadIds.add(mail.id);
+        }
+      }
+      setMails((current) => mergeMailListPage(
+        current,
+        res.items,
+        mode,
+        preserveReadIds,
+      ));
     } catch {
-      setLoadError("邮件列表加载失败,请重试。");
+      if (isCurrentRequest()) {
+        setLoadError("邮件列表加载失败,请重试。");
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current && requestLifecycle === lifecycleRef.current) {
+        activeListRequestsRef.current = Math.max(0, activeListRequestsRef.current - 1);
+        setLoading(activeListRequestsRef.current > 0);
+      }
     }
   }, []);
 
   // 初期 60 秒轮询
   useEffect(() => {
+    mountedRef.current = true;
+    lifecycleRef.current += 1;
+    refreshGenerationRef.current = 0;
+    paginationGenerationRef.current = 0;
+    activeListRequestsRef.current = 0;
+    detailGenerationRef.current = 0;
+    readStateRevisionRef.current = 0;
+    readStateRevisionByMailRef.current.clear();
+    readMutationGenerationRef.current.clear();
+    pendingReadMutationRef.current.clear();
+    confirmedReadIdsRef.current.clear();
     void load();
     timerRef.current = window.setInterval(() => void load(), 60_000);
     return () => {
-      if (timerRef.current) window.clearInterval(timerRef.current);
+      mountedRef.current = false;
+      lifecycleRef.current += 1;
+      activeListRequestsRef.current = 0;
+      if (timerRef.current !== null) window.clearInterval(timerRef.current);
+      timerRef.current = null;
     };
   }, [load]);
 
   const markAsRead = useCallback(async (mailId: string) => {
+    if (!mountedRef.current) return;
+    const requestLifecycle = lifecycleRef.current;
+    const requestGeneration = (readMutationGenerationRef.current.get(mailId) ?? 0) + 1;
+    readMutationGenerationRef.current.set(mailId, requestGeneration);
+    pendingReadMutationRef.current.set(mailId, requestGeneration);
+    const isCurrentLifecycle = () => mountedRef.current
+      && requestLifecycle === lifecycleRef.current;
     setReadError(null);
+    advanceReadStateRevision(mailId);
     setMails((prev) => prev.map((m) => (m.id === mailId ? { ...m, read: true } : m)));
     try {
       const token = getCsrf();
       if (!token) throw new Error("missing csrf token");
       await markMailRead(mailId, true, token);
+      if (!isCurrentLifecycle()) return;
+      confirmedReadIdsRef.current.add(mailId);
+      advanceReadStateRevision(mailId);
+      setMails((prev) => prev.map((m) => (m.id === mailId ? { ...m, read: true } : m)));
+      setReadError((current) => (current?.id === mailId ? null : current));
     } catch {
-      setMails((prev) => prev.map((m) => (m.id === mailId ? { ...m, read: false } : m)));
-      setReadError({ id: mailId, message: "标记已读失败，未读状态已恢复。" });
+      if (
+        isCurrentLifecycle()
+        && canRollbackMailRead(
+          requestLifecycle,
+          lifecycleRef.current,
+          requestGeneration,
+          readMutationGenerationRef.current.get(mailId) ?? 0,
+          confirmedReadIdsRef.current.has(mailId),
+        )
+      ) {
+        advanceReadStateRevision(mailId);
+        setMails((prev) => prev.map((m) => (m.id === mailId ? { ...m, read: false } : m)));
+        setReadError({ id: mailId, message: "标记已读失败，未读状态已恢复。" });
+      }
+    } finally {
+      if (pendingReadMutationRef.current.get(mailId) === requestGeneration) {
+        pendingReadMutationRef.current.delete(mailId);
+      }
     }
-  }, []);
+  }, [advanceReadStateRevision]);
 
   const loadDetail = useCallback(async (mail: MailSummary) => {
+    if (!mountedRef.current) return;
+    const requestLifecycle = lifecycleRef.current;
+    const requestGeneration = detailGenerationRef.current + 1;
+    detailGenerationRef.current = requestGeneration;
+    const isCurrentRequest = () => mountedRef.current
+      && canApplyMailDetailResponse(
+        requestLifecycle,
+        lifecycleRef.current,
+        requestGeneration,
+        detailGenerationRef.current,
+      );
     setDetailLoading(true);
     setDetailError(null);
     setReadError(null);
     try {
       const d = await fetchMailDetail(mail.id);
+      if (!isCurrentRequest()) return;
       setDetail(d);
       if (!mail.read) {
         // 乐观更新未读状态；失败时由 markAsRead 回滚并暴露明确重试动作。
         await markAsRead(mail.id);
       }
     } catch {
-      setDetailError("邮件内容加载失败,请重试。");
+      if (isCurrentRequest()) {
+        setDetailError("邮件内容加载失败,请重试。");
+      }
     } finally {
-      setDetailLoading(false);
+      if (isCurrentRequest()) {
+        setDetailLoading(false);
+      }
     }
   }, [markAsRead]);
 

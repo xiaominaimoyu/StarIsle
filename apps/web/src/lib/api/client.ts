@@ -92,6 +92,7 @@ export async function* streamLines(
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
+  let completed = false;
 
   const eventData = (block: string): string | null => {
     const data = block
@@ -114,18 +115,29 @@ export async function* streamLines(
     return events;
   };
 
-  for (;;) {
-    if (signal?.aborted) {
-      await reader.cancel();
-      throw new DOMException("请求已取消", "AbortError");
+  try {
+    for (;;) {
+      if (signal?.aborted) {
+        throw new DOMException("请求已取消", "AbortError");
+      }
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      for (const data of pullEvents()) yield data;
     }
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
+    buffer += decoder.decode();
     for (const data of pullEvents()) yield data;
+    const trailing = eventData(buffer.trim());
+    if (trailing !== null) yield trailing;
+    completed = true;
+  } finally {
+    if (!completed) {
+      try {
+        await reader.cancel();
+      } catch {
+        // 保留导致消费提前结束的原始错误。
+      }
+    }
+    reader.releaseLock();
   }
-  buffer += decoder.decode();
-  for (const data of pullEvents()) yield data;
-  const trailing = eventData(buffer.trim());
-  if (trailing !== null) yield trailing;
 }

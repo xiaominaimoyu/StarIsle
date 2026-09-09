@@ -1,6 +1,11 @@
 import type { Citation, MessageSummary } from "@star-isle/contracts";
 import { formatRelativeTime } from "@/lib/format";
 
+/** 同一消息内稳定；即使后端重复返回 chunk 也不会产生 React key 冲突。 */
+export function citationRenderKey(citation: Citation, index: number): string {
+  return `${citation.documentId}:${citation.version}:${citation.chunkId}:${index}`;
+}
+
 /** 用户右对齐(accent 淡底);助手左对齐(surface);流式期间末尾渲染闪烁光标 */
 export function MessageBubble({
   role,
@@ -62,7 +67,7 @@ export function MessageList({
           {m.citations.length > 0 ? (
             <div className="flex max-w-[85%] flex-col gap-1.5">
               {m.citations.map((c, i) => (
-                <CitationCard key={c.chunkId} citation={c} index={i} />
+                <CitationCard key={citationRenderKey(c, i)} citation={c} index={i} />
               ))}
             </div>
           ) : null}

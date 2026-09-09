@@ -7,6 +7,61 @@ import Button from "@/components/ui/Button";
 
 const PASSWORD_ERROR_ID = "login-password-error";
 
+interface LoginFailure {
+  code: string;
+  message: string;
+  cooldownSeconds?: number;
+}
+
+export function resolveLoginRedirect(search: string, origin: string): string {
+  try {
+    const raw = new URLSearchParams(search).get("redirect") ?? "/console";
+    if (!raw.startsWith("/") || raw.startsWith("//")) return "/console";
+    const target = new URL(raw, origin);
+    return target.origin === origin ? raw : "/console";
+  } catch {
+    return "/console";
+  }
+}
+
+export function classifyLoginFailure(error: unknown): LoginFailure {
+  if (!(error instanceof ApiError)) {
+    return { code: "unknown", message: "网络请求失败,请检查连接后重试。" };
+  }
+  if (error.status === 401) {
+    return { code: "401", message: "无法登录,请检查密码后重试。" };
+  }
+  if (error.status === 429) {
+    return {
+      code: "429",
+      message: "尝试过于频繁,请稍候再试。",
+      cooldownSeconds: 30,
+    };
+  }
+  if (error.code === "CSRF_REQUIRED" || error.status === 0) {
+    return { code: "csrf", message: "安全验证获取失败,请重试。" };
+  }
+  return { code: String(error.status), message: error.message };
+}
+
+export async function loginWithCsrf(password: string) {
+  let token = getCsrf();
+  if (!token) {
+    const csrf = await fetchCsrf();
+    setCsrf(csrf.csrfToken, new Date(csrf.expiresAt).getTime());
+    token = csrf.csrfToken;
+  }
+
+  try {
+    return await login({ password }, token);
+  } catch (error) {
+    if (error instanceof ApiError && error.code === "CSRF_REQUIRED") {
+      setCsrf(null, null);
+    }
+    throw error;
+  }
+}
+
 /**
  * 单密码登录(单用户契约 POST /auth/login 仅需 { password })。
  * 状态:401 通用失败文案;429 冷却倒计时;CSRF 失败可重试;成功跳回 redirect(仅站内相对路径)。
@@ -17,16 +72,6 @@ export default function LoginForm() {
   const [error, setError] = useState<{ code: string; message: string } | null>(null);
   const [cooldown, setCooldown] = useState(0);
   const timerRef = useRef<number | null>(null);
-
-  const redirect = (() => {
-    try {
-      const raw = new URLSearchParams(window.location.search).get("redirect") ?? "/console";
-      if (raw.startsWith("/") && !raw.startsWith("//")) return raw;
-      return "/console";
-    } catch {
-      return "/console";
-    }
-  })();
 
   useEffect(() => {
     return () => {
@@ -54,30 +99,14 @@ export default function LoginForm() {
     setSubmitting(true);
     setError(null);
     try {
-      let token = getCsrf();
-      if (!token) {
-        const csrf = await fetchCsrf();
-        setCsrf(csrf.csrfToken, new Date(csrf.expiresAt).getTime());
-        token = csrf.csrfToken;
-      }
-      const user = await login({ password }, token);
+      const user = await loginWithCsrf(password);
       setAuthenticated(user);
+      const redirect = resolveLoginRedirect(window.location.search, window.location.origin);
       window.location.href = redirect;
     } catch (err) {
-      if (err instanceof ApiError) {
-        if (err.status === 401) {
-          setError({ code: "401", message: "无法登录,请检查密码后重试。" });
-        } else if (err.status === 429) {
-          setError({ code: "429", message: "尝试过于频繁,请稍候再试。" });
-          startCooldown(30);
-        } else if (err.code === "CSRF_REQUIRED" || err.status === 0) {
-          setError({ code: "csrf", message: "安全验证获取失败,请重试。" });
-        } else {
-          setError({ code: String(err.status), message: err.message });
-        }
-      } else {
-        setError({ code: "unknown", message: "网络请求失败,请检查连接后重试。" });
-      }
+      const failure = classifyLoginFailure(err);
+      setError({ code: failure.code, message: failure.message });
+      if (failure.cooldownSeconds) startCooldown(failure.cooldownSeconds);
     } finally {
       setSubmitting(false);
     }
