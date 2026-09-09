@@ -24,3 +24,27 @@ import Base from "@/layouts/Base.astro";
     </section>
   </main>
 </Base>
+
+<script>
+  const handleEnterCompleted = () => {
+    try {
+      sessionStorage.setItem("star-isle:enter-completed", "true");
+    } catch {
+      // sessionStorage 不可用，仍执行跳转
+    }
+    fetch("/api/v1/auth/me", { credentials: "include" })
+      .then((resp) => {
+        if (resp.ok) {
+          window.location.assign("/console");
+        } else {
+          window.location.assign("/");
+        }
+      })
+      .catch(() => {
+        window.location.assign("/");
+      });
+  };
+  window.addEventListener("narrative:enter-completed", handleEnterCompleted);
+  (window as any).__narrativeEnterHandler = handleEnterCompleted;
+  (window as any).__narrativeEnterListenerReady = true;
+</script>

@@ -121,3 +121,19 @@ const structuredData = {
     <ModuleDock />
   </div>
 </Portal>
+
+<script is:inline>
+  (function () {
+    try {
+      var completed = sessionStorage.getItem("star-isle:enter-completed");
+      if (completed === "true") return;
+      var countStr = sessionStorage.getItem("star-isle:enter-redirect-count");
+      var count = countStr ? parseInt(countStr, 10) : 0;
+      if (count >= 1) return;
+      sessionStorage.setItem("star-isle:enter-redirect-count", String(count + 1));
+      window.location.assign("/enter");
+    } catch (e) {
+      // sessionStorage 不可用（隐私模式/禁用），降级保留当前页
+    }
+  })();
+</script>

@@ -109,6 +109,12 @@ export default function NarrativeEntry() {
 
     const completionTimer = window.setTimeout(() => {
       setState((currentState) => completeMelt(currentState));
+      window.dispatchEvent(
+        new CustomEvent("narrative:enter-completed", {
+          bubbles: true,
+          detail: { at: Date.now() },
+        }),
+      );
     }, meltDurationMs(reducedMotion));
 
     return () => window.clearTimeout(completionTimer);
