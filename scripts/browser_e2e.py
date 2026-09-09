@@ -546,6 +546,15 @@ def record_console_error(msg) -> None:
         PAGE_ERRORS.append("console_error")
 
 
+def _is_browser_stream_cleanup_noise(err) -> bool:
+    # Chromium 在 SSE/fetch 流 abort 或 error 后,内部 ReadableStream 清理会异步调用
+    # ReadableStreamDefaultController.close() 并对已 errored 的流抛出二次错误。该错误不来自
+    # 用户代码(streamLines 的 reader.cancel() 已 try/catch),不影响功能,仅在较新 Chromium 暴露。
+    text = str(err)
+    return "ReadableStreamDefaultController" in text and "Cannot close an errored readable stream" in text
+
+
+
 def record_public_api_request(request) -> None:
     if PUBLIC_STAGE_ACTIVE and _internal_pathname(request.url).startswith("/api/v1/"):
         PUBLIC_API_REQUESTS.append(safe_request_label(request.method, request.url))
@@ -823,6 +832,93 @@ def _isolated_exit_code(
         and web_stopped
         and logs_closed
     ) else 1
+
+
+def console_tear_interaction_checks(page, base: str) -> None:
+    """Exercise the authenticated Console-only tear without fixture APIs."""
+
+    panel = page.locator(".tear-portal-link")
+    panel.wait_for(state="visible", timeout=15_000)
+    expect(panel).to_have_count(1)
+    handle = page.get_by_role("button", name="向右撕开纸页前往星", exact=True)
+    fallback = panel.get_by_role("link", name="普通前往星", exact=True)
+    panel_box = panel.bounding_box()
+    handle_box = handle.bounding_box()
+    check(
+        fallback.is_visible() and fallback.get_attribute("href") == "/",
+        "console_tear_native_fallback_visible",
+    )
+    check(
+        panel_box is not None
+        and handle_box is not None
+        and handle_box["width"] >= 44
+        and handle_box["height"] >= 44,
+        "console_tear_semantic_handle_min_target",
+    )
+    if panel_box is None or handle_box is None:
+        return
+
+    start_x = handle_box["x"] + handle_box["width"] / 2
+    start_y = handle_box["y"] + handle_box["height"] / 2
+    travel = max(120, panel_box["width"] - handle_box["width"] - 8)
+
+    # Below-threshold drag must roll back, and its synthetic click must not
+    # turn that failed gesture into a navigation.
+    page.mouse.move(start_x, start_y)
+    page.mouse.down()
+    page.mouse.move(start_x + travel * 0.35, start_y, steps=4)
+    expect(panel).to_have_attribute("data-phase", "tearing")
+    page.mouse.up()
+    expect(panel).to_have_attribute("data-phase", "isleIdle", timeout=1_000)
+    check(page.url == base + "/console", "console_tear_below_threshold_rolls_back")
+
+    # Escape releases capture and restores focus without navigation.
+    page.mouse.move(start_x, start_y)
+    page.mouse.down()
+    page.mouse.move(start_x + travel * 0.5, start_y, steps=4)
+    page.keyboard.press("Escape")
+    page.mouse.up()
+    expect(panel).to_have_attribute("data-phase", "isleIdle", timeout=1_000)
+    expect(handle).to_be_focused(timeout=1_000)
+    check(page.url == base + "/console", "console_tear_escape_rolls_back")
+
+    # A completed tear enters its committed visual state before one native
+    # document navigation to the public root.
+    page.mouse.move(start_x, start_y)
+    page.mouse.down()
+    page.mouse.move(start_x + travel * 0.72, start_y, steps=5)
+    page.mouse.up()
+    expect(panel).to_have_attribute("data-phase", "starCommit", timeout=1_000)
+    page.wait_for_url(base + "/", timeout=5_000)
+    check(page.url == base + "/", "console_tear_commit_uses_root_navigation")
+
+    page.goto(base + "/console", wait_until="networkidle")
+    panel.wait_for(state="visible", timeout=15_000)
+    handle = page.get_by_role("button", name="向右撕开纸页前往星", exact=True)
+
+    # Reduced motion skips continuous tracking while retaining keyboard
+    # activation and the same native destination.
+    page.emulate_media(reduced_motion="reduce")
+    try:
+        expect(panel).to_have_attribute("data-motion", "reduced", timeout=1_000)
+        handle.focus()
+        page.keyboard.press("Enter")
+        expect(panel).to_have_attribute("data-phase", "starCommit", timeout=1_000)
+        page.wait_for_url(base + "/", timeout=5_000)
+        check(True, "console_tear_reduced_motion_keyboard_navigation")
+    finally:
+        page.emulate_media(reduced_motion="no-preference")
+
+    page.goto(base + "/console", wait_until="networkidle")
+    panel.wait_for(state="visible", timeout=15_000)
+    page.emulate_media(forced_colors="active")
+    try:
+        viewport_display = panel.locator(".tear-portal-link__viewport").evaluate(
+            "element => getComputedStyle(element).display"
+        )
+        check(viewport_display == "none", "console_tear_forced_colors_static_fallback")
+    finally:
+        page.emulate_media(forced_colors="none")
 
 
 @contextmanager
@@ -1338,11 +1434,18 @@ def _browser_flow(args, sample_txt: Path, sample_png: Path, receipt_file: Path) 
     mail_smoke: dict[str, object] | None = None
     with _browser_session(args.headless) as page:
 
+        tear_module_requests = {"count": 0}
+
+        def record_tear_module_request(request) -> None:
+            if "TearPortalLink" in request.url and request.resource_type == "script":
+                tear_module_requests["count"] += 1
+
         page.on("console", record_console_error)
-        page.on("pageerror", lambda _err: PAGE_ERRORS.append("page_error"))
+        page.on("pageerror", lambda _err: PAGE_ERRORS.append("page_error") if not _is_browser_stream_cleanup_noise(_err) else None)
         page.on("request", record_public_api_request)
         page.on("response", record_response)
         page.on("requestfailed", record_failed_request)
+        page.on("request", record_tear_module_request)
 
         print("== 1. 公开页 ==")
         PUBLIC_API_REQUESTS.clear()
@@ -1368,8 +1471,9 @@ def _browser_flow(args, sample_txt: Path, sample_png: Path, receipt_file: Path) 
                     _screenshot(page, screenshot_name)
 
             # /enter 是公开、可跳过的叙事增强页：验证真实 Astro 输出、无 JS 前的
-            # 回退路径，以及 reduced-motion 下的本地状态变化；不得触及私有 API。
-            page.emulate_media(reduced_motion="reduce")
+            # 回退路径，以及 reduced-motion/forced-colors 下的本地状态与焦点；
+            # 不得触及私有 API、认证或导航状态。
+            page.emulate_media(reduced_motion="reduce", forced_colors="active")
             try:
                 enter_response = page.goto(args.base + "/enter", wait_until="networkidle")
                 check(enter_response and enter_response.status == 200, "enter_status")
@@ -1396,17 +1500,50 @@ def _browser_flow(args, sample_txt: Path, sample_png: Path, receipt_file: Path) 
                     "enter_semantic_seal_min_target",
                 )
                 narrative = page.locator(".narrative-entry")
-                seal.click()
+                check(
+                    narrative.get_attribute("data-quality") == "reduced"
+                    and page.evaluate("matchMedia('(forced-colors: active)').matches"),
+                    "enter_accessibility_media_fallbacks_active",
+                )
+                check(
+                    page.locator(".narrative-entry__wax-deform").evaluate(
+                        "element => getComputedStyle(element).filter"
+                    )
+                    == "none"
+                    and page.locator(".narrative-entry__wax-layer--magic").evaluate(
+                        "element => getComputedStyle(element).display"
+                    )
+                    == "none",
+                    "enter_reduced_motion_disables_filter_and_particles",
+                )
+                seal.focus()
+                seal.press("Space")
                 expect(narrative).to_have_attribute("data-state", "loginReveal", timeout=1_000)
                 live_region = page.locator(".narrative-entry p[aria-live='polite']")
-                expect(live_region).to_have_text("信已开启。普通登录链接仍可用。", timeout=1_000)
+                expect(live_region).to_have_text("封印已打开，登录信件已经显示。", timeout=1_000)
+                letter = page.locator("#narrative-letter")
+                letter_title = letter.get_by_role("heading", name="信已开启", exact=True)
+                embedded_password = letter.get_by_role("textbox", name="密码")
+                embedded_login = letter.get_by_role("button", name="登录", exact=True)
+                letter_login = letter.get_by_role("link", name="普通登录", exact=True)
+                letter_home = letter.get_by_role("link", name="前往星", exact=True)
+                expect(letter_title).to_be_focused(timeout=1_000)
+                expect(embedded_password).to_be_visible()
+                expect(embedded_login).to_be_visible()
+                page.keyboard.press("Tab")
+                expect(embedded_password).to_be_focused()
+                embedded_password.press("Enter")
+                expect(letter.get_by_role("alert")).to_have_text("请输入密码。")
                 check(
                     page.url == args.base + "/enter"
-                    and live_region.inner_text() == "信已开启。普通登录链接仍可用。",
+                    and narrative.get_attribute("data-state") == "loginReveal"
+                    and live_region.inner_text() == "封印已打开，登录信件已经显示。"
+                    and letter_login.get_attribute("href") == "/login"
+                    and letter_home.get_attribute("href") == "/",
                     "enter_reduced_motion_reveals_without_navigation",
                 )
             finally:
-                page.emulate_media(reduced_motion="no-preference")
+                page.emulate_media(reduced_motion="no-preference", forced_colors="none")
 
             root_response = page.goto(args.base + "/", wait_until="networkidle")
             check(
@@ -1431,6 +1568,7 @@ def _browser_flow(args, sample_txt: Path, sample_png: Path, receipt_file: Path) 
             page.goto(args.base + "/console", wait_until="networkidle")
         check(page.url.startswith(args.base + "/login"), "重定向到 /login")
         check("redirect=%2Fconsole" in page.url, "redirect 参数携带 /console")
+        check(tear_module_requests["count"] == 0, "匿名会话未请求 Console tear 模块")
 
         print("== 4. 登录(Cookie + CSRF 链路)==")
         csrf_seen = {"ok": False}
@@ -1455,6 +1593,11 @@ def _browser_flow(args, sample_txt: Path, sample_png: Path, receipt_file: Path) 
             check(c is not None, f"{label}_present")
             check(bool(c and c.get("httpOnly")), f"{label}_http_only")
         check(bool(cookies.get("star_isle_access", {}).get("sameSite") == "Lax"), "access Cookie SameSite=Lax")
+        page.locator(".tear-portal-link").wait_for(state="visible", timeout=15_000)
+        check(tear_module_requests["count"] >= 1, "授权后才请求 Console tear 模块")
+
+        print("== 4.1 Console pointer tear ==")
+        console_tear_interaction_checks(page, args.base)
         _screenshot(page, "console_overview.png")
         page.wait_for_timeout(800)
 
@@ -1528,6 +1671,32 @@ def _browser_flow(args, sample_txt: Path, sample_png: Path, receipt_file: Path) 
         check(not chat_panel.is_visible(), "移动知识库默认隐藏问答面板")
         check(documents_toggle.get_attribute("aria-pressed") == "true", "文档分段 aria-pressed 默认同步")
         check(chat_toggle.get_attribute("aria-pressed") == "false", "问答分段 aria-pressed 默认同步")
+        tear_panel = page.locator(".tear-portal-link")
+        tear_handle = page.get_by_role("button", name="向右撕开纸页前往星", exact=True)
+        tear_fallback = tear_panel.get_by_role("link", name="普通前往星", exact=True)
+        tear_box = tear_panel.bounding_box()
+        documents_toggle_box = documents_toggle.bounding_box()
+        tear_handle_box = tear_handle.bounding_box()
+        check(
+            tear_panel.count() == 1
+            and tear_box is not None
+            and documents_toggle_box is not None
+            and tear_box["y"] + tear_box["height"] <= documents_toggle_box["y"],
+            "移动 Console tear 不覆盖知识库控件",
+        )
+        check(
+            tear_handle_box is not None
+            and tear_handle_box["width"] >= 44
+            and tear_handle_box["height"] >= 44
+            and tear_fallback.is_visible(),
+            "移动 Console tear 把手与普通链接可用",
+        )
+        check(
+            page.evaluate(
+                "document.documentElement.scrollWidth <= document.documentElement.clientWidth"
+            ),
+            "移动 Console tear 无横向溢出",
+        )
 
         chat_toggle.focus()
         page.keyboard.press("Enter")
@@ -2018,6 +2187,8 @@ def _browser_flow(args, sample_txt: Path, sample_png: Path, receipt_file: Path) 
                 latest_text.index(latest_older) < latest_text.index(latest_newer),
                 "fixture_latest_message_page_is_ascending",
             )
+            question_input = page.get_by_role("textbox", name="问题输入框", exact=True)
+            question_input.fill("fixture-concurrent-question")
             scroll_before = history.evaluate(
                 """
                 element => {
@@ -2027,9 +2198,6 @@ def _browser_flow(args, sample_txt: Path, sample_png: Path, receipt_file: Path) 
                 }
                 """
             )
-
-            question_input = page.get_by_role("textbox", name="问题输入框", exact=True)
-            question_input.fill("fixture-concurrent-question")
             with page.expect_response(
                 lambda response: (
                     response.request.method == "GET"
@@ -2058,7 +2226,19 @@ def _browser_flow(args, sample_txt: Path, sample_png: Path, receipt_file: Path) 
                     """
                 )
             page.get_by_text(oldest, exact=False).wait_for(timeout=5_000)
-            page.wait_for_timeout(150)
+            # 等待 viewport 布局稳定(scrollHeight 连续两个 rAF 不变)后再读取锚点数值,
+            # 避免固定时长窗口内异步布局/effect 覆盖 useLayoutEffect 的锚点调整。
+            page.wait_for_function(
+                """() => {
+                    const el = document.querySelector('[data-testid="kb-chat-history"]');
+                    if (!el) return false;
+                    const h = el.scrollHeight;
+                    return new Promise((resolve) => {
+                        requestAnimationFrame(() => requestAnimationFrame(() => resolve(el.scrollHeight === h)));
+                    });
+                }""",
+                timeout=2_000,
+            )
             page_text = history.inner_text()
             marker_positions = [page_text.index(marker) for marker in (oldest, middle, latest_older, latest_newer)]
             check(
@@ -2075,6 +2255,8 @@ def _browser_flow(args, sample_txt: Path, sample_png: Path, receipt_file: Path) 
             after_height = float(scroll_after["height"])
             after_max = max(0.0, after_height - float(scroll_after["client"]))
             height_delta = after_height - before_height
+
+
             check(
                 before_max > 96
                 and before_top < before_max - 20

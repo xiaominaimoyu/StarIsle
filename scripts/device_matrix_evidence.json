@@ -1,0 +1,106 @@
+{
+  "$schema": "设备/浏览器矩阵直接验收证据模板",
+  "matrix": [
+    {
+      "device": "Desktop Windows",
+      "browser": "Chromium 151",
+      "assistive_tech": "none",
+      "input_sample": "12 组 E2E（browser_e2e.py）",
+      "expected": "12 组 0 失败",
+      "actual": "12 组 0 失败（2026-09-09 验证）",
+      "failure_handling": "N/A",
+      "status": "passed"
+    },
+    {
+      "device": "Desktop Windows",
+      "browser": "Firefox",
+      "assistive_tech": "none",
+      "input_sample": "待定义",
+      "expected": "待定义",
+      "actual": "N/A",
+      "failure_handling": "N/A",
+      "status": "待验收"
+    },
+    {
+      "device": "macOS",
+      "browser": "Safari",
+      "assistive_tech": "none",
+      "input_sample": "待定义",
+      "expected": "待定义",
+      "actual": "N/A",
+      "failure_handling": "N/A",
+      "status": "待验收"
+    },
+    {
+      "device": "iOS",
+      "browser": "Safari Mobile",
+      "assistive_tech": "none",
+      "input_sample": "待定义",
+      "expected": "待定义",
+      "actual": "N/A",
+      "failure_handling": "N/A",
+      "status": "待验收"
+    },
+    {
+      "device": "iOS",
+      "browser": "Chrome Mobile",
+      "assistive_tech": "none",
+      "input_sample": "待定义",
+      "expected": "待定义",
+      "actual": "N/A",
+      "failure_handling": "N/A",
+      "status": "待验收"
+    },
+    {
+      "device": "iOS",
+      "browser": "Safari Mobile",
+      "assistive_tech": "Apple Pencil / 触摸",
+      "input_sample": "真实笔/触摸手势",
+      "expected": "待定义",
+      "actual": "N/A",
+      "failure_handling": "N/A",
+      "status": "待验收"
+    },
+    {
+      "device": "iOS",
+      "browser": "Safari Mobile",
+      "assistive_tech": "边缘手势",
+      "input_sample": "iOS 边缘滑动手势",
+      "expected": "不触发意外导航/tear",
+      "actual": "N/A",
+      "failure_handling": "N/A",
+      "status": "待验收"
+    },
+    {
+      "device": "Desktop",
+      "browser": "Chromium",
+      "assistive_tech": "NVDA / VoiceOver",
+      "input_sample": "屏幕阅读器导航",
+      "expected": "语义结构可达",
+      "actual": "N/A",
+      "failure_handling": "N/A",
+      "status": "待验收"
+    },
+    {
+      "device": "Desktop",
+      "browser": "Chromium",
+      "assistive_tech": "200% 缩放",
+      "input_sample": "页面布局在 200% 缩放下",
+      "expected": "无溢出/遮挡",
+      "actual": "N/A",
+      "failure_handling": "N/A",
+      "status": "待验收"
+    },
+    {
+      "device": "低端设备",
+      "browser": "Chromium",
+      "assistive_tech": "none",
+      "input_sample": "CPU 4 核 / 内存 4GB",
+      "expected": "帧率不低于 30fps",
+      "actual": "N/A",
+      "failure_handling": "N/A",
+      "status": "待验收"
+    }
+  ],
+  "boundary": "禁止用 Chromium Desktop 外推至 Firefox/Safari/iOS/辅助技术。各设备需直接验收证据。"
+}

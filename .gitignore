@@ -58,3 +58,9 @@ venv/
 
 # 模型权重
 models/*.gguf
+
+# E2E 证据产物(含 trace zip/profile json,非源码)
+scripts/.e2e-browser-evidence/
+
+# AI 本地会话缓存
+.workbuddy/
