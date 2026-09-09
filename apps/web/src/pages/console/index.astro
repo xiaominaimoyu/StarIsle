@@ -1,11 +1,11 @@
 ---
 import Console from "@/layouts/Console.astro";
-import SessionGate from "@/components/auth/SessionGate";
+import ConsoleSessionGate from "@/components/auth/ConsoleSessionGate";
 import ConsoleOverview from "@/components/console/ConsoleOverview";
 ---
 
 <Console title="概览">
-  <SessionGate client:load>
+  <ConsoleSessionGate client:load>
     <ConsoleOverview client:load />
-  </SessionGate>
+  </ConsoleSessionGate>
 </Console>

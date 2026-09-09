@@ -62,6 +62,14 @@ const items = [
       class="no-print fixed inset-x-0 bottom-0 z-40 flex border-t border-border bg-surface/95 backdrop-blur lg:hidden"
       style="padding-bottom: env(safe-area-inset-bottom)"
     >
+      <a
+        href="/"
+        aria-label="前往公开门户"
+        class="flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-xs text-text-dim focus-ring"
+      >
+        <span aria-hidden="true" class="text-base">✦</span>
+        星
+      </a>
       {items.map((item) => (
         <a
           href={item.href}

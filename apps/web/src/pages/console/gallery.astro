@@ -1,11 +1,11 @@
 ---
 import Console from "@/layouts/Console.astro";
-import SessionGate from "@/components/auth/SessionGate";
+import ConsoleSessionGate from "@/components/auth/ConsoleSessionGate";
 import PhotoTimeline from "@/components/gallery/PhotoTimeline";
 ---
 
 <Console title="相册">
-  <SessionGate client:load>
+  <ConsoleSessionGate client:load>
     <PhotoTimeline client:load />
-  </SessionGate>
+  </ConsoleSessionGate>
 </Console>

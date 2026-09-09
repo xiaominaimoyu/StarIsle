@@ -1,0 +1,228 @@
+.tear-portal-link {
+  --tear-progress: 0;
+  --tear-shift-up: 0px;
+  --tear-shift-down: 0px;
+  --tear-rotate-top: 0deg;
+  --tear-rotate-bottom: 0deg;
+  --tear-handle-shift: 0px;
+  --tear-star-deep: #182850;
+  --tear-star-light: #f7e4ae;
+  --tear-star-glow: #a7c5ff;
+
+  position: relative;
+  width: min(18rem, 100%);
+  height: 7rem;
+  margin: 0 0 1rem;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--border));
+  border-radius: 0.85rem;
+  background: var(--surface);
+  box-shadow: 0 0.8rem 2rem rgb(3 8 24 / 0.2);
+}
+
+.tear-portal-link__viewport,
+.tear-portal-link__star-backdrop,
+.tear-portal-link__paper,
+.tear-portal-link .narrative-tear-mask {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.tear-portal-link__viewport {
+  z-index: 0;
+  overflow: hidden;
+}
+
+.tear-portal-link__star-backdrop {
+  z-index: 0;
+  background:
+    radial-gradient(circle at 16% 30%, rgb(247 228 174 / 0.92) 0 1px, transparent 2px),
+    radial-gradient(circle at 74% 68%, rgb(167 197 255 / 0.88) 0 1.5px, transparent 2.5px),
+    linear-gradient(135deg, var(--tear-star-deep), #293b73 56%, #172241);
+  background-size: 2.7rem 2.3rem, 3.1rem 2.9rem, auto;
+}
+
+.tear-portal-link__paper {
+  z-index: 1;
+  background:
+    repeating-linear-gradient(8deg, transparent 0 11px, rgb(111 139 168 / 0.045) 12px 13px),
+    color-mix(in srgb, var(--surface) 96%, var(--accent));
+  transition: transform 280ms cubic-bezier(0.22, 0.68, 0.28, 1);
+}
+
+.tear-portal-link__paper--top {
+  clip-path: polygon(0 0, 100% 0, 100% 48%, 92% 52%, 79% 47%, 67% 54%, 54% 49%, 41% 53%, 27% 48%, 14% 54%, 0 51%);
+  transform: translateY(var(--tear-shift-up)) rotate(var(--tear-rotate-top));
+  transform-origin: top left;
+}
+
+.tear-portal-link__paper--bottom {
+  clip-path: polygon(0 51%, 14% 54%, 27% 48%, 41% 53%, 54% 49%, 67% 54%, 79% 47%, 92% 52%, 100% 48%, 100% 100%, 0 100%);
+  transform: translateY(var(--tear-shift-down)) rotate(var(--tear-rotate-bottom));
+  transform-origin: bottom left;
+}
+
+.tear-portal-link .narrative-tear-mask {
+  z-index: 2;
+  color: var(--tear-star-glow);
+}
+
+.tear-portal-link__handle,
+.tear-portal-link__copy {
+  position: absolute;
+  z-index: 3;
+}
+
+.tear-portal-link__handle {
+  top: 50%;
+  left: 0.55rem;
+  display: grid;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--accent) 56%, var(--border));
+  border-radius: 999px;
+  color: var(--text);
+  background: var(--surface);
+  box-shadow: 0 0.35rem 0.9rem rgb(3 8 24 / 0.24);
+  cursor: ew-resize;
+  touch-action: pan-y pinch-zoom;
+  transform: translate(var(--tear-handle-shift), -50%);
+  transition: transform 280ms cubic-bezier(0.22, 0.68, 0.28, 1), border-color 150ms ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.tear-portal-link__handle span[aria-hidden="true"] {
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.tear-portal-link__handle:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.tear-portal-link__handle:focus-visible,
+.tear-portal-link__copy a:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.tear-portal-link__handle:disabled {
+  cursor: default;
+}
+
+.tear-portal-link__copy {
+  top: 50%;
+  left: 5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-width: calc(100% - 5.75rem);
+  padding: 0.2rem 0.4rem;
+  border-radius: 0.4rem;
+  background-color: var(--surface);
+  transform: translateY(-50%);
+  transition: opacity 120ms ease;
+}
+
+.tear-portal-link__copy strong {
+  overflow: hidden;
+  color: var(--text);
+  font: 600 0.9rem/1.25 var(--font-display);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tear-portal-link__copy a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.tear-portal-link[data-phase="tearing"] .tear-portal-link__paper,
+.tear-portal-link[data-phase="tearing"] .tear-portal-link__handle {
+  transition: none;
+}
+
+.tear-portal-link[data-phase="tearing"] .tear-portal-link__paper,
+.tear-portal-link[data-phase="starCommit"] .tear-portal-link__paper {
+  will-change: transform;
+}
+
+.tear-portal-link[data-phase="tearing"] .tear-portal-link__copy,
+.tear-portal-link[data-phase="starCommit"] .tear-portal-link__copy {
+  opacity: calc(1 - var(--tear-progress));
+  pointer-events: none;
+}
+
+@media (max-width: 63.999rem) {
+  .tear-portal-link {
+    width: min(16rem, 100%);
+    height: 6rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tear-portal-link__paper,
+  .tear-portal-link__handle,
+  .tear-portal-link__copy {
+    transition-duration: 140ms !important;
+  }
+
+  .tear-portal-link__handle {
+    cursor: pointer;
+  }
+}
+
+@media (forced-colors: active) {
+  .tear-portal-link {
+    border-color: CanvasText;
+    color: CanvasText;
+    background: Canvas;
+    forced-color-adjust: auto;
+  }
+
+  .tear-portal-link__star-backdrop {
+    display: none;
+  }
+
+  .tear-portal-link__viewport {
+    display: none;
+  }
+
+  .tear-portal-link__paper {
+    background: Canvas;
+  }
+
+  .tear-portal-link__handle {
+    border-color: ButtonText;
+    color: ButtonText;
+    background: ButtonFace;
+    box-shadow: none;
+  }
+
+  .tear-portal-link__handle:focus-visible,
+  .tear-portal-link__copy a:focus-visible {
+    outline-color: Highlight;
+  }
+
+  .tear-portal-link__copy strong,
+  .tear-portal-link__copy a {
+    color: CanvasText;
+  }
+
+  .tear-portal-link__copy {
+    background-color: Canvas;
+  }
+}

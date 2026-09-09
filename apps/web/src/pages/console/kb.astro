@@ -1,11 +1,11 @@
 ---
 import Console from "@/layouts/Console.astro";
-import SessionGate from "@/components/auth/SessionGate";
+import ConsoleSessionGate from "@/components/auth/ConsoleSessionGate";
 import KnowledgeBaseWorkspace from "@/components/kb/KnowledgeBaseWorkspace";
 ---
 
 <Console title="知识库">
-  <SessionGate client:load>
+  <ConsoleSessionGate client:load>
     <KnowledgeBaseWorkspace client:load />
-  </SessionGate>
+  </ConsoleSessionGate>
 </Console>

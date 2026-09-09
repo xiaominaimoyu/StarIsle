@@ -1,0 +1,26 @@
+.narrative-tear-mask {
+  display: block;
+  max-width: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.narrative-tear-mask__opening {
+  opacity: 0.82;
+}
+
+.narrative-tear-mask__outline {
+  opacity: 0.92;
+}
+
+@media (forced-colors: active) {
+  .narrative-tear-mask__opening {
+    display: none;
+    filter: none !important;
+  }
+
+  .narrative-tear-mask__outline {
+    stroke: CanvasText;
+    stroke-width: 3.5;
+  }
+}
