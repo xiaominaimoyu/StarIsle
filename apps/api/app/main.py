@@ -21,6 +21,8 @@ from .request_body_limit import (
     should_close_connection,
 )
 from .routers import auth, files, knowledge, mail, misc, rag
+from .storage import StorageUnavailable
+
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
@@ -107,11 +109,32 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
 
 
 @app.exception_handler(RequestValidationError)
-async def request_validation_exception_handler(request: Request, exc: RequestValidationError):
+async def request_validation_exception_handler(
+    request: Request, exc: RequestValidationError
+):
     """422 也使用共享 contracts 的错误外形，避免客户端分支猜测。"""
     return JSONResponse(
         status_code=422,
-        content=_error_body(422, {"code": "UNPROCESSABLE", "message": "请求参数无效。"}, request),
+        content=_error_body(
+            422, {"code": "UNPROCESSABLE", "message": "请求参数无效。"}, request
+        ),
+    )
+
+
+@app.exception_handler(StorageUnavailable)
+async def storage_unavailable_exception_handler(
+    request: Request, _exc: StorageUnavailable
+):
+    """锁竞争超时是短暂基础设施故障，不应伪装成永久业务错误。"""
+
+    return JSONResponse(
+        status_code=503,
+        content=_error_body(
+            503,
+            {"code": "INTERNAL", "message": "对象存储暂不可用,请稍后重试。"},
+            request,
+        ),
+        headers={"Retry-After": "1"},
     )
 
 
@@ -130,7 +153,9 @@ async def unhandled_exception(request: Request, _exc: Exception):
         pass
     response = JSONResponse(
         status_code=500,
-        content=_error_body(500, {"code": "INTERNAL", "message": "服务异常,请稍后重试。"}, request),
+        content=_error_body(
+            500, {"code": "INTERNAL", "message": "服务异常,请稍后重试。"}, request
+        ),
     )
     response.headers["X-Request-Id"] = request_id
     try:

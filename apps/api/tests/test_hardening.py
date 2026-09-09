@@ -32,7 +32,7 @@ from app.services.jobs import (  # noqa: E402
 )
 import app.storage as storage_module  # noqa: E402
 import app.deps as deps  # noqa: E402
-from app.storage import StorageAdapter, StorageKeyAllocationError, storage  # noqa: E402
+from app.storage import QUOTA_LOCK_NAME, StorageAdapter, StorageKeyAllocationError, storage  # noqa: E402
 
 
 def test_config_does_not_call_dotenv_when_disabled(monkeypatch: pytest.MonkeyPatch):
@@ -88,7 +88,11 @@ def _photo_persistence_state() -> tuple[int, int, int, int]:
 
 
 def _photo_object_files() -> set[Path]:
-    return {path for path in storage.root.rglob("*") if path.is_file()}
+    return {
+        path
+        for path in storage.root.rglob("*")
+        if path.is_file() and path.name != QUOTA_LOCK_NAME
+    }
 
 
 @pytest.mark.parametrize(
@@ -433,6 +437,13 @@ def test_create_conversation_accepts_csrf_header_after_real_login():
     )
     assert response.status_code == 201, "csrf protected write must succeed"
     assert response.json()["title"] == "CSRF Header 回归"
+    with get_conn() as conn:
+        stored = conn.execute(
+            "SELECT created_at FROM conversation WHERE id=?",
+            (response.json()["id"],),
+        ).fetchone()
+    assert stored is not None
+    assert response.json()["createdAt"] == stored["created_at"]
 
 
 def test_rag_producer_error_never_writes_assistant_or_done(monkeypatch):
@@ -593,7 +604,11 @@ def test_photo_idempotency_quota_and_thumbnail_failure_leave_no_orphans(monkeypa
         return out.getvalue()
 
     def object_files() -> set[Path]:
-        return {path for path in storage.root.rglob("*") if path.is_file()}
+        return {
+            path
+            for path in storage.root.rglob("*")
+            if path.is_file() and path.name != QUOTA_LOCK_NAME
+        }
 
     token = _csrf(client)
     first = client.post(

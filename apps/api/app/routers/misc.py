@@ -252,14 +252,16 @@ def create_conversation(
 
     require_csrf(request, x_csrf_token)
     cid = random_id("conv_")
+    title = (body.title or "新会话")[:120]
+    created_at = iso(now_utc())
     with get_conn() as conn:
         conn.execute(
             "INSERT INTO conversation (id, title, created_at) VALUES (?, ?, ?)",
-            (cid, (body.title or "新会话")[:120], iso(now_utc())),
+            (cid, title, created_at),
         )
     audit("conversation_create", actor=payload["sub"], resource_type="conversation", resource_id=cid,
           request_id=get_request_id(request), result="ok")
-    return {"id": cid, "title": body.title or "新会话", "createdAt": iso(now_utc())}
+    return {"id": cid, "title": title, "createdAt": created_at}
 
 
 @router.get("/conversations/{conversation_id}")
