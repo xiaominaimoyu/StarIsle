@@ -606,6 +606,9 @@ def public_native_interaction_checks(page, base: str) -> None:
     """静态预览可运行的公开页渐进增强回归，不依赖 API 或容器。"""
     print("== 公开页原生交互 ==")
     page.goto(base + "/", wait_until="networkidle")
+    if "/enter" in page.url:
+        page.evaluate("sessionStorage.setItem('star-isle:enter-completed', 'true')")
+        page.goto(base + "/", wait_until="networkidle")
     page.evaluate(
         """
         () => {
@@ -1451,6 +1454,8 @@ def _browser_flow(args, sample_txt: Path, sample_png: Path, receipt_file: Path) 
         PUBLIC_API_REQUESTS.clear()
         PUBLIC_STAGE_ACTIVE = True
         try:
+            page.goto(args.base + "/", wait_until="networkidle")
+            page.evaluate("sessionStorage.setItem('star-isle:enter-completed', 'true')")
             for path, text, markdown_text, label, screenshot_name in [
                 ("/", "星屿", "我相信技术不是炫技", "public_home", "public_home.png"),
                 ("/projects", "项目", "一个构建期脚本", "public_projects", "public_projects.png"),
@@ -1516,6 +1521,7 @@ def _browser_flow(args, sample_txt: Path, sample_png: Path, receipt_file: Path) 
                     == "none",
                     "enter_reduced_motion_disables_filter_and_particles",
                 )
+                page.evaluate("window.removeEventListener('narrative:enter-completed', window.__narrativeEnterHandler)")
                 seal.focus()
                 seal.press("Space")
                 expect(narrative).to_have_attribute("data-state", "loginReveal", timeout=1_000)
@@ -1545,6 +1551,7 @@ def _browser_flow(args, sample_txt: Path, sample_png: Path, receipt_file: Path) 
             finally:
                 page.emulate_media(reduced_motion="no-preference", forced_colors="none")
 
+            page.evaluate("sessionStorage.setItem('star-isle:enter-completed', 'true')")
             root_response = page.goto(args.base + "/", wait_until="networkidle")
             check(
                 root_response and root_response.status == 200 and "星屿" in page.content(),
@@ -1557,6 +1564,47 @@ def _browser_flow(args, sample_txt: Path, sample_png: Path, receipt_file: Path) 
         if args.public_only:
             public_native_interaction_checks(page, args.base)
             return public_only_result()
+
+        print("== 1.5 默认入口行为 ==")
+        page.evaluate("sessionStorage.clear()")
+        page.goto(args.base + "/", wait_until="networkidle")
+        check(page.url.endswith("/enter"), "default_entry_redirects_to_enter")
+        check(
+            page.evaluate("sessionStorage.getItem('star-isle:enter-redirect-count')") == "1",
+            "default_entry_redirect_count_incremented",
+        )
+
+        page.evaluate("sessionStorage.setItem('star-isle:enter-completed', 'true')")
+        page.goto(args.base + "/", wait_until="networkidle")
+        check(not page.url.endswith("/enter"), "completed_marker_retains_home")
+        check("星屿" in page.content(), "completed_marker_home_content")
+
+        page.evaluate("sessionStorage.clear()")
+        page.evaluate("sessionStorage.setItem('star-isle:enter-redirect-count', '1')")
+        page.goto(args.base + "/", wait_until="networkidle")
+        check(not page.url.endswith("/enter"), "cycle_guard_degrades_to_home")
+        check("星屿" in page.content(), "cycle_guard_home_content")
+
+        page.evaluate("sessionStorage.clear()")
+        page.goto(args.base + "/enter", wait_until="networkidle")
+        page.wait_for_function("window.__narrativeEnterListenerReady === true", timeout=5000)
+        with allow_expected_error_responses(*AUTH_GUARD_EXPECTED_ERROR_RESPONSES):
+            page.evaluate(
+                "window.dispatchEvent(new CustomEvent('narrative:enter-completed', { bubbles: true, detail: { at: Date.now() } }))"
+            )
+            page.wait_for_url(args.base + "/", timeout=15000)
+        check(
+            page.evaluate("sessionStorage.getItem('star-isle:enter-completed')") == "true",
+            "enter_completed_writes_marker",
+        )
+
+        page.goto(args.base + "/enter", wait_until="networkidle")
+        star_link = page.get_by_role("link", name="前往星")
+        login_link = page.get_by_role("link", name="普通登录")
+        check(star_link.count() > 0 and star_link.first.is_visible(), "enter_fallback_star_link_visible")
+        check(login_link.count() > 0 and login_link.first.is_visible(), "enter_fallback_login_link_visible")
+        check(star_link.first.get_attribute("href") == "/", "enter_fallback_star_link_href")
+        check(login_link.first.get_attribute("href") == "/login", "enter_fallback_login_link_href")
 
         print("== 2. 未知路由 404 ==")
         with allow_expected_error_responses(*UNKNOWN_ROUTE_EXPECTED_ERROR_RESPONSES):
@@ -2330,8 +2378,18 @@ def _browser_flow(args, sample_txt: Path, sample_png: Path, receipt_file: Path) 
             "fixture_document_pagination_has_no_requestfailed_pollution",
         )
 
+        print("== 9.8 /enter 完成后跳转（已登录）==")
+        page.goto(args.base + "/enter", wait_until="networkidle")
+        page.wait_for_function("window.__narrativeEnterListenerReady === true", timeout=5000)
+        page.evaluate(
+            "window.dispatchEvent(new CustomEvent('narrative:enter-completed', { bubbles: true, detail: { at: Date.now() } }))"
+        )
+        page.wait_for_url(args.base + "/console", timeout=15000)
+        check(page.url.endswith("/console"), "enter_completed_authenticated_redirects_to_console")
+
         print("== 10. 登出 ==")
         page.goto(args.base + "/console", wait_until="networkidle")
+        page.evaluate("sessionStorage.setItem('star-isle:enter-completed', 'true')")
         with page.expect_response(
             lambda r: r.url.endswith("/api/v1/auth/logout") and r.request.method == "POST" and r.status == 204
         ):
