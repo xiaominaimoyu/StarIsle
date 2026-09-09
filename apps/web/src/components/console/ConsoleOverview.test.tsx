@@ -45,7 +45,7 @@ vi.mock("@/lib/format", () => ({
 const statusBannerMock = vi.hoisted(() => vi.fn());
 vi.mock("@/components/ui/StatusBanner", () => ({ default: statusBannerMock }));
 
-import { createElement } from "react";
+import { createElement, type ReactNode } from "react";
 import ConsoleOverview from "./ConsoleOverview";
 
 interface TestElement {
@@ -62,7 +62,8 @@ function resetHarness(overrides?: Map<number, unknown>) {
 function childElements(node: unknown): TestElement[] {
   const element = node as TestElement;
   const children = element.props?.children;
-  return Array.isArray(children) ? children : [children];
+  if (Array.isArray(children)) return children as TestElement[];
+  return children != null ? [children as TestElement] : [];
 }
 
 function findAll(node: unknown, predicate: (el: TestElement) => boolean): TestElement[] {
@@ -74,10 +75,6 @@ function findAll(node: unknown, predicate: (el: TestElement) => boolean): TestEl
     results.push(...findAll(child, predicate));
   }
   return results;
-}
-
-function findFirst(node: unknown, predicate: (el: TestElement) => boolean): TestElement | null {
-  return findAll(node, predicate)[0] ?? null;
 }
 
 function textOf(node: unknown): string {
@@ -118,7 +115,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   resetHarness();
   statusBannerMock.mockImplementation(({ children, action }: { children: unknown; action: unknown }) =>
-    createElement("div", { role: "alert" }, children, action),
+    createElement("div", { role: "alert" }, children as ReactNode, action as ReactNode),
   );
   apiMocks.fetchStorageStats.mockResolvedValue({ usedBytes: 0, fileCount: 0, photoCount: 0 });
   apiMocks.listPhotos.mockResolvedValue({ items: [] });
