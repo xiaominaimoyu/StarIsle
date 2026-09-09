@@ -1,23 +1,25 @@
 # 星屿 StarIsle - 叙事体验层开发设计
 
-> **状态：首个本地原型已实现；后续阶段仍为 Proposed。** 2026-09-05 已实现 `/enter` 的静态壳、语义封印按钮、SVG 融化、独立状态、减弱动效与无脚本可用的 `/`、`/login` 真实链接，并完成单元、构建和隔离浏览器回归。真实认证、音频、Console 撕裂、后续素材与跨文档连续体验仍未实现；上述本地证据不等同于部署或生产验收。
+> **状态：Phase 1 已实现；Phase 2/3、Phase 4、Phase 6 与 Console-only Phase 7 已形成未提交的本地候选；Phase 5、8 以后仍受独立门禁约束。** 2026-09-09 的候选在 `/enter` 保留独立五态、能力降级和程序化五层 SVG 火漆，并在信件揭示后条件复用现有 `LoginForm`；Phase 6 提供投影弧长 geometry/sampler 与 progressive alpha Mask，Phase 7 则在五个 `/console/*` 页面经既有 `SessionGate` 认证后动态加载 `TearPortalLink`。组件保留普通 `/` 链接，并实现 pointer capture、轴锁、阈值、取消、键盘、reduced-motion 和 forced-colors 降级；没有 Canvas、debris、音频、ClientRouter、私有预取或新认证/API。单元、类型检查、生产构建与合成 Chromium 反例已有本地证据；完整 Python harness、Firefox、Safari/iOS、真实笔/触摸、屏幕阅读器、200% 缩放、目标设备和正式性能 profile 仍未验收，因此这些候选尚不标记为完成。
 >
-> **日期：** 2026-09-05（UTC+8）  
+> **日期：** 2026-09-09（UTC+8）
 > **范围：** 规划一个可选择进入的信封、火漆、登录信件与“撕开前往星”的前端体验；不改变既有公开门户、私有控制台、认证、API、安全或里程碑。  
-> **结论摘要：** 推荐新增 opt-in 的 /enter 入口（方案 B），让 / 始终保持现有公开 Portal。首个最小原型只做 /enter 的静态壳、语义封印按钮、SVG 融化、独立状态与减弱动效；不连接真实认证、音频、Console 或根页。
+> **结论摘要：** opt-in 的 /enter（方案 B）继续让 / 保持现有公开 Portal；首个无认证原型之后，Phase 4 只在揭示态挂载 auth-owned 的现有表单，成功仍完整导航并由 Console 重验。Phase 6 的规范几何与 SVG Mask 已由 Phase 7 的 Console-only `TearPortalLink` 复用，但只有交互 JS 在认证成功后动态请求，普通链接始终是基础路径。音频、Canvas、根页改造与跨文档持久化继续服从后续独立门禁。
 
 ## 1. 文档定位与现有关系
 
 本文服从 [星屿 StarIsle - 总体具体开发计划](./星屿%20StarIsle%20-%20总体具体开发计划.md) 的跨模块执行基线，服从 [星屿 StarIsle - 前端开发计划](./星屿%20StarIsle%20-%20前端开发计划.md) 的技术、路由和阶段约束，并只在视觉/体验层细化 [前端设计文档](./设计文档.md) 已有的“星与屿”意象。它不覆盖上述文档的认证、API、Cookie/CSRF、数据模型、发布门禁或 M1/M2/M3 定义。
 
-旧计划顶部的“空仓库 / Planned / Not implemented”是 2026-08-27 的历史基线，而非当前源码事实；当前进度应以 [开发进度](./开发进度.md) 的最新统一快照为准。§38–§45 仅保留各自发生时的历史状态，不能覆盖 2026-09-05 的代码与复验证据。静态代码和本地测试都不能被表述成生产验收；M1、M2、M3 均未完成。
+旧计划顶部的“空仓库 / Planned / Not implemented”是 2026-08-27 的历史基线，而非当前源码事实；当前进度应以 [开发进度](./开发进度.md) 的最新统一快照为准。历史进度章节只保留各自发生时的状态，不能覆盖 2026-09-09 的代码与复验证据。静态代码和本地测试都不能被表述成生产验收；M1、M2、M3 均未完成。
 
 ### Evidence → Finding → Path
 
 | Evidence | Finding | Path |
 | --- | --- | --- |
 | Astro 配置明确为 static，Base 在非 noindex 页面生成 canonical，根页输出 JSON-LD，sitemap 只列公开路径。 | / 的 SEO、JSON-LD、canonical 与 sitemap 是既有公开 Portal 的边界，叙事层不得改写或吞掉它们。 | apps/web/astro.config.mjs:10-28；apps/web/src/layouts/Base.astro:25-46；apps/web/src/pages/index.astro:19-46；apps/web/src/lib/seo.ts:58-90 |
-| 登录页以 LoginForm client:load 挂载；SessionGate 先取 CSRF、后校验/刷新会话；唯一 API 客户端使用同源 /api/v1、credentials include 和 X-CSRF-Token。 | 叙事 UI 不能成为认证真相源，不得存 JWT，也不得直接绕开既有登录与 SessionGate。 | apps/web/src/pages/login.astro:1-19；apps/web/src/components/auth/LoginForm.tsx:21-84；apps/web/src/components/auth/SessionGate.tsx:16-65；apps/web/src/lib/api/client.ts:3-55 |
+| 登录页以 LoginForm client:load 挂载；Phase 4 在揭示态复用同一组件；SessionGate 校验/刷新会话；唯一 API 客户端使用同源 /api/v1、credentials include 和 X-CSRF-Token。 | 叙事编排不能成为认证真相源、存 JWT 或直接绕开既有登录与 SessionGate；只有 auth-owned 的 LoginForm 子树可执行原认证链。 | apps/web/src/pages/login.astro；apps/web/src/components/auth/LoginForm.tsx；apps/web/src/components/auth/SessionGate.tsx；apps/web/src/components/narrative/NarrativeEntry.tsx；apps/web/src/lib/api/client.ts |
+| Phase 6 的 pure geometry 以固定整数 PRNG 一次生成 normalized points，再按 SVG viewBox 投影派生 path/bounds/cumulative length/sampler；`TearMask` 只消费同一投影几何并以 progressive alpha mask 揭示注入 surface。 | 撕裂使用单一随机几何真相，视觉进度按真实投影弧长推进；低档和强制色不依赖滤镜。 | apps/web/src/lib/narrative/tear-geometry.ts；apps/web/src/components/narrative/TearMask.tsx；apps/web/src/components/narrative/tear-mask.css；对应测试；开发进度 §51.6/§52 |
+| 五个 Console 页面使用 `ConsoleSessionGate`；它在既有 `SessionGate` children 内 lazy import `TearPortalLink`。组件只依赖 gesture controller/TearMask，并保留独立普通 `/` 链接；匿名浏览器未请求该 JS。 | Phase 7 已接入认证后的 Console 路径，但不持有 session/API 真相；增强失败、reduced-motion 或无手势时仍能原生导航。 | apps/web/src/components/auth/ConsoleSessionGate.tsx；apps/web/src/components/narrative/TearPortalLink.tsx；apps/web/src/lib/narrative/gesture-controller.ts；apps/web/src/pages/console/*.astro；开发进度 §52 |
 | Base 默认挂公共背景和 PublicMusicPlayer；Console 使用 chrome=false；PublicMusicPlayer 是原生 Astro 脚本，playlist 当前为空；另有 React MusicPlayer 与 player nanostore 文件。 | 真正挂载路径是 Base → PublicMusicPlayer。React MusicPlayer/player store 不是当前音频运行时真相，不能新建竞争播放器。 | apps/web/src/layouts/Base.astro:1-77；apps/web/src/layouts/Console.astro:1-76；apps/web/src/components/player/PublicMusicPlayer.astro:19-27、92-390；apps/web/src/site-data/playlist.json:1-3；apps/web/src/components/player/MusicPlayer.tsx；apps/web/src/stores/player.ts |
 | apps/web/src 内未检出 ClientRouter、astro:transitions 或 transition:persist；内部链接是普通 a。 | 现在是完整文档导航；跨文档 BGM 连续性不能当成低风险承诺。 | apps/web/src 的只读文本扫描；apps/web/src/layouts/Base.astro；apps/web/src/layouts/Console.astro |
 | 开发进度的最新统一快照区分代码存在、本地验证、部署与生产验收；旧总体/前端计划仍保留 2026-08-27 空仓库警告。 | 设计可参考现有源码，但任何“已达成”都必须回到最新快照的证据边界。 | docs/开发进度.md；docs/星屿 StarIsle - 总体具体开发计划.md；docs/星屿 StarIsle - 前端开发计划.md |
@@ -75,7 +77,7 @@ flowchart TD
 
 完整 document 导航是运行时边界：/enter 的 island 在跳往 /console 时销毁，/console 的 TearPortalLink 在该文档重新实例化；两者之间没有连续、可信的 narrative runtime。普通静态链接始终不依赖状态机。
 
-信任边界：Narrative 只消费 route、可公开的会话摘要、local music 状态、visibility 与 motion 等无凭据事实；它不能回写 session store、不能授予 authenticated、不能访问 Cookie 内容。登录的成功或失败仍来自既有 API；进入 /console 后仍由 SessionGate 重验。
+信任边界：Narrative 的状态与编排只消费 route、local music 状态、visibility 与 motion 等无凭据事实；它不能直接回写 session store、授予 authenticated、读取 CSRF/JWT/Cookie 或调用认证 API。唯一例外是揭示后条件挂载的 auth-owned `LoginForm` 子树：该子树继续独占原有 CSRF/login/session 写入，不能把认证结果复制进 narrative state。登录的成功或失败仍来自既有 API；进入 /console 后仍由 SessionGate 重验。
 
 ## 6. Narrative State Machine
 
@@ -170,9 +172,9 @@ type TearGesture = {
 
 ## 9. Login Integration
 
-登录能力只复用现有 LoginForm、其 API 模块、CSRF 获取、401/429 文案和站内 redirect 规则。未来可在 NarrativeEntry 内增加 presentation label 或成功回调 adapter，使信件外观承载现有表单；不得复制 submit 逻辑、不得改变默认 redirect、不得创建第二条 auth 请求链。
+登录能力只复用现有 LoginForm、其 API 模块、CSRF 获取、401/429 文案和站内 redirect 规则。Phase 4 当前候选直接在 `revealed` 条件内挂载现有组件，没有增加成功回调或 auth adapter；不得复制 submit 逻辑、不得创建第二条 auth 请求链。共享 LoginForm 的同源 redirect、CSRF 失效恢复与 SSR 安全修订是普通 `/login` 同样使用的认证基线，不属于 narrative 自建逻辑。
 
-初始焦点移到信件标题或说明，不强制把焦点塞进密码框。登录失败保持 loginReveal 并呈现既有错误；成功可以显示极短的 isle 视觉，但随后仍以完整导航进入 /console，由 SessionGate 重验。首个最小原型不接真实认证，普通登录链接是唯一登录出口。
+初始焦点移到信件标题，不强制把焦点塞进密码框；下一次 Tab 才进入密码输入。登录失败保持 loginReveal 并呈现既有错误；当前候选成功后立即以完整导航进入 /console，由 SessionGate 重验，不为了尚未接线的 `isle` 视觉延迟或改写成功链。首个最小原型曾以普通登录链接作为唯一出口；Phase 4 仍保留该无脚本/回滚出口。
 
 ## 10. Isle/Star关系
 
@@ -386,36 +388,44 @@ Phase 1 的 feature flag 只能控制叙事入口的公开暴露/灰度，不得
 
 Portal 侧若需要“星→屿”，继续使用既有链接/登录流程与可选的非敏感音频 handoff；它绝不挂载或复用 TearPortalLink。
 
-## 23. Suggested Directory Structure
+## 23. Current and Suggested Directory Structure
 
-下列所有路径均为**建议、未创建**；它们贴合当前 apps/web/src/site-data、现有 lib/stores 和同目录 *.test.ts 习惯，不采用旧计划中不存在的 feature 目录。NarrativeEntry 保持 /enter 的唯一完整叙事 island；TearPortalLink 只在 Console 的“屿→星”回门户增强中另成轻量 island，避免无必要碎片。Portal 的“星→屿”继续走既有链接/登录与可选音频 handoff，不使用该撕裂组件。新增依赖、测试框架配置或素材目录须另行批准。
+下列树同时标出 2026-09-09 的本地候选与后续建议；未注明“本地候选”的路径均未创建。它们贴合当前 apps/web/src/site-data、现有 lib/stores 和同目录 *.test.ts 习惯，不采用旧计划中不存在的 feature 目录。NarrativeEntry 保持 /enter 的唯一完整叙事 island；TearPortalLink 只在 Console 的“屿→星”回门户增强中另成轻量 island，避免无必要碎片。Portal 的“星→屿”继续走既有链接/登录与可选音频 handoff，不使用该撕裂组件。新增依赖、测试框架配置或素材目录须另行批准。
 
 ~~~text
 apps/web/src/
   pages/
-    enter.astro                         # 建议、未创建：Base chrome=false 静态壳
+    enter.astro                         # 已有：Phase 1 的 Base chrome=false 静态壳
   components/
     narrative/
-      NarrativeEntry.tsx                # 建议、未创建
+      NarrativeEntry.tsx                # 本地候选：Phase 2/3 唯一完整叙事 island
+      narrative-entry.css               # 本地候选：scoped wax/a11y/quality 样式
       EnvelopeScene.tsx                 # 建议、未创建
       LoginLetter.tsx                   # 建议、未创建：仅 LoginForm 的呈现容器
-      WaxSealSvg.tsx                    # 建议、未创建
+      WaxSealSvg.tsx                    # 本地候选：纯程序化五层 SVG
       WaxMeltEffect.tsx                 # 建议、未创建：仅在拆分确有必要时
-      TearMask.tsx                      # 建议、未创建：SVG mask 层
+      TearMask.tsx                      # 本地候选：由 TearPortalLink 复用的 SVG mask/outline 层
+      TearMask.test.ts                  # 本地候选：SSR、ID、units、tier 与隔离约束
+      tear-mask.css                     # 本地候选：独立样式与 forced-colors fallback
       PaperDebrisCanvas.tsx             # 建议、未创建：透明 Canvas 2D
-      TearPortalLink.tsx                # 建议、未创建，独立 lazy island
+      TearPortalLink.tsx                # 本地候选：认证分支内动态加载的 Console-only island
+      tear-portal-link.css              # 本地候选：正常文档流、手势与降级样式
       useTearGesture.ts                 # 建议、未创建：对 controller 的最小 React hook 包装
       StarBackdropPreview.tsx           # 建议、未创建
+    auth/
+      ConsoleSessionGate.tsx            # 本地候选：SessionGate 内 lazy 挂载 TearPortalLink
   lib/
     narrative/
-      state-machine.ts                  # 建议、未创建
-      state-machine.test.ts             # 建议、未创建，纯逻辑同目录测试
-      gesture-controller.ts             # 建议、未创建：唯一 primary pointer 控制器
-      gesture-controller.test.ts        # 建议、未创建，纯逻辑同目录测试
-      tear-geometry.ts                  # 建议、未创建
-      tear-geometry.test.ts             # 建议、未创建，纯逻辑同目录测试
-      quality.ts                        # 建议、未创建
-      quality.test.ts                   # 建议、未创建，纯逻辑同目录测试
+      entry-state.ts                    # 本地候选：五态纯转换
+      entry-state.test.ts               # 本地候选：纯逻辑同目录测试
+      entry-static.test.ts              # 本地候选：结构/降级静态约束
+      gesture-controller.ts             # 本地候选：唯一 primary pointer 控制器
+      gesture-controller.test.ts        # 本地候选：轴锁、阈值、速度、取消与边界测试
+      tear-portal-static.test.ts         # 本地候选：认证隔离、语义、导入与降级约束
+      tear-geometry.ts                  # 本地候选：normalized source + projected geometry/sampler
+      tear-geometry.test.ts             # 本地候选：确定性、不变量、弧长与边界测试
+      quality.ts                        # 本地候选：能力驱动质量分级
+      quality.test.ts                   # 本地候选：纯逻辑同目录测试
       preferences.ts                    # 建议、未创建：仅体验偏好
       preferences.test.ts               # 建议、未创建，纯逻辑同目录测试
       event-bridge.ts                   # 建议、未创建：无凭据事实输入
@@ -495,7 +505,7 @@ sequenceDiagram
 
 ## 26. Testing Strategy
 
-当前可见前端测试只有 3 个 Vitest 纯逻辑文件：public-ui.test.ts、seo.test.ts、lib/api/modules.test.ts；浏览器路径是 Python Playwright harness scripts/browser_e2e.py。没有现成 Testing Library、MSW、JavaScript Playwright 配置或相应 dev dependency。若要安装其中任一依赖，必须先单独获得批准；本文不把它们写成已安装。
+当前前端为 17 个 Vitest 文件、117 项测试，既包含纯逻辑，也使用现有 `react-dom/server` 做组件 SSR/static 约束；浏览器主路径仍是 Python Playwright harness `scripts/browser_e2e.py`，叙事阶段另使用验证后删除的 loopback 临时夹具。仍没有 Testing Library、MSW、JavaScript Playwright 配置或相应新增 dev dependency；若要安装其中任一依赖，必须先单独获得批准。
 
 | 层级 | 必测范围 | 通过条件 |
 | --- | --- | --- |
@@ -525,14 +535,14 @@ sequenceDiagram
 
 ## 27. Development Phases
 
-每个阶段独立灰度、可撤回，且始终保持既有 /、/login 与 /console 可运行。下面保留原实施顺序；截至 2026-09-05，Phase 0 与 Phase 1 的最小原型已经形成本地候选，Phase 2 以后仍是未获实现授权的建议。
+每个阶段独立灰度、可撤回，且始终保持既有 /、/login 与 /console 可运行。下面保留原实施顺序；截至 2026-09-09，Phase 0/1 已有实现，Phase 2/3、Phase 4、Phase 6 与 Console-only Phase 7 已形成未提交的本地候选，Phase 5、8 以后仍受素材、设备与分阶段验收约束。
 
 ### Phase 0：事实与门禁冻结
 
 **目标：** 冻结 §1 事实、许可边界、预算和验收记录格式。  
 **允许修改范围：** 仅经批准的设计/证据文档。  
 **不修改范围：** 源码、配置、路由、依赖、素材、认证。  
-**依赖：** 当前开发进度 §46 与源码复核。  
+**依赖：** 当前开发进度 §49 与源码复核。
 **验收：** 事实与旧计划历史基线不互相冒充。  
 **测试：** 文档链接、标题层级、证据路径静态检查。  
 **回滚：** 撤回新增设计文档即可，现站零运行时影响。
@@ -550,6 +560,8 @@ sequenceDiagram
 
 ### Phase 2：state、preferences 与 accessibility
 
+**状态：** 2026-09-08 已形成 state/focus/live-region/reduced-motion 的本地候选；推荐方案 B 不需要首次访问判断，因此未启用只为方案 A 预留的 `intro-seen` 偏好键。完整 Python browser harness、真实缩放、屏幕阅读器与 Safari/iOS 仍待复验，不能标记完成。
+
 **目标：** 接入独立状态机、可选体验偏好与完整焦点/公告策略。  
 **允许修改范围：** 建议 stores/narrative.ts、lib/narrative 与 NarrativeEntry。  
 **不修改范围：** stores/session.ts、API client、Cookie/CSRF、现有 redirect。  
@@ -559,6 +571,8 @@ sequenceDiagram
 **回滚：** 删除增强 island，静态壳继续工作。
 
 ### Phase 3：wax visual
+
+**状态：** 2026-09-08 已形成纯程序化五层 SVG、静态窄 filter、8 个 magic 点与 high/medium/low/reduced 分级候选；构建和 Chromium 降级路径已验证。正式性能 profile、颜色人工审查及 Safari/iOS 实机仍待完成，不能标记完成。
 
 **目标：** 加入分层 SVG 火漆与质量 tier。  
 **允许修改范围：** 建议 EnvelopeScene、WaxSealSvg、叙事样式和纯质量工具。  
@@ -570,12 +584,13 @@ sequenceDiagram
 
 ### Phase 4：existing login integration
 
+**状态：** 2026-09-09 已形成揭示后条件挂载现有 `LoginForm` 的本地候选；普通 `/login`/`/` fallback 保留，失败留在 `loginReveal`，成功完整导航后由 `SessionGate` 重验。共享登录基线另行修复同源 redirect、CSRF 失效恢复和 SSR `window` 读取；完整 Python harness、Safari/iOS、读屏、真实缩放和最终视觉接受仍待验收，不能标记完成。
 **目标：** 在信件中复用已有 LoginForm 的表现层，不改 auth 逻辑。  
-**允许修改范围：** NarrativeEntry 的 presentation adapter 和已批准的登录嵌入位置。  
-**不修改范围：** LoginForm 提交、API modules、SessionGate、CSRF、redirect 规则。  
+**允许修改范围：** NarrativeEntry 的条件挂载与信件样式；若共享登录基线存在直接反例，可在同一 LoginForm 内作不改变接口契约的安全修复并同时覆盖普通 `/login`。
+**不修改范围：** API modules/端点、SessionGate、Cookie/Origin/CSRF 服务端契约、独立 narrative auth adapter 或第二条请求链。
 **依赖：** Phase 2/3 通过及既有登录回归基线。  
 **验收：** 失败留在 loginReveal，成功后 /console 仍由 SessionGate 重验。  
-**测试：** 401、429、CSRF、网络错误、站内 redirect 和无 JS 普通登录。  
+**测试：** 401、429、CSRF 失效后重新握手、网络错误、严格同源 redirect、SSR 构建、无 JS 普通登录、焦点与强制色。
 **回滚：** 信件只保留 /login 链接，完全移除嵌入 adapter。
 
 ### Phase 5：AudioManager 与 active player adapter
@@ -590,6 +605,7 @@ sequenceDiagram
 
 ### Phase 6：静态 tear geometry/mask benchmark
 
+**状态：** 2026-09-09 已形成并被 Phase 7 复用的本地候选：固定 seed 的 normalized source points，以及按 `1000 × 240` viewBox 投影派生的 path/bounds/cumulative length 与 arc-length sampler；显式 progressive alpha mask/units/sRGB；high-only 窄 filter；medium/low/reduced 和 forced-colors 使用无滤镜 outline。Web 全量、SSR/static、build 与临时 Chromium 反例/Axe 通过；Firefox、Safari macOS/iOS、目标低端设备、人工视觉与正式 profile 未验收，不能标记完成。
 **目标：** 实现一次生成的 path、mask 与静态性能基准。  
 **允许修改范围：** 建议 lib/narrative/tear-geometry、SVG 层和同目录测试。  
 **不修改范围：** pointer 交互、Canvas、导航、音频。  
@@ -600,6 +616,7 @@ sequenceDiagram
 
 ### Phase 7：Console pointer tear（无 debris）
 
+**状态：** 2026-09-09 已形成 Console-only 本地候选：五页经 `ConsoleSessionGate` 在既有认证成功分支动态加载 `TearPortalLink`；纯 controller 与组件覆盖立即 capture、轴锁、阈值、速度、rAF 合并、取消/释放、一次导航、键盘、reduced-motion、forced-colors 和普通链接回退。完整 Python harness、Firefox/Safari/iOS、真实笔/触摸、读屏、200% 缩放、目标设备和正式 profile 未验收，不能标记完成。
 **目标：** 仅在 /console/* 的 TearPortalLink 接入 pointer controller、轴锁、立即 capture、cancel 和普通导航完成。  
 **允许修改范围：** 建议 TearPortalLink、gesture controller、tear geometry/mask 接口与样式。  
 **不修改范围：** Canvas、音频、ClientRouter、私有预取。  
@@ -643,7 +660,7 @@ sequenceDiagram
 - /enter 是可独立回滚的 noindex 静态入口，sitemap 不新增它；/ 永远保持现有 Portal、SEO/JSON-LD/canonical 和普通分享语义。
 - 无 JavaScript、SVG、Canvas 或音频时，用户仍能看到静态文本并通过 / 或 /login 完成下一步。
 - /enter 与 /console/* 是两个 route-local 状态机，完整导航销毁前者后再创建后者；静态链接不依赖任一状态，任何状态都不代表 auth。
-- state、preference、event bridge 与 session/auth 完全隔离；没有 JWT、Cookie、CSRF、私有路径或会话写入进入叙事层。
+- narrative state、preference、event bridge 与 session/auth 保持隔离；叙事编排不得读取 JWT、Cookie、CSRF、私有路径或写会话。揭示态可挂载唯一的 auth-owned `LoginForm` 子树，但认证请求和 session 写入必须留在该组件及既有 auth 模块内，不能镜像进 narrative state。
 - seal/tear 键盘可用、可取消、焦点正确、live region 克制、触摸目标不小于 44×44px、forced-colors/缩放/reduced motion 通过。
 - 每个活动 document 的单例 AudioManager 与现有播放器 adapter 不产生双播放器、重复 MediaElementSource、双 Context、自动播放或双满音量；完整导航只允许淡出/handoff/按策略淡入，不称作 crossfade。
 - 撕裂几何 deterministic，Canvas 受量级/DPR/visibility/生命周期约束，20 次循环没有资源递增。
@@ -668,7 +685,7 @@ sequenceDiagram
 
 1. /enter 是否在首轮灰度中对全部公开访问者可见，还是仅通过二维码/个人名片分发。
 2. 火漆、纸张、BGM、SFX 是纯程序化、内部自有还是第三方授权；每项的许可记录由谁保管。
-3. 登录信件是否只展示普通登录链接，还是在 Phase 4 获批准后复用现有 LoginForm 的视觉嵌入。
+3. 是否接受 2026-09-09 的 Phase 4 候选作为最终方向：揭示后复用现有 LoginForm，同时永久保留普通 `/login` 回退；若不接受，按回滚说明移除条件挂载。
 4. 对完整导航的可接受 BGM 间隙上限是多少；若不能接受，是否愿意承担未来持久 document/ClientRouter 的独立架构评估。
 5. 哪些目标设备代表低/中/高 tier，以及 Safari/iOS 实机验证由谁提供。
 6. 方案 A 是否有明确业务理由；若无，不进入实现排期。
@@ -680,7 +697,7 @@ sequenceDiagram
 | 总体具体开发计划 | 跨模块优先级、M1/M2/M3、部署、Cookie/CSRF、数据/安全门禁。 | 仅为浏览器叙事层提供下游设计。 |
 | 前端开发计划 | Astro 静态输出、React islands、同源 API、现有路由与性能方向。 | 用 /enter 隔离体验成本，不新增 /star 或 /isle。 |
 | 前端设计文档 | ink/star/glow、公开轻私有稳、内容先于装饰、双主题可达。 | 提出候选 parchment/wax/fiber 辅助 token，需对比测试。 |
-| 开发进度最新 §46 | 本地候选/历史验证/生产验收的区分，M1/M2/M3 未完成。 | 不改变任何完成状态或发布结论。 |
+| 开发进度最新 §52 | 本地候选/历史验证/生产验收的区分，M1/M2/M3 未完成。 | 不改变任何完成状态或发布结论。 |
 | 现有源码 | /、/login、/console、Base、PublicMusicPlayer、SessionGate 的既有职责。 | Phase 化、可回滚的新增体验，不修改当前事实。 |
 
 ## 32. 哪些内容属于 Should / Could / Future
@@ -694,7 +711,7 @@ sequenceDiagram
 ### Could
 
 - 仅当方案 B 的 Lighthouse、无障碍和回访验证均通过后，评估方案 A 的首次 / overlay 与体验偏好键。
-- 在 Console 使用独立、很小的 TearPortalLink 增强返回 / 的链接；普通 a 仍是同等可用的基础路径。
+- 保留并继续验收当前 Console `TearPortalLink` 小型候选；普通 a 始终是同等可用的基础路径，增强不得扩散到公开页或 `/enter`。
 - 在用户明确接受间隙、授权素材齐备且测量证明必要时，微调 BGM crossfade 或声音映射。
 
 ### Future
@@ -707,7 +724,7 @@ sequenceDiagram
 
 ### 可直接增量
 
-方案 B 的 /enter noindex 静态壳、Base chrome=false、静态“前往星”与“普通登录”链接、SSR 的语义 seal button、独立叙事状态和 reduced-motion 降级都可在不改变 /、/login、/console、API 或 session 的前提下分阶段增加。
+方案 B 的 /enter noindex 静态壳、Base chrome=false、静态“前往星”与“普通登录”链接、SSR 的语义 seal button、独立叙事状态和 reduced-motion 降级已经形成候选；揭示后还可条件挂载现有 LoginForm，而无需改变 /、/login、/console、API 或 session 的职责。
 
 ### 高风险
 
@@ -719,4 +736,34 @@ sequenceDiagram
 
 ### 第一原型
 
-首个最小可验证 Prototype 固定为：方案 B 的 /enter noindex 页面，静态信封、语义 seal button、SVG melt、/enter 独立状态、reduced-motion 处理，以及静态“前往星”（/）/“普通登录”（/login）fallback。它**不接真实认证、不接音频、不改 Console 或根页**。通过后，下一项风险 spike 才是隔离的静态 tear path 加 pointer controller；它先只验证本地几何/取消语义，不能把 /enter sealed 接到正式 Console TearPortalLink。Canvas、SFX、BGM 与跨页 handoff 均不在第一原型内。
+首个最小可验证 Prototype 固定为：方案 B 的 /enter noindex 页面，静态信封、语义 seal button、SVG melt、/enter 独立状态、reduced-motion 处理，以及静态“前往星”（/）/“普通登录”（/login）fallback。它的**历史边界是不接真实认证、不接音频、不改 Console 或根页**；Phase 4 当前候选已在不改变该 fallback 的前提下复用既有认证。Phase 6/7 后续候选已另在认证后的 Console 路径实现 geometry/mask 与 pointer `TearPortalLink`，但不会反向接入 `/enter` sealed。Canvas、SFX、BGM 与跨页 handoff 仍不在第一原型或 Phase 6/7 内。
+
+## 34. 2026-09-09 实施快照与下一门禁
+
+Phase 4 当前落点刻意保持最小：`NarrativeEntry` 只有一个被 `revealed` 条件保护的 `LoginForm` 子树和信件局部样式；没有 `LoginLetter` adapter、成功回调、auth store 订阅、API import、私有预取或 `isle` 延迟动画。共享 LoginForm 只增加可独立测试的 same-origin resolver、CSRF 失效清理与提交时浏览器地址读取，普通 `/login` 与 `/enter` 使用同一实现。
+
+本地证据为 Web 82/82、Astro 89 files 零诊断、11 pages build；生产拆包中 `NarrativeEntry` 2.69 KiB gzip、共享 `LoginForm` 2.40 KiB gzip。loopback Chromium 直接观察 sealed/reveal 前 0 API、空密码、401、429、CSRF、网络中断、恶意 redirect 回落、成功后 `/auth/me` 重验，以及 reduced-motion/360px/forced-colors；揭示区域三种模式的 Axe 均为 0 violation、0 incomplete。完整命令、反例与证据限制见 [开发进度 §50](./开发进度.md#50-2026-09-09-叙事-phase-4-登录信件本地候选)。
+
+下一开发顺序为：Phase 5 暂停在“授权音频 + 当前 `PublicMusicPlayer` 行为基线”门前；先执行不依赖素材的 Phase 6 deterministic geometry/mask spike。Phase 6 只能新增纯几何、静态 SVG/mask 原型与测试，不得接 pointer、Canvas、导航、AudioManager、根页或 Console。Safari/iOS、读屏、真实浏览器缩放、人工视觉、正式性能 profile 和完整 Python harness 继续作为 Phase 2–4 的未完成验收项。
+
+## 35. 2026-09-09 Phase 6 实施快照与 Phase 7 门禁
+
+Phase 6 当前代码严格停在未接线边界。`tear-geometry.ts` 使用 unsigned 32-bit seed 和固定整数 PRNG，生成 24 段/25 点、横向单调的 normalized 折线；同一组 frozen points 派生 path、bounds、累计弧长、total length 与按弧长二分的 `sampleAt`，后者同时返回 point、单位 tangent 和固定方向 normal。组件没有读取 DOM、时间、全局随机、session、API 或质量信号。
+
+`TearMask` 默认复用模块级 canonical geometry，也允许确定性 fixture；mask、opening、outline 三处使用同一缩放 path。双实例 ID 来自清洗后的 `useId` 且引用闭合；alpha mask、mask/filter units 和 sRGB 均显式。只有 high 输出固定、单 octave、窄带 turbulence/displacement，medium/low/reduced 不输出 filter；forced-colors 隐藏 opening/filter，保留 CanvasText 3.5px outline。组件为 `aria-hidden`、不可聚焦且 `pointer-events:none`，没有 state/effect/rAF/事件处理。
+
+本地证据更新为 Web 94/94、Astro 93 files 零诊断、11 pages build。geometry 5 项与 TearMask 7 项定向测试通过；临时 Chromium 夹具曾输出 high filter surface 0.397 及 3 秒 high/low sweep 数字，360px 无横向溢出，forced-colors fallback 生效，夹具 Axe 为 0 violation/0 incomplete。夹具、原始 trace 和浏览器版本未保留，因此性能数字只作为不可复现的历史诊断；夹具随后删除、4346 释放、浏览器会话清零。当时最终 `/enter`、根页和 Console 没有 import Phase 6，build 也没有新增 TearMask 客户端 chunk。历史数字和当前纠正见 [开发进度 §51](./开发进度.md#51-2026-09-09-叙事-phase-6-静态撕裂几何与-mask-本地候选)。
+
+Phase 6 仍只是本地候选：Firefox、Safari macOS/iOS、目标低端设备、人工保留截图、真实缩放和正式 trace/profile 缺证据，alpha/luminance 与 sRGB 的跨浏览器最终选择尚未关闭。Phase 5 继续等待授权音频与播放器基线。Phase 7 若开始，只能新增 Console-only 的无 debris pointer controller/TearPortalLink，保留语义 `href="/"` 与全部 cancel 回滚；不得加入 Canvas、音频、ClientRouter、私有预取或修改 `/enter`。
+
+## 36. 2026-09-09 Phase 7 实施快照与下一门禁
+
+Phase 7 已按 §35 的边界实施为 Console-only 本地候选。五个 Console 页面不直接挂 Tear island，而是使用 `ConsoleSessionGate`：先由既有 `SessionGate` 完成 session/refresh 判定，再在认证成功 children 内 `React.lazy` 加载 `TearPortalLink`。匿名 Chromium 保留布局中的原生 `/` 链接，未请求专用 JS；认证成功后只请求一次。构建会把约 1.66 KiB gzip 的专用 CSS 链入 Console HTML，所以这里只声明“认证后 JS”，不声明匿名态零资源。
+
+纯 `gesture-controller.ts` 冻结 idle/tracking/committed、12px slop、横纵轴锁、阻力、完成阈值、时间衰减 EMA 与 flick 新鲜度；React 组件在 primary pointerdown 立即 capture，以一个 rAF 合并进度更新，并在 pointercancel、lostcapture、Escape、resize、hidden、多指、纵向意图、无效样本或动态 reduced-motion 时回滚、释放 capture 并抑制取消序列的 synthetic click。第二触点只取消 tear，不调用 `preventDefault()`，因此 `touch-action: pan-y pinch-zoom` 的原生双指缩放边界仍保留。commit 通过 guard 只调度一次 `location.assign("/")`，拖动期间不发请求。
+
+Mask 在 Phase 7 前修正为投影坐标弧长与真正的 progressive alpha opening。实际注入星空 surface 在 progress 0/0.445/1 时分别观察到 0/17,019/38,124 个有效像素，最右 x 为 null/453/999。组件处于正常文档流；390×844 中 panel 256×96、handle 56×56、fallback 64×44，无横向溢出或正文/底栏重叠。reduced-motion 禁用 drag 而保留点击/键盘/普通链接，forced-colors 隐藏装饰 viewport 并保留系统色控件；Tear 局部三种模式的 Axe 均为 0 violation/0 incomplete。
+
+本地终验为 Phase 6/7 定向 35/35、Web 117/117、Astro 98 files 零诊断、11 pages build。TearPortalLink JS 为 5,217 B gzip、专用 CSS 为 1,656 B gzip，合计约 6.71 KiB gzip，低于 §21 的 30 KiB 增量预算。20 次取消循环没有遗留 rAF，100 次同任务 move 只调度一个 rAF；三秒 headless 采样未保留正式 trace，只能作为本机临时诊断。`scripts/browser_e2e.py` 已扩展且 Ruff 通过，但登记的 Python 3.14 解释器缺失，完整 Python browser flow 未重跑。
+
+因此 Phase 7 仍不能标记完成或生产可用：Firefox、Safari macOS/iOS、真实笔/触摸与 iOS 边缘手势、屏幕阅读器、200% 缩放、人工视觉、目标低端设备和可复现正式 profile 均未验收。Phase 5 继续等待授权音频和当前 `PublicMusicPlayer` 行为基线；Phase 8 同时依赖 Phase 5 与 Phase 7 真机/资源门禁，当前不开始 Canvas debris 或 gesture SFX。M1/M2/M3、API、数据库 schema v5、依赖与发布结论不变；完整证据和回滚见 [开发进度 §52](./开发进度.md#52-2026-09-09-叙事-phase-7-console-pointer-tear-本地候选)。
