@@ -15,15 +15,15 @@ export default function KnowledgeBaseWorkspace() {
       <div
         role="group"
         aria-label="知识库视图"
-        className="grid grid-cols-2 rounded-md border border-border bg-surface p-1 lg:hidden"
+        className="grid grid-cols-2 rounded-sm border border-border bg-surface p-1 lg:hidden"
       >
         <button
           type="button"
           aria-controls="kb-documents-panel"
           aria-pressed={activePanel === "documents"}
-          className={`inline-flex min-h-11 items-center justify-center rounded px-3 text-sm font-medium focus-ring ${
+          className={`inline-flex min-h-11 items-center justify-center rounded-sm border-b-2 border-transparent px-3 text-sm font-medium focus-ring ${
             activePanel === "documents"
-              ? "bg-accent text-accent-foreground"
+              ? "border-accent-warm bg-bg text-text"
               : "text-text-dim hover:bg-bg hover:text-text"
           }`}
           onClick={() => setActivePanel("documents")}
@@ -34,9 +34,9 @@ export default function KnowledgeBaseWorkspace() {
           type="button"
           aria-controls="kb-chat-panel"
           aria-pressed={activePanel === "chat"}
-          className={`inline-flex min-h-11 items-center justify-center rounded px-3 text-sm font-medium focus-ring ${
+          className={`inline-flex min-h-11 items-center justify-center rounded-sm border-b-2 border-transparent px-3 text-sm font-medium focus-ring ${
             activePanel === "chat"
-              ? "bg-accent text-accent-foreground"
+              ? "border-accent-warm bg-bg text-text"
               : "text-text-dim hover:bg-bg hover:text-text"
           }`}
           onClick={() => setActivePanel("chat")}

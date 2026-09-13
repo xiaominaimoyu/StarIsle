@@ -514,7 +514,7 @@ export default function ChatWindow() {
         aria-label={showSidebar ? "关闭会话列表" : "打开会话列表"}
         aria-expanded={showSidebar}
         aria-controls="kb-conversation-list"
-        className="inline-flex h-11 w-fit items-center rounded-md border border-border px-4 text-sm text-text-dim hover:border-accent/60 hover:text-text focus-ring lg:hidden"
+        className="inline-flex h-11 w-fit items-center rounded-sm border border-border bg-surface/70 px-4 text-sm text-text-dim hover:border-accent-warm/70 hover:text-text focus-ring lg:hidden"
         onClick={() => setShowSidebar((visible) => !visible)}
       >
         会话列表
@@ -528,7 +528,7 @@ export default function ChatWindow() {
         <button
           ref={newConversationRef}
           type="button"
-          className="inline-flex h-11 items-center rounded-md border border-border px-3 text-xs text-text-dim hover:border-accent/60 focus-ring"
+          className="inline-flex h-11 items-center rounded-sm border border-border bg-surface/70 px-3 text-xs text-text-dim hover:border-accent-warm/70 focus-ring"
           onClick={() => selectConversation(null)}
         >
           + 新会话
@@ -540,8 +540,8 @@ export default function ChatWindow() {
               <button
                 type="button"
                 aria-pressed={conversationId === conversation.id}
-                className={`min-h-11 w-full truncate rounded-md px-3 py-2 text-left text-sm focus-ring ${
-                  conversationId === conversation.id ? "bg-accent/15 text-accent" : "text-text-dim hover:bg-surface hover:text-text"
+                className={`min-h-11 w-full truncate rounded-sm border-l-2 px-3 py-2 text-left text-sm focus-ring ${
+                   conversationId === conversation.id ? "border-accent-warm bg-surface text-text" : "border-transparent text-text-dim hover:border-border hover:bg-surface hover:text-text"
                 }`}
                 onClick={() => selectConversation(conversation.id)}
               >
@@ -555,7 +555,7 @@ export default function ChatWindow() {
             type="button"
             disabled={conversationListLoading}
             aria-busy={conversationListLoading}
-            className="inline-flex h-11 items-center justify-center rounded-md border border-border px-3 text-xs text-text-dim hover:border-accent/60 hover:text-text focus-ring disabled:opacity-50"
+            className="inline-flex h-11 items-center justify-center rounded-sm border border-border bg-surface/70 px-3 text-xs text-text-dim hover:border-accent-warm/70 hover:text-text focus-ring disabled:opacity-50"
             onClick={() => void loadMoreConversations()}
           >
             {conversationListLoading ? "加载中…" : "加载更多会话"}
@@ -563,7 +563,7 @@ export default function ChatWindow() {
         ) : null}
       </aside>
 
-      <div className="card flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="card flex min-h-0 flex-1 flex-col overflow-hidden rounded-sm border-t-2 border-t-accent-warm/60">
         <div
           ref={messageViewportRef}
           data-testid="kb-chat-history"
@@ -574,7 +574,7 @@ export default function ChatWindow() {
               type="button"
               disabled={streaming || messageLoading}
               aria-busy={messageLoading}
-              className="inline-flex h-11 w-fit items-center rounded-md border border-border px-3 text-xs text-text-dim hover:border-accent/60 hover:text-text focus-ring disabled:opacity-50"
+              className="inline-flex h-11 w-fit items-center rounded-sm border border-border bg-surface/70 px-3 text-xs text-text-dim hover:border-accent-warm/70 hover:text-text focus-ring disabled:opacity-50"
               onClick={() => void loadOlderMessages()}
             >
               {messageLoading ? "加载中…" : "加载更早消息"}
@@ -619,7 +619,7 @@ export default function ChatWindow() {
           <div ref={bottomRef} />
         </div>
 
-        <form onSubmit={handleSubmit} className="flex items-end gap-2 border-t border-border p-3">
+        <form onSubmit={handleSubmit} className="flex items-end gap-2 border-t border-border bg-surface/40 p-3">
           <textarea
             ref={inputRef}
             value={input}
@@ -627,7 +627,7 @@ export default function ChatWindow() {
             placeholder="输入问题…"
             rows={1}
             aria-label="问题输入框"
-            className="min-h-11 flex-1 resize-none rounded-md border border-border bg-transparent px-3 py-2.5 text-sm text-text placeholder:text-text-dim focus:border-accent focus:outline-none"
+            className="min-h-11 flex-1 resize-none rounded-sm border border-border bg-bg/50 px-3 py-2.5 text-sm text-text placeholder:text-text-dim focus:border-accent-warm focus:outline-none"
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.shiftKey) {
                 event.preventDefault();
@@ -638,7 +638,7 @@ export default function ChatWindow() {
           {streaming ? (
             <button
               type="button"
-              className="inline-flex h-11 items-center rounded-md border border-border px-4 text-sm text-text-dim hover:border-danger/60 hover:text-danger focus-ring"
+              className="inline-flex h-11 items-center rounded-sm border border-border bg-surface/70 px-4 text-sm text-text-dim hover:border-danger/60 hover:text-danger focus-ring"
               onClick={cancelQuestion}
             >
               取消
@@ -647,7 +647,7 @@ export default function ChatWindow() {
             <button
               type="submit"
               disabled={!input.trim() || sendInFlightRef.current || messageLoading}
-              className="inline-flex h-11 items-center rounded-md bg-accent px-4 text-sm font-medium text-accent-foreground hover:brightness-110 focus-ring disabled:opacity-50"
+              className="inline-flex h-11 items-center rounded-sm border border-accent bg-accent px-4 text-sm font-medium text-accent-foreground hover:brightness-110 focus-ring disabled:opacity-50"
             >
               发送
             </button>

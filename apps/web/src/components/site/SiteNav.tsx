@@ -48,7 +48,7 @@ export default function SiteNav({ showAuth = true }: SiteNavProps) {
           key={link.href}
           href={link.href}
           aria-current={isCurrent(link.href) ? "page" : undefined}
-          className="rounded-md px-3 py-2 text-sm text-text-dim hover:text-text focus-ring"
+          className="rounded-sm border-b border-transparent px-3 py-2 text-sm text-text-dim hover:border-accent-warm hover:text-text aria-[current=page]:border-accent aria-[current=page]:text-text focus-ring"
         >
           {link.label}
         </a>
@@ -56,7 +56,7 @@ export default function SiteNav({ showAuth = true }: SiteNavProps) {
       {showAuth ? (
         <a
           href="/console"
-          className="rounded-md px-3 py-2 text-sm text-text-dim hover:text-text focus-ring"
+          className="rounded-sm border-b border-transparent px-3 py-2 text-sm text-text-dim hover:border-accent-warm hover:text-text focus-ring"
         >
           控制台
         </a>
@@ -74,7 +74,7 @@ export default function SiteNav({ showAuth = true }: SiteNavProps) {
       {/* 移动端:汉堡 + 抽屉 */}
       <button
         type="button"
-        className="inline-flex size-10 items-center justify-center rounded-md text-text-dim hover:bg-surface hover:text-text focus-ring md:hidden"
+        className="inline-flex size-10 items-center justify-center rounded-sm border border-transparent text-text-dim hover:border-border hover:bg-surface hover:text-text focus-ring md:hidden"
         aria-expanded={drawerOpen}
         aria-controls="mobile-drawer"
         aria-label="打开导航菜单"
@@ -91,14 +91,14 @@ export default function SiteNav({ showAuth = true }: SiteNavProps) {
           <div
             ref={drawerRef}
             tabIndex={-1}
-            className="modal-enter absolute right-0 top-0 flex h-full w-64 flex-col gap-1 border-l border-border bg-surface p-4 shadow-2"
+            className="modal-enter absolute right-0 top-0 flex h-full w-64 flex-col gap-1 border-l-2 border-l-accent-warm bg-surface p-4 shadow-2"
           >
             <div className="mb-3 flex items-center justify-between">
               <span className="font-display text-lg font-semibold text-text">✦ 星屿</span>
               <button
                 type="button"
                 aria-label="关闭导航菜单"
-                className="inline-flex size-10 items-center justify-center rounded-md text-text-dim hover:bg-bg focus-ring"
+                className="inline-flex size-10 items-center justify-center rounded-sm border border-transparent text-text-dim hover:border-border hover:bg-bg focus-ring"
                 onClick={() => setDrawerOpen(false)}
               >
                 ✕

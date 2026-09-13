@@ -14,9 +14,9 @@ import { compressImage, MAX_ORIGINAL_BYTES } from "@/lib/image";
 import Modal from "@/components/ui/Modal";
 
 const PRESETS = [
-  "/presets/backgrounds/starry-night.svg",
-  "/presets/backgrounds/island-dawn.svg",
-  "/presets/backgrounds/calm-paper.svg",
+  { url: "/presets/backgrounds/starry-night.svg", label: "深蓝缎面" },
+  { url: "/presets/backgrounds/island-dawn.svg", label: "古铜暮色" },
+  { url: "/presets/backgrounds/calm-paper.svg", label: "象牙石纹" },
 ];
 
 export default function BackgroundController() {
@@ -54,7 +54,7 @@ export default function BackgroundController() {
     const saved = await saveBackgroundBlob(result.blob);
     if (!saved.ok) {
       // IndexedDB 不可用:回退预设背景并明确说明无法本地持久化
-      setBackgroundUrl(PRESETS[0]!, false);
+      setBackgroundUrl(PRESETS[0]!.url, false);
       setMessage({
         tone: "info",
         text: "当前浏览器不支持本地保存背景,本次访问将使用预设背景。",
@@ -72,7 +72,7 @@ export default function BackgroundController() {
         type="button"
         aria-label="背景设置"
         title="背景设置"
-        className="inline-flex size-10 items-center justify-center rounded-md text-text-dim hover:bg-surface hover:text-text focus-ring"
+        className="inline-flex size-10 items-center justify-center rounded-sm border border-transparent text-text-dim hover:border-border hover:bg-surface hover:text-text focus-ring"
         onClick={() => setOpen(true)}
       >
         <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -93,7 +93,7 @@ export default function BackgroundController() {
           {message ? (
             <div
               role="alert"
-              className={`rounded-md border px-3 py-2 text-sm ${
+              className={`rounded-sm border border-l-2 px-3 py-2 text-sm ${
                 message.tone === "error"
                   ? "border-danger/40 text-danger"
                   : "border-accent/40 text-accent"
@@ -106,20 +106,24 @@ export default function BackgroundController() {
           <div>
             <p className="mb-2 text-sm font-medium text-text">预设背景</p>
             <div className="grid grid-cols-3 gap-3">
-              {PRESETS.map((url) => (
+              {PRESETS.map((preset) => (
                 <button
-                  key={url}
+                  key={preset.url}
                   type="button"
-                  aria-label={`使用预设背景 ${url.split("/").pop()}`}
-                  aria-pressed={settings.url === url && !settings.custom}
-                  className={`h-16 overflow-hidden rounded-md border-2 focus-ring ${
-                    settings.url === url && !settings.custom
+                  aria-label={`使用预设背景：${preset.label}`}
+                  aria-pressed={settings.url === preset.url && !settings.custom}
+                  className={`relative h-20 overflow-hidden rounded-sm border-2 bg-cover bg-center focus-ring ${
+                    settings.url === preset.url && !settings.custom
                       ? "border-accent"
                       : "border-border hover:border-accent/50"
                   }`}
-                  style={{ backgroundImage: `url(${url})`, backgroundSize: "cover" }}
-                  onClick={() => pickPreset(url)}
-                />
+                  style={{ backgroundImage: `url(${preset.url})` }}
+                  onClick={() => pickPreset(preset.url)}
+                >
+                  <span className="absolute inset-x-0 bottom-0 bg-black/65 px-1 py-1 font-mono text-[0.65rem] tracking-wide text-white">
+                    {preset.label}
+                  </span>
+                </button>
               ))}
             </div>
           </div>
@@ -136,7 +140,7 @@ export default function BackgroundController() {
             <button
               type="button"
               disabled={compressing}
-              className="inline-flex h-10 items-center rounded-md border border-border px-4 text-sm hover:border-accent/60 focus-ring disabled:opacity-60"
+              className="inline-flex h-10 items-center rounded-sm border border-border bg-surface/70 px-4 text-sm hover:border-accent-warm/70 focus-ring disabled:opacity-60"
               onClick={() => fileInputRef.current?.click()}
             >
               {compressing ? "处理中…" : "选择图片"}
@@ -178,7 +182,7 @@ export default function BackgroundController() {
 
           <button
             type="button"
-            className="inline-flex h-10 items-center justify-center rounded-md border border-border text-sm hover:border-danger/60 hover:text-danger focus-ring"
+            className="inline-flex h-10 items-center justify-center rounded-sm border border-border bg-surface/70 text-sm hover:border-danger/60 hover:text-danger focus-ring"
             onClick={() => {
               resetBackground();
               clearBackgroundBlob();

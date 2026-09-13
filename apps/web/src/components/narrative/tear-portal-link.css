@@ -5,9 +5,9 @@
   --tear-rotate-top: 0deg;
   --tear-rotate-bottom: 0deg;
   --tear-handle-shift: 0px;
-  --tear-star-deep: #182850;
-  --tear-star-light: #f7e4ae;
-  --tear-star-glow: #a7c5ff;
+  --tear-star-deep: #09111f;
+  --tear-star-light: #d1ad7a;
+  --tear-star-glow: #b98d62;
 
   position: relative;
   width: min(18rem, 100%);
@@ -15,10 +15,15 @@
   margin: 0 0 1rem;
   isolation: isolate;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--border));
-  border-radius: 0.85rem;
-  background: var(--surface);
-  box-shadow: 0 0.8rem 2rem rgb(3 8 24 / 0.2);
+  border: 1px solid color-mix(in srgb, var(--accent-warm) 38%, var(--border));
+  border-radius: 0.18rem;
+  background:
+    linear-gradient(112deg, transparent 0 42%, rgb(209 173 122 / 0.06) 42.2% 42.5%, transparent 42.8%),
+    linear-gradient(158deg, #1b191e, #0e0f14 54%, #18161a);
+  box-shadow:
+    inset 0 0 0 1px rgb(235 231 223 / 0.06),
+    inset 0 -1.25rem 2.5rem rgb(0 0 0 / 0.28),
+    0 1rem 2.4rem rgb(0 3 12 / 0.34);
 }
 
 .tear-portal-link__viewport,
@@ -40,17 +45,18 @@
 .tear-portal-link__star-backdrop {
   z-index: 0;
   background:
-    radial-gradient(circle at 16% 30%, rgb(247 228 174 / 0.92) 0 1px, transparent 2px),
-    radial-gradient(circle at 74% 68%, rgb(167 197 255 / 0.88) 0 1.5px, transparent 2.5px),
-    linear-gradient(135deg, var(--tear-star-deep), #293b73 56%, #172241);
-  background-size: 2.7rem 2.3rem, 3.1rem 2.9rem, auto;
+    radial-gradient(ellipse at 42% 46%, rgb(70 91 126 / 0.68), transparent 44%),
+    repeating-linear-gradient(101deg, transparent 0 2.8rem, rgb(225 232 245 / 0.035) 2.85rem 2.9rem),
+    linear-gradient(135deg, var(--tear-star-deep), #172641 56%, #080d18);
 }
 
 .tear-portal-link__paper {
   z-index: 1;
   background:
-    repeating-linear-gradient(8deg, transparent 0 11px, rgb(111 139 168 / 0.045) 12px 13px),
-    color-mix(in srgb, var(--surface) 96%, var(--accent));
+    linear-gradient(24deg, transparent 0 29%, rgb(185 175 164 / 0.12) 29.2% 29.45%, transparent 29.7%),
+    linear-gradient(151deg, transparent 0 61%, rgb(185 175 164 / 0.09) 61.2% 61.5%, transparent 61.75%),
+    radial-gradient(circle at 18% 10%, rgb(255 255 255 / 0.055), transparent 35%),
+    linear-gradient(132deg, #1c1a1f, #0f1015 54%, #171519);
   transition: transform 280ms cubic-bezier(0.22, 0.68, 0.28, 1);
 }
 
@@ -85,11 +91,16 @@
   height: 56px;
   padding: 0;
   place-items: center;
-  border: 1px solid color-mix(in srgb, var(--accent) 56%, var(--border));
+  border: 1px solid color-mix(in srgb, var(--accent-warm) 68%, #30231d);
   border-radius: 999px;
-  color: var(--text);
-  background: var(--surface);
-  box-shadow: 0 0.35rem 0.9rem rgb(3 8 24 / 0.24);
+  color: #f1e4d2;
+  background:
+    radial-gradient(circle at 34% 28%, rgb(255 234 202 / 0.32), transparent 18%),
+    radial-gradient(circle, #8b6449 0 48%, #5a3f30 68%, #2c201c 100%);
+  box-shadow:
+    inset 0 0 0 3px rgb(35 24 20 / 0.5),
+    inset 0 0 0 5px rgb(218 177 128 / 0.2),
+    0 0.5rem 1.1rem rgb(0 0 0 / 0.42);
   cursor: ew-resize;
   touch-action: pan-y pinch-zoom;
   transform: translate(var(--tear-handle-shift), -50%);
@@ -105,12 +116,12 @@
 }
 
 .tear-portal-link__handle:hover:not(:disabled) {
-  border-color: var(--accent);
+  border-color: var(--accent-warm);
 }
 
 .tear-portal-link__handle:focus-visible,
 .tear-portal-link__copy a:focus-visible {
-  outline: 3px solid var(--accent);
+  outline: 3px solid var(--accent-warm);
   outline-offset: 3px;
 }
 
@@ -125,9 +136,10 @@
   flex-direction: column;
   gap: 0.25rem;
   max-width: calc(100% - 5.75rem);
-  padding: 0.2rem 0.4rem;
-  border-radius: 0.4rem;
-  background-color: var(--surface);
+  padding: 0.25rem 0.65rem;
+  border-left: 1px solid color-mix(in srgb, var(--accent-warm) 42%, var(--border));
+  border-radius: 0;
+  background-color: color-mix(in srgb, var(--surface) 92%, transparent);
   transform: translateY(-50%);
   transition: opacity 120ms ease;
 }

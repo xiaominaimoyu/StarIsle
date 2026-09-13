@@ -2,9 +2,9 @@
 import { MAX_ORIGINAL_BYTES } from "@/lib/image";
 
 const presets = [
-  "/presets/backgrounds/starry-night.svg",
-  "/presets/backgrounds/island-dawn.svg",
-  "/presets/backgrounds/calm-paper.svg",
+  { url: "/presets/backgrounds/starry-night.svg", label: "深蓝缎面" },
+  { url: "/presets/backgrounds/island-dawn.svg", label: "古铜暮色" },
+  { url: "/presets/backgrounds/calm-paper.svg", label: "象牙石纹" },
 ];
 ---
 
@@ -17,7 +17,7 @@ const presets = [
     aria-expanded="false"
     aria-label="背景设置"
     title="背景设置"
-    class="inline-flex size-10 items-center justify-center rounded-md text-text-dim hover:bg-surface hover:text-text focus-ring"
+    class="inline-flex size-10 items-center justify-center rounded-sm border border-transparent text-text-dim hover:border-border hover:bg-surface hover:text-text focus-ring"
   >
     <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
       <rect x="3" y="3" width="18" height="18" rx="2" />
@@ -29,27 +29,29 @@ const presets = [
 
   <div id="background-dialog" data-public-modal data-background-dialog role="dialog" aria-modal="true" aria-labelledby="background-dialog-title" class="fixed inset-0 z-60 flex items-center justify-center p-4" hidden>
     <button type="button" data-background-close class="absolute inset-0 cursor-default bg-black/60" aria-label="关闭背景设置"></button>
-    <div data-background-panel tabindex="-1" class="modal-enter card relative z-10 max-h-full w-full max-w-2xl overflow-y-auto p-6 shadow-2">
+    <div data-background-panel tabindex="-1" class="modal-enter card relative z-10 max-h-full w-full max-w-2xl overflow-y-auto rounded-sm border-t-2 border-t-accent-warm p-6 shadow-2">
       <div class="mb-4 flex items-center justify-between gap-4">
         <h2 id="background-dialog-title" class="text-xl font-semibold text-text">自定义背景</h2>
-        <button type="button" data-background-close class="inline-flex size-10 shrink-0 items-center justify-center rounded-md text-text-dim hover:bg-bg hover:text-text focus-ring" aria-label="关闭背景设置">✕</button>
+        <button type="button" data-background-close class="inline-flex size-10 shrink-0 items-center justify-center rounded-sm border border-transparent text-text-dim hover:border-border hover:bg-bg hover:text-text focus-ring" aria-label="关闭背景设置">✕</button>
       </div>
 
       <div class="flex flex-col gap-4 text-base text-text-dim">
-        <div data-background-message role="alert" class="rounded-md border px-3 py-2 text-sm" hidden></div>
+        <div data-background-message role="alert" class="rounded-sm border border-l-2 px-3 py-2 text-sm" hidden></div>
 
         <div>
           <p class="mb-2 text-sm font-medium text-text">预设背景</p>
           <div class="grid grid-cols-3 gap-3">
-            {presets.map((url) => (
+            {presets.map((preset) => (
               <button
                 type="button"
-                data-background-preset={url}
-                aria-label={`使用预设背景 ${url.split("/").pop()}`}
+                data-background-preset={preset.url}
+                aria-label={`使用预设背景：${preset.label}`}
                 aria-pressed="false"
-                class="h-16 overflow-hidden rounded-md border-2 border-border bg-cover bg-center focus-ring hover:border-accent/50"
-                style={`background-image: url("${url}")`}
-              ></button>
+                class="relative h-20 overflow-hidden rounded-sm border-2 border-border bg-cover bg-center focus-ring hover:border-accent-warm/60"
+                style={`background-image: url("${preset.url}")`}
+              >
+                <span class="absolute inset-x-0 bottom-0 bg-black/65 px-1 py-1 font-mono text-[0.65rem] tracking-wide text-white">{preset.label}</span>
+              </button>
             ))}
           </div>
         </div>
@@ -57,7 +59,7 @@ const presets = [
         <div>
           <p class="mb-2 text-sm font-medium text-text">本地上传</p>
           <input data-background-file type="file" accept="image/*" class="hidden" aria-label="选择背景图片" />
-          <button type="button" data-background-file-trigger class="inline-flex h-10 items-center rounded-md border border-border px-4 text-sm hover:border-accent/60 focus-ring disabled:opacity-60">选择图片</button>
+          <button type="button" data-background-file-trigger class="inline-flex h-10 items-center rounded-sm border border-border bg-surface/70 px-4 text-sm hover:border-accent-warm/70 focus-ring disabled:opacity-60">选择图片</button>
           <p class="mt-2 text-xs text-text-dim">
             仅保存在当前浏览器与设备；原图超过 {MAX_ORIGINAL_BYTES / 1024 / 1024} MB 会被拒绝，压缩后 Blob 目标不超过 1.5 MB。
           </p>
@@ -73,9 +75,9 @@ const presets = [
           <input data-background-blur type="range" min="0" max="20" step="1" value="0" class="accent-[color:var(--accent)]" />
         </label>
 
-        <button type="button" data-background-reset class="inline-flex h-10 items-center justify-center rounded-md border border-border text-sm hover:border-danger/60 hover:text-danger focus-ring">恢复默认</button>
+        <button type="button" data-background-reset class="inline-flex h-10 items-center justify-center rounded-sm border border-border bg-surface/70 text-sm hover:border-danger/60 hover:text-danger focus-ring">恢复默认</button>
         <div class="flex justify-end">
-          <button type="button" data-background-close class="inline-flex h-10 items-center rounded-md border border-border px-4 text-sm hover:border-accent/60 focus-ring">完成</button>
+          <button type="button" data-background-close class="inline-flex h-10 items-center rounded-sm border border-border bg-surface/70 px-4 text-sm hover:border-accent-warm/70 focus-ring">完成</button>
         </div>
       </div>
     </div>
@@ -159,7 +161,7 @@ const presets = [
       if (!message) return;
       message.hidden = false;
       message.textContent = text;
-      message.className = `rounded-md border px-3 py-2 text-sm ${tone === "error" ? "border-danger/40 text-danger" : "border-accent/40 text-accent"}`;
+      message.className = `rounded-sm border border-l-2 px-3 py-2 text-sm ${tone === "error" ? "border-danger/40 text-danger" : "border-accent/40 text-accent"}`;
     }
 
     function clearMessage(): void {

@@ -10,7 +10,7 @@ import StatusBanner from "@/components/ui/StatusBanner";
  */
 export default function ConsoleOverview() {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="console-overview">
       <StorageCard />
       <PhotosCard />
       <MailCard />
@@ -33,10 +33,10 @@ function CardShell({
   children: React.ReactNode;
 }) {
   return (
-    <section className="card flex flex-col gap-3 p-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-text">{title}</h2>
-        <a href={href} className="text-xs text-accent hover:underline focus-ring">查看全部 →</a>
+    <section className="console-overview-card">
+      <div className="console-overview-card__head">
+        <h2 className="font-display text-base font-semibold text-text">{title}</h2>
+        <a href={href} className="inline-flex min-h-11 items-center text-xs text-accent hover:underline focus-ring">查看全部 →</a>
       </div>
       {error ? (
         <StatusBanner tone="error" action={<button type="button" onClick={onRetry}>重试</button>}>
@@ -63,7 +63,7 @@ function StorageCard() {
   useEffect(load, [load]);
   return (
     <CardShell title="存储用量" href="/console/files" error={error} onRetry={load}>
-      <p className="text-2xl font-semibold text-text">{stats ? formatBytes(stats.usedBytes) : "加载中…"}</p>
+      <p className="font-mono text-2xl font-semibold text-text">{stats ? formatBytes(stats.usedBytes) : "加载中…"}</p>
       <p className="text-xs text-text-dim">
         {stats ? `文件 ${stats.fileCount} 个 · 照片 ${stats.photoCount} 张` : "正在读取文件与照片占用"}
       </p>
@@ -89,7 +89,7 @@ function PhotosCard() {
       {photos.length === 0 ? (
         <p className="text-sm text-text-dim">还没有照片。</p>
       ) : (
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className="grid grid-cols-3 gap-1.5" aria-label={`最近 ${Math.min(photos.length, 6)} 张照片`}>
           {photos.slice(0, 6).map((p) => (
             <img key={p.id} src={p.thumbnailUrl} alt="" loading="lazy" className="aspect-square rounded-md object-cover" />
           ))}

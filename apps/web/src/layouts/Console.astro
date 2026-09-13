@@ -19,38 +19,42 @@ const items = [
 ---
 
 <Base title={title} noindex chrome={false}>
-  <div class="flex min-h-dvh flex-col">
+  <div class="console-shell flex min-h-dvh flex-col">
     {/* 桌面侧边栏 + 顶栏 */}
     <div class="flex flex-1">
-      <aside class="no-print sticky top-0 hidden h-dvh w-56 shrink-0 flex-col border-r border-border bg-surface/50 p-4 lg:flex">
-        <a href="/" class="mb-6 font-display text-lg font-semibold text-text focus-ring rounded">
-          <span aria-hidden="true">✦</span> 星屿
+      <aside class="console-sidebar no-print sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-border bg-surface/40 p-4 lg:flex">
+        <a href="/" class="console-brand mb-2 flex min-h-11 items-center gap-2 rounded font-display text-lg font-semibold text-text focus-ring">
+          <span aria-hidden="true" class="text-accent-warm">✦</span> 星屿
         </a>
-        <nav aria-label="控制台导航" class="flex flex-1 flex-col gap-1">
+        <p class="featured-entry__number mb-2 px-3">NIGHT FLIGHT · CONSOLE</p>
+        <nav aria-label="控制台导航" class="console-nav flex flex-1 flex-col gap-1">
           {items.map((item) => (
             <a
               href={item.href}
               aria-current={Astro.url.pathname === item.href ? "page" : undefined}
-              class="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-text-dim hover:bg-surface hover:text-text focus-ring aria-[current=page]:bg-accent/15 aria-[current=page]:text-accent"
+              class="console-nav__link rounded-md focus-ring"
             >
-              <span aria-hidden="true">{item.icon}</span> {item.label}
+              <span aria-hidden="true" class="console-nav__icon">{item.icon}</span> {item.label}
             </a>
           ))}
         </nav>
-        <a href="/" class="rounded-md px-3 py-2 text-sm text-text-dim hover:text-text focus-ring">
+        <a href="/" class="console-return rounded-md focus-ring">
           ← 返回门户
         </a>
       </aside>
 
       <div class="flex min-w-0 flex-1 flex-col">
-        <header class="no-print sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border bg-bg/80 px-4 backdrop-blur">
-          <h1 class="truncate text-base font-semibold text-text">{title}</h1>
+        <header class="console-header no-print sticky top-0 z-40 flex min-h-14 items-center justify-between px-4 backdrop-blur lg:px-8">
+          <div class="min-w-0">
+            <p class="featured-entry__number hidden sm:block">PRIVATE ARCHIVE</p>
+            <h1 class="console-header__title truncate text-base font-semibold text-text">{title}</h1>
+          </div>
           <div class="flex items-center gap-2">
             <ThemeToggle client:idle />
             <LogoutButton client:idle />
           </div>
         </header>
-        <main id="main" class="flex-1 px-4 py-6 pb-24 lg:px-8 lg:pb-6">
+        <main id="main" class="console-main flex-1 px-4 py-6 pb-24 lg:px-8 lg:pb-6">
           <slot />
         </main>
       </div>
@@ -59,7 +63,7 @@ const items = [
     {/* 移动端底部标签栏 */}
     <nav
       aria-label="控制台导航"
-      class="no-print fixed inset-x-0 bottom-0 z-40 flex border-t border-border bg-surface/95 backdrop-blur lg:hidden"
+      class="console-bottom-nav no-print fixed inset-x-0 bottom-0 z-40 flex border-t border-border bg-surface/95 backdrop-blur lg:hidden"
       style="padding-bottom: env(safe-area-inset-bottom)"
     >
       <a

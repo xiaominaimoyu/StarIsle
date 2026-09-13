@@ -141,7 +141,7 @@ export default function PhotoTimeline() {
       {loading ? (
         <div className="grid grid-cols-3 gap-3 md:grid-cols-4 lg:grid-cols-6" aria-busy="true">
           {Array.from({ length: 12 }).map((_, i) => (
-            <div key={i} className="skeleton aspect-square rounded-md" />
+            <div key={i} className="skeleton aspect-square rounded-sm" />
           ))}
         </div>
       ) : loadError ? (
@@ -162,7 +162,7 @@ export default function PhotoTimeline() {
               </h2>
               <div className="grid grid-cols-3 gap-3 md:grid-cols-4 lg:grid-cols-6">
                 {items.map((p) => (
-                  <div key={p.id} className="group relative aspect-square overflow-hidden rounded-md border border-border">
+                  <div key={p.id} className="group relative aspect-square overflow-hidden rounded-sm border border-border border-t-accent-warm/50">
                     <img
                       src={p.thumbnailUrl}
                       alt={`照片 ${photoCaptureDayLabel(p.captureAt)}`}
@@ -172,7 +172,7 @@ export default function PhotoTimeline() {
                     <button
                       type="button"
                       aria-label="删除这张照片"
-                      className="absolute right-1 top-1 hidden size-11 items-center justify-center rounded-md bg-black/60 text-xs text-white hover:bg-danger focus-ring group-focus-within:flex group-hover:flex"
+                      className="absolute right-1 top-1 hidden size-11 items-center justify-center rounded-sm border border-border bg-black/70 text-xs text-white hover:bg-danger focus-ring group-focus-within:flex group-hover:flex"
                       onClick={() => {
                         setDeleteError(null);
                         setPendingDelete(p);
@@ -195,7 +195,7 @@ export default function PhotoTimeline() {
                 type="button"
                 disabled={loadingMore}
                 aria-busy={loadingMore}
-                className="mx-auto inline-flex h-11 items-center rounded-md border border-border px-4 text-sm hover:border-accent/60 focus-ring disabled:cursor-not-allowed disabled:opacity-60"
+                className="mx-auto inline-flex h-11 items-center rounded-sm border border-border bg-surface/70 px-4 text-sm hover:border-accent-warm/70 focus-ring disabled:cursor-not-allowed disabled:opacity-60"
                 onClick={() => void load(nextCursor)}
               >
                 {loadingMore ? "正在加载更多…" : loadMoreError ? "重试加载更多" : "加载更多"}

@@ -11,10 +11,10 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClass: Record<ButtonVariant, string> = {
-  primary: "bg-accent text-accent-foreground hover:brightness-110",
-  secondary: "border border-border bg-transparent hover:border-accent/60",
-  ghost: "bg-transparent hover:bg-surface",
-  danger: "bg-danger text-ink data-[light=true]:text-white hover:brightness-110",
+  primary: "border border-accent bg-accent text-accent-foreground hover:brightness-110",
+  secondary: "border border-border bg-surface/70 hover:border-accent-warm/70",
+  ghost: "border border-transparent bg-transparent hover:border-border hover:bg-surface",
+  danger: "border border-danger bg-danger text-ink data-[light=true]:text-white hover:brightness-110",
 };
 
 const sizeClass: Record<ButtonSize, string> = {
@@ -38,7 +38,7 @@ export default function Button({
       type={type}
       data-light={variant === "danger" && typeof document !== "undefined" ? document.documentElement.dataset.theme === "light" : undefined}
       disabled={disabled || loading}
-      className={`inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors duration-150 focus-ring disabled:cursor-not-allowed disabled:opacity-60 ${variantClass[variant]} ${sizeClass[size]} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-sm font-medium tracking-[0.02em] transition-colors duration-150 focus-ring disabled:cursor-not-allowed disabled:opacity-60 ${variantClass[variant]} ${sizeClass[size]} ${className}`}
       {...rest}
     >
       {loading ? <span aria-hidden="true" className="inline-block size-4 animate-spin rounded-full border-2 border-current border-t-transparent" /> : null}

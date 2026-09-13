@@ -21,14 +21,16 @@ const current = tracks[0];
   data-public-player
   data-playlist={JSON.stringify(tracks)}
   aria-label="音乐播放器"
-  class="minibar-enter no-print fixed inset-x-0 bottom-0 z-50 border-t border-border bg-surface/95 px-4 py-3 shadow-2 backdrop-blur"
-  style="padding-bottom: max(0.75rem, env(safe-area-inset-bottom))"
+  class:list={[
+    "minibar-enter no-print public-player",
+    tracks.length === 0 ? "public-player--empty" : "public-player--active",
+  ]}
 >
   <audio data-player-audio preload="none"></audio>
   {tracks.length === 0 ? (
-    <div class="mx-auto max-w-6xl">
-      <button type="button" data-player-open aria-controls="player-dialog" aria-expanded="false" class="inline-flex h-10 items-center gap-2 rounded-md border border-border px-3 text-sm text-text-dim hover:border-accent/60 focus-ring">
-        <span aria-hidden="true">♪</span> 音乐播放器
+    <div>
+      <button type="button" data-player-open aria-controls="player-dialog" aria-expanded="false" aria-label="打开音乐播放器" class="inline-flex items-center gap-2 text-sm focus-ring">
+        <span class="text-accent-warm" aria-hidden="true">♪</span> <span class="hidden sm:inline">音乐播放器</span>
       </button>
     </div>
   ) : (
@@ -63,7 +65,7 @@ const current = tracks[0];
 
 <div id="player-dialog" data-public-modal data-player-dialog role="dialog" aria-modal="true" aria-labelledby="player-dialog-title" class="fixed inset-0 z-60" hidden>
   <button type="button" data-player-close class="absolute inset-0 cursor-default bg-black/60" aria-label="关闭歌单"></button>
-  <div data-player-panel tabindex="-1" class="modal-enter card absolute right-0 top-0 flex h-full w-80 flex-col p-4 shadow-2">
+  <div data-player-panel tabindex="-1" class="player-panel modal-enter absolute right-0 top-0 flex h-full w-80 max-w-[90vw] flex-col p-5 shadow-2">
     <div class="mb-3 flex items-center justify-between">
       <h2 id="player-dialog-title" class="font-semibold text-text">歌单</h2>
       <button type="button" data-player-close aria-label="关闭歌单" class="inline-flex size-10 items-center justify-center rounded-md text-text-dim hover:text-text focus-ring">✕</button>

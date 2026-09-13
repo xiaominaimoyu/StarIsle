@@ -14,6 +14,7 @@ const projects = await Promise.all(projectEntries.map(async (entry) => ({
 })));
 const snapshot = loadRepoSnapshot();
 const repos = sortPublicRepos(snapshot.repos, { source: "all", sort: "featured" });
+const isPlaceholderUrl = (value: string) => /(?:example\.com|yourname)/i.test(value);
 ---
 
 <Portal
@@ -22,38 +23,44 @@ const repos = sortPublicRepos(snapshot.repos, { source: "all", sort: "featured" 
   snapshotAt={snapshot.fetchedAt ? new Date(snapshot.fetchedAt).toLocaleDateString("zh-CN") : undefined}
   sources={snapshot.sources}
 >
-  <div class="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-12">
-    <header>
-      <h1 class="font-display text-2xl font-semibold text-text">项目</h1>
-      <p class="mt-2 max-w-2xl text-sm text-text-dim">
-        下方的仓库数据为构建期快照,采集自 GitHub / Gitee;`featured` 精选由本地清单决定。最新数据请访问来源平台。
-      </p>
+  <div class="mx-auto w-full max-w-6xl px-4 sm:px-6">
+    <header class="page-intro">
+      <div>
+        <p class="featured-entry__number">NIGHT FLIGHT ARCHIVE · 02</p>
+        <h1 class="page-intro__title">夜航档案</h1>
+      </div>
+      <p class="page-intro__description">这里收录正在持续航行的作品与工程记录。仓库数据是构建期快照，来源于 GitHub / Gitee；精选次序由本地清单维护。需要最新状态时，请循来源平台继续查阅。</p>
     </header>
 
     {/* 内容集合项目(长文介绍) */}
-    <section aria-labelledby="essays-title" class="mx-auto w-full max-w-3xl">
-      <h2 id="essays-title" class="mb-4 font-display text-2xl font-semibold text-text">项目介绍</h2>
+    <section aria-labelledby="essays-title" class="page-section mx-auto w-full max-w-4xl">
+      <div class="mb-5 flex items-baseline justify-between gap-4 border-b border-border pb-3">
+        <h2 id="essays-title" class="font-display text-2xl font-semibold text-text">航行札记</h2>
+        <span class="featured-entry__number">FIELD NOTES</span>
+      </div>
       {projects.length === 0 ? (
-        <p class="text-sm text-text-dim">暂无项目介绍内容。</p>
+        <p class="public-empty-state">暂无项目介绍内容。</p>
       ) : (
-        <div class="flex flex-col gap-6">
+        <div class="project-essay-list">
           {projects.map(({ entry: p, Content }) => (
-            <article class="card p-5">
-              <div class="mb-2 flex flex-wrap items-center gap-3">
-                <h3 class="text-lg font-semibold text-text">{p.data.title}</h3>
-                {p.data.featured ? <span class="rounded-full border border-accent-warm/50 px-2 py-0.5 text-xs text-accent-warm">精选</span> : null}
-                <span class="text-xs text-text-dim">{p.data.date.toLocaleDateString("zh-CN")}</span>
+            <article class="project-essay">
+              <div class="project-essay__meta">
+                <p>LOG {p.data.date.toLocaleDateString("zh-CN")}</p>
+                {p.data.featured ? <p class="mt-2 text-accent-warm">精选记录</p> : null}
               </div>
-              <div class="space-y-3 text-base leading-relaxed text-text"><Content /></div>
-              <div class="mt-3 flex flex-wrap gap-2">
+              <div class="project-essay__body editorial-prose">
+                <h3>{p.data.title}</h3>
+                <div class="text-base leading-relaxed text-text"><Content /></div>
+                <div class="mt-5 flex flex-wrap items-center gap-2 border-t border-border pt-4">
                 {p.data.tags.map((t) => (
-                  <span class="rounded-full border border-border px-2.5 py-0.5 text-xs text-text-dim">{t}</span>
+                  <span class="rounded-sm border border-border px-2.5 py-0.5 font-mono text-xs tracking-wide text-text-dim">{t}</span>
                 ))}
-                {p.data.sourceUrl ? (
-                  <a href={p.data.sourceUrl} target="_blank" rel="noopener noreferrer" class="rounded-full border border-accent/50 px-2.5 py-0.5 text-xs text-accent hover:bg-accent/10 focus-ring">
+                {p.data.sourceUrl && !isPlaceholderUrl(p.data.sourceUrl) ? (
+                  <a href={p.data.sourceUrl} target="_blank" rel="noopener noreferrer" class="inline-flex min-h-11 items-center rounded-md px-2.5 text-xs text-accent hover:bg-accent/10 focus-ring">
                     源码 →
                   </a>
-                ) : null}
+                ) : p.data.sourceUrl ? <span class="text-xs text-text-dim">源码链接待公开</span> : null}
+                </div>
               </div>
             </article>
           ))}
@@ -62,8 +69,11 @@ const repos = sortPublicRepos(snapshot.repos, { source: "all", sort: "featured" 
     </section>
 
     {/* 仓库快照区 */}
-    <section aria-labelledby="repos-title" class="mx-auto w-full max-w-6xl">
-      <h2 id="repos-title" class="mb-4 font-display text-2xl font-semibold text-text">仓库快照</h2>
+    <section aria-labelledby="repos-title" class="page-section mx-auto w-full max-w-6xl">
+      <div class="mb-5 flex items-baseline justify-between gap-4 border-b border-border pb-3">
+        <h2 id="repos-title" class="font-display text-2xl font-semibold text-text">仓库星图</h2>
+        <span class="featured-entry__number">BUILD-TIME SNAPSHOT</span>
+      </div>
       <PublicRepoGrid snapshot={snapshot} repos={repos} />
     </section>
   </div>

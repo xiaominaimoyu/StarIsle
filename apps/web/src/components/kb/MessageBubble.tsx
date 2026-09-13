@@ -19,7 +19,7 @@ export function MessageBubble({
   if (role === "user") {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[85%] rounded-2xl bg-accent/20 px-4 py-2.5 text-sm leading-relaxed text-text">
+        <div className="max-w-[85%] rounded-sm border border-accent/50 border-r-2 border-r-accent bg-surface/90 px-4 py-2.5 text-sm leading-relaxed text-text">
           {content}
         </div>
       </div>
@@ -27,7 +27,7 @@ export function MessageBubble({
   }
   return (
     <div className="flex justify-start">
-      <div className="max-w-[85%] rounded-2xl border border-border bg-surface px-4 py-2.5 text-sm leading-relaxed text-text">
+      <div className="max-w-[85%] rounded-sm border border-border border-l-2 border-l-accent-warm bg-surface px-4 py-2.5 text-sm leading-relaxed text-text">
         {content}
         {streaming ? <span className="stream-cursor" aria-hidden="true" /> : null}
       </div>
@@ -38,9 +38,9 @@ export function MessageBubble({
 /** 引用卡:[序号] 文档名 vX · chunk #n + 片段摘要;无引用回答下方显示 warning Banner */
 export function CitationCard({ citation, index }: { citation: Citation; index: number }) {
   return (
-    <details className="group rounded-md border border-border bg-surface/60 px-3 py-2">
+    <details className="group rounded-sm border border-border border-l-2 border-l-accent-warm/70 bg-surface/60 px-3 py-2">
       <summary className="cursor-pointer list-none text-xs text-text-dim marker:hidden">
-        <span className="mr-1 inline-flex size-4 items-center justify-center rounded-full bg-accent/20 text-[0.7em] font-semibold text-accent">
+        <span className="mr-1 inline-flex size-4 items-center justify-center rounded-sm border border-accent/40 bg-accent/10 text-[0.7em] font-semibold text-accent">
           {index + 1}
         </span>
         {citation.documentName} v{citation.version} · chunk {citation.chunkId}
@@ -74,7 +74,7 @@ export function MessageList({
           {m.role === "assistant" && m.citations.length === 0 ? (
             <div
               role="status"
-              className="flex max-w-[85%] items-center gap-2 rounded-md border border-accent-warm/40 bg-surface px-3 py-2 text-xs text-accent-warm"
+              className="flex max-w-[85%] items-center gap-2 rounded-sm border border-accent-warm/40 border-l-2 border-l-accent-warm bg-surface px-3 py-2 text-xs text-accent-warm"
             >
               <span aria-hidden="true">⚠</span>
               <span>本次回答未找到可引用的来源</span>

@@ -6,39 +6,46 @@ const resume = (await getCollection("resume"))[0];
 const resumeContent = resume ? await render(resume) : undefined;
 const ResumeContent = resumeContent?.Content;
 const data = resume?.data ?? { name: "", role: "", summary: "" };
+const isPlaceholderValue = (value: string) => /(?:你的名字|example\.com|yourname|待填写)/i.test(value);
+const hasPublicIdentity = Boolean(data.name.trim()) && !isPlaceholderValue(data.name);
 ---
 
 <Portal title="简历 · 星屿 StarIsle" description={`${data.role} · 在线简历`}>
-  <script type="application/ld+json" is:inline set:html={JSON.stringify({
-    "@context": "https://schema.org",
-    "@type": "Person",
-    name: data.name,
-    jobTitle: data.role,
-    description: data.summary,
-  })} />
+  {hasPublicIdentity ? (
+    <script type="application/ld+json" is:inline set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Person",
+      name: data.name,
+      jobTitle: data.role,
+      description: data.summary,
+    })} />
+  ) : null}
 
-  <div class="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-12 print-plain">
-    <header class="flex flex-wrap items-start justify-between gap-4">
+  <div class="resume-wrap px-4 sm:px-6 print-plain">
+    <div class="resume-sheet">
+    <header class="resume-masthead">
       <div>
-        <h1 class="font-display text-2xl font-semibold text-text">{data.name}</h1>
-        <p class="mt-1 text-lg text-accent">{data.role}</p>
+        <p class="featured-entry__number">STARISLE · PERSONAL FOLIO</p>
+        <h1>{hasPublicIdentity ? data.name : "个人履历"}</h1>
+        <p class="mt-3 text-lg text-accent">{data.role}</p>
         <p class="mt-2 max-w-xl text-base leading-relaxed text-text-dim">{data.summary}</p>
-        <ul class="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm text-text-dim">
+        <ul class="resume-contact text-sm text-text-dim">
           {data.location ? <li>{data.location}</li> : null}
-          {data.email ? <li><a class="text-accent hover:underline focus-ring" href={`mailto:${data.email}`}>{data.email}</a></li> : null}
-          {data.website ? <li><a class="text-accent hover:underline focus-ring" href={data.website} target="_blank" rel="noopener noreferrer">{data.website}</a></li> : null}
+          {data.email && !isPlaceholderValue(data.email) ? <li><a class="text-accent hover:underline focus-ring" href={`mailto:${data.email}`}>{data.email}</a></li> : null}
+          {data.website && !isPlaceholderValue(data.website) ? <li><a class="text-accent hover:underline focus-ring" href={data.website} target="_blank" rel="noopener noreferrer">个人链接</a></li> : null}
         </ul>
       </div>
+      <p class="mt-8 border-t border-border pt-4 text-sm leading-6 text-text-dim">夜航档案<br />履历页</p>
       {/* PDF 按钮:仅在 PDF 经确认放入 public/ 后渲染 */}
       {/* <a href="/resume.pdf" class="no-print inline-flex h-11 items-center rounded-md bg-accent px-5 font-medium text-accent-foreground hover:brightness-110 focus-ring">下载 PDF</a> */}
     </header>
 
     {ResumeContent ? (
-      <article class="mx-auto w-full max-w-3xl">
-        <div class="space-y-4 text-base leading-relaxed text-text"><ResumeContent /></div>
+      <article class="resume-body editorial-prose">
+        <div class="text-base leading-relaxed text-text"><ResumeContent /></div>
       </article>
     ) : (
       <p class="text-sm text-text-dim">简历内容待补充。</p>
-    )}
+    )}</div>
   </div>
 </Portal>

@@ -139,8 +139,8 @@ export default function DropZone({
         }}
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
-        className={`flex min-h-28 cursor-pointer flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed p-6 text-sm transition-colors focus-ring ${
-          dragging ? "border-accent bg-accent/10" : "border-border hover:border-accent/50"
+        className={`flex min-h-28 cursor-pointer flex-col items-center justify-center gap-2 rounded-sm border-2 border-dashed bg-surface/40 p-6 text-sm transition-colors focus-ring ${
+          dragging ? "border-accent-warm bg-accent-warm/10" : "border-border hover:border-accent-warm/60"
         }`}
       >
         <span aria-hidden="true" className="text-2xl text-accent">⬆</span>
@@ -161,7 +161,7 @@ export default function DropZone({
       {items.length > 0 ? (
         <ul className="flex flex-col gap-2">
           {items.map((item) => (
-            <li key={item.id} className="card flex items-center gap-3 p-3">
+            <li key={item.id} className="card flex items-center gap-3 rounded-sm border-l-2 border-l-accent-warm/60 p-3">
               <span className="min-w-0 flex-1 truncate text-sm text-text">{item.file.name}</span>
               {item.status === "error" ? (
                 <span role="alert" className="shrink-0 text-xs text-danger">{item.error}</span>
@@ -169,7 +169,7 @@ export default function DropZone({
                 <span className="shrink-0 text-xs text-success">✓ 完成</span>
               ) : (
                 <div className="flex shrink-0 items-center gap-2">
-                  <div className="h-1.5 w-24 overflow-hidden rounded-full bg-border" role="progressbar" aria-valuenow={item.progress} aria-valuemin={0} aria-valuemax={100} aria-label={`${item.file.name} 上传进度`}>
+                  <div className="h-1.5 w-24 overflow-hidden rounded-none bg-border" role="progressbar" aria-valuenow={item.progress} aria-valuemin={0} aria-valuemax={100} aria-label={`${item.file.name} 上传进度`}>
                     <div className="h-full bg-accent transition-[transform] duration-200" style={{ transform: `scaleX(${item.progress / 100})`, transformOrigin: "left" }} />
                   </div>
                   <span className="w-8 text-right text-xs text-text-dim">{item.progress}%</span>

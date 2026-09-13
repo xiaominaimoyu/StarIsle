@@ -71,12 +71,9 @@ function StarBackdropSurface() {
   return (
     <>
       <rect width="1000" height="240" fill="var(--tear-star-deep)" />
-      <circle cx="94" cy="72" r="7" fill="var(--tear-star-light)" />
-      <circle cx="218" cy="146" r="4" fill="var(--tear-star-light)" />
-      <circle cx="386" cy="92" r="6" fill="var(--tear-star-glow)" />
-      <circle cx="548" cy="158" r="5" fill="var(--tear-star-light)" />
-      <circle cx="708" cy="78" r="4" fill="var(--tear-star-glow)" />
-      <circle cx="864" cy="142" r="7" fill="var(--tear-star-light)" />
+      <path d="M0 198 C180 126 286 220 470 148 S790 88 1000 170 V240 H0Z" fill="#172641" opacity="0.72" />
+      <path d="M0 54 C196 18 328 112 508 62 S812 14 1000 82" fill="none" stroke="var(--tear-star-glow)" strokeWidth="2" opacity="0.2" />
+      <path d="M0 192 C184 128 302 214 476 148 S810 94 1000 164" fill="none" stroke="var(--tear-star-light)" strokeWidth="2" opacity="0.18" />
     </>
   );
 }

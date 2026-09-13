@@ -21,7 +21,7 @@ export default function ThemeToggle() {
       onClick={toggleTheme}
       aria-label={isLight ? "切换到暗色主题" : "切换到亮色主题"}
       title={isLight ? "切换到暗色主题" : "切换到亮色主题"}
-      className="inline-flex size-10 items-center justify-center rounded-md text-text-dim hover:bg-surface hover:text-text focus-ring"
+      className="inline-flex size-10 items-center justify-center rounded-sm border border-transparent text-text-dim hover:border-border hover:bg-surface hover:text-text focus-ring"
     >
       {isLight ? (
         <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">

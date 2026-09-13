@@ -450,12 +450,12 @@ export default function DocumentManager() {
         <button
           type="button"
           disabled={uploading}
-          className="inline-flex h-11 items-center rounded-md bg-accent px-4 text-sm font-medium text-accent-foreground hover:brightness-110 focus-ring disabled:opacity-60"
+          className="inline-flex h-11 items-center rounded-sm border border-accent bg-accent px-4 text-sm font-medium text-accent-foreground hover:brightness-110 focus-ring disabled:opacity-60"
           onClick={() => fileInputRef.current?.click()}
         >
           {uploading ? "上传中…" : "上传文档"}
         </button>
-        <button type="button" className="inline-flex h-11 items-center rounded-md border border-border px-4 text-sm hover:border-accent/60 focus-ring" onClick={() => void load()}>
+        <button type="button" className="inline-flex h-11 items-center rounded-sm border border-border bg-surface/70 px-4 text-sm hover:border-accent-warm/70 focus-ring" onClick={() => void load()}>
           刷新
         </button>
         <p className="text-xs text-text-dim">支持 PDF / Markdown / TXT;上传后异步索引,以任务状态为准。</p>
@@ -468,7 +468,7 @@ export default function DocumentManager() {
       {loading ? (
         <div className="flex flex-col gap-2" aria-busy="true">
           {Array.from({ length: 4 }).map((_, index) => (
-            <div key={index} className="skeleton h-14 rounded-md" />
+             <div key={index} className="skeleton h-14 rounded-sm" />
           ))}
         </div>
       ) : loadError ? (
@@ -488,7 +488,7 @@ export default function DocumentManager() {
             const deleteTerminal = deleteTombstone && !isActive(tracked.status);
             const job = tracked?.status ?? jobFromIndex(document);
             return (
-              <li key={document.id} className={`card flex flex-wrap items-center gap-3 p-3 ${deleteTombstone ? "opacity-80" : ""}`}>
+               <li key={document.id} className={`card flex flex-wrap items-center gap-3 rounded-sm border-l-2 border-l-accent-warm/60 p-3 ${deleteTombstone ? "opacity-80" : ""}`}>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-text">{document.title}</p>
                   <p className="mt-0.5 text-xs text-text-dim">
@@ -521,7 +521,7 @@ export default function DocumentManager() {
                       <button
                         type="button"
                         disabled={cancellingJobId === tracked.jobId}
-                        className="inline-flex h-11 items-center rounded px-2 text-danger hover:underline focus-ring disabled:cursor-not-allowed disabled:opacity-50"
+                         className="inline-flex h-11 items-center rounded-sm px-2 text-danger hover:underline focus-ring disabled:cursor-not-allowed disabled:opacity-50"
                         onClick={() => void handleCancel(document.id)}
                       >
                         {cancellingJobId === tracked.jobId ? "取消中…" : "取消任务"}
@@ -530,7 +530,7 @@ export default function DocumentManager() {
                     <button
                       type="button"
                       disabled={active}
-                      className="inline-flex h-11 items-center rounded px-2 text-accent hover:underline focus-ring disabled:cursor-not-allowed disabled:opacity-50"
+                       className="inline-flex h-11 items-center rounded-sm px-2 text-accent hover:underline focus-ring disabled:cursor-not-allowed disabled:opacity-50"
                       onClick={() => void handleRebuild(document)}
                     >
                       重建
@@ -538,7 +538,7 @@ export default function DocumentManager() {
                     <button
                       type="button"
                       disabled={active}
-                      className="inline-flex h-11 items-center rounded px-2 text-danger hover:underline focus-ring disabled:cursor-not-allowed disabled:opacity-50"
+                       className="inline-flex h-11 items-center rounded-sm px-2 text-danger hover:underline focus-ring disabled:cursor-not-allowed disabled:opacity-50"
                       onClick={() => setPendingDelete(document)}
                     >
                       删除
@@ -556,7 +556,7 @@ export default function DocumentManager() {
               type="button"
               disabled={loadingMore}
               aria-busy={loadingMore}
-              className="inline-flex h-11 items-center rounded-md border border-border px-4 text-sm hover:border-accent/60 focus-ring disabled:cursor-not-allowed disabled:opacity-60"
+               className="inline-flex h-11 items-center rounded-sm border border-border bg-surface/70 px-4 text-sm hover:border-accent-warm/70 focus-ring disabled:cursor-not-allowed disabled:opacity-60"
               onClick={() => void load(nextCursor)}
             >
               {loadingMore ? "正在加载更多…" : loadMoreError ? "重试加载更多" : "加载更多"}

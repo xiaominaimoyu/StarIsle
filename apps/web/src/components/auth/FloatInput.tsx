@@ -36,7 +36,7 @@ export default function FloatInput({
     <div className={`flex flex-col gap-1 ${className}`}>
       <label
         htmlFor={id}
-        className={`relative block h-11 rounded-md border bg-transparent transition-colors duration-200 ${
+        className={`relative block h-11 rounded-sm border bg-surface/40 transition-colors duration-200 ${
           showError
             ? "border-danger"
             : invalid
@@ -48,7 +48,8 @@ export default function FloatInput({
           id={id}
           type={inputType}
           required={required}
-          className={`peer h-full w-full rounded-md border-none bg-transparent px-2.5 pb-2 pt-3 text-base text-text outline-none ${password ? "pr-11" : ""}`}
+          aria-label={label}
+          className={`peer h-full w-full rounded-sm border-none bg-transparent px-2.5 pb-2 pt-3 text-base text-text outline-none ${password ? "pr-11" : ""}`}
           aria-describedby={showError ? errorId : undefined}
           aria-invalid={invalid || undefined}
           onBlur={(e) => {

@@ -13,19 +13,19 @@ const normalizedPath = Astro.url.pathname.replace(/\/+$/, "") || "/";
 const isCurrent = (href: string) => (href === "/" ? normalizedPath === "/" : normalizedPath === href);
 ---
 
-<nav aria-label="主导航" class="hidden items-center gap-1 md:flex">
+<nav aria-label="主导航" class="public-nav hidden md:flex">
   {links.map((link) => (
-    <a href={link.href} aria-current={isCurrent(link.href) ? "page" : undefined} class="rounded-md px-3 py-2 text-sm text-text-dim hover:text-text focus-ring">
+    <a href={link.href} aria-current={isCurrent(link.href) ? "page" : undefined} class="public-nav__link focus-ring rounded">
       {link.label}
     </a>
   ))}
-  {showAuth ? <a href="/console" class="rounded-md px-3 py-2 text-sm text-text-dim hover:text-text focus-ring">控制台</a> : null}
+  {showAuth ? <a href="/console" class="public-nav__link public-nav__link--private focus-ring rounded">控制台</a> : null}
 </nav>
 
 <button
   type="button"
   data-public-nav-trigger
-  class="inline-flex size-10 items-center justify-center rounded-md text-text-dim hover:bg-surface hover:text-text focus-ring md:hidden"
+  class="public-nav-trigger focus-ring md:hidden"
   aria-expanded="false"
   aria-controls="mobile-navigation-dialog"
   aria-label="打开导航菜单"
@@ -37,17 +37,17 @@ const isCurrent = (href: string) => (href === "/" ? normalizedPath === "/" : nor
 
 <div id="mobile-navigation-dialog" data-public-modal data-public-nav-dialog role="dialog" aria-modal="true" aria-labelledby="mobile-navigation-title" class="fixed inset-0 z-60 md:hidden" hidden>
   <button type="button" data-public-nav-close class="absolute inset-0 cursor-default bg-black/60" aria-label="关闭导航菜单"></button>
-  <div data-public-nav-panel tabindex="-1" class="modal-enter absolute right-0 top-0 flex h-full w-64 flex-col gap-1 border-l border-border bg-surface p-4 shadow-2">
+  <div data-public-nav-panel tabindex="-1" class="mobile-nav-panel modal-enter absolute right-0 top-0 flex h-full w-72 max-w-[88vw] flex-col gap-1 p-5 shadow-2">
     <div class="mb-3 flex items-center justify-between">
-      <h2 id="mobile-navigation-title" class="font-display text-lg font-semibold text-text"><span aria-hidden="true">✦</span> 导航菜单</h2>
-      <button type="button" data-public-nav-close class="inline-flex size-10 items-center justify-center rounded-md text-text-dim hover:bg-bg focus-ring" aria-label="关闭导航菜单">✕</button>
+      <h2 id="mobile-navigation-title" class="font-display text-lg font-semibold text-text"><span class="text-accent-warm" aria-hidden="true">✦</span> 夜航目录</h2>
+      <button type="button" data-public-nav-close class="public-icon-button focus-ring" aria-label="关闭导航菜单">✕</button>
     </div>
     {links.map((link) => (
-      <a href={link.href} aria-current={isCurrent(link.href) ? "page" : undefined} class="rounded-md px-3 py-2 text-sm text-text-dim hover:text-text focus-ring">
+      <a href={link.href} aria-current={isCurrent(link.href) ? "page" : undefined} class="public-nav__link focus-ring rounded">
         {link.label}
       </a>
     ))}
-    {showAuth ? <a href="/console" class="rounded-md px-3 py-2 text-sm text-text-dim hover:text-text focus-ring">控制台</a> : null}
+    {showAuth ? <a href="/console" class="public-nav__link public-nav__link--private focus-ring rounded">控制台</a> : null}
   </div>
 </div>
 

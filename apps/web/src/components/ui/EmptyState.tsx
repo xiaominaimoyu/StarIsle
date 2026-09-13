@@ -8,7 +8,7 @@ interface EmptyStateProps {
 
 export default function EmptyState({ title, description, action }: EmptyStateProps) {
   return (
-    <div className="card flex flex-col items-center gap-3 px-6 py-12 text-center">
+    <div className="card flex flex-col items-start gap-3 rounded-sm border-l-2 border-l-accent-warm px-6 py-12 text-left">
       <span aria-hidden="true" className="text-3xl text-text-dim">✦</span>
       <h3 className="text-lg font-semibold text-text">{title}</h3>
       <p className="max-w-md text-sm text-text-dim">{description}</p>

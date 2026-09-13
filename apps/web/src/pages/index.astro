@@ -15,18 +15,19 @@ const featured = featuredRepos(snapshot).slice(0, 3);
 const aboutData = about?.data ?? { name: "你的名字", role: "", tagline: "" };
 const { name, role, tagline } = aboutData;
 const skills = about?.data.skills ?? [];
+const isPlaceholderName = !name.trim() || name.trim() === "你的名字";
 const stripMd = (s: string) => s.replace(/[#>*_`-]/g, "");
 const siteUrl = publicSiteUrlForPath(getPublicSiteUrl(import.meta.env.PUBLIC_SITE_URL));
 const structuredData = {
   "@context": "https://schema.org",
   "@graph": [
-    {
+    ...(!isPlaceholderName ? [{
       "@type": "Person",
       name,
       jobTitle: role,
       description: tagline,
       ...(siteUrl ? { url: siteUrl } : {}),
-    },
+    }] : []),
     {
       "@type": "WebSite",
       name: "星屿 StarIsle",
@@ -45,68 +46,112 @@ const structuredData = {
 >
   <script type="application/ld+json" is:inline set:html={JSON.stringify(structuredData)} />
 
-  <section class="relative px-4 py-20 md:py-28">
-    <div class="mx-auto max-w-6xl">
-      <h1 class="font-display text-4xl font-semibold leading-tight text-text md:text-[clamp(2rem,1.2rem+4vw,3.05rem)]">
-        你好,我是 {name}。
-      </h1>
-      <p class="mt-4 max-w-xl text-lg text-text-dim">{role}</p>
-      <p class="mt-2 max-w-xl text-base text-text-dim">{tagline}</p>
-      <div class="mt-8 flex flex-wrap gap-3">
-        <a href="/projects" class="inline-flex h-12 items-center rounded-md bg-accent px-6 font-medium text-accent-foreground hover:brightness-110 focus-ring">查看项目</a>
-        <a href="/resume" class="inline-flex h-12 items-center rounded-md border border-border px-6 font-medium text-text hover:border-accent/60 focus-ring">在线简历</a>
+  <section class="home-hero">
+    <div class="editorial-container home-hero__grid">
+      <div class="home-hero__copy">
+        <p class="section-kicker">星屿来信 · Night dispatch 001</p>
+        {isPlaceholderName ? (
+          <h1 class="home-hero__title">一座写在<em>夜色</em>里的数字岛屿。</h1>
+        ) : (
+          <h1 class="home-hero__title">你好，我是 <em>{name}</em>。</h1>
+        )}
+        <p class="home-hero__lede">
+          {!isPlaceholderName && role ? <span class="home-hero__role">{role}</span> : null}
+          {tagline || "公开作品在星光下陈列，私人数据在岛屿深处安放。"}
+        </p>
+        <div class="public-actions">
+          <a href="/projects" class="public-action public-action--primary focus-ring">查看项目</a>
+          <a href="/resume" class="public-action focus-ring">在线简历</a>
+        </div>
+      </div>
+
+      <aside class="home-hero__chart" aria-label="星屿来信索引">
+        <div class="star-chart" aria-hidden="true">
+          <span class="star-chart__label star-chart__label--north">SEALED / 01</span>
+          <span class="star-chart__label star-chart__label--east">OBSIDIAN</span>
+          <span class="star-chart__label star-chart__label--south">STARISLE</span>
+        </div>
+        <dl class="hero-index">
+          <div><dt>OPEN</dt><dd>项目、简历与公开作品</dd></div>
+          <div><dt>SEALED</dt><dd>文件、照片、邮件与知识库</dd></div>
+        </dl>
+      </aside>
+    </div>
+  </section>
+
+  <section aria-labelledby="about-title" class="editorial-section">
+    <div class="editorial-container editorial-section__grid">
+      <div>
+        <p class="section-kicker">01 · Letter</p>
+        <p class="editorial-note mt-4">公开档案<br />Public profile</p>
+      </div>
+      <div>
+        <div class="section-heading"><h2 id="about-title">{isPlaceholderName ? "关于这座岛" : "关于我"}</h2></div>
+        {AboutContent ? (
+          <div class="editorial-prose text-base text-text"><AboutContent /></div>
+        ) : (
+          <div class="draft-notice" role="status">
+            <strong>公开身份资料待补充</strong>
+            <span>站点所有者尚未完成署名；占位姓名不会作为真实身份展示。</span>
+          </div>
+        )}
       </div>
     </div>
   </section>
 
-  {AboutContent ? (
-    <section aria-labelledby="about-title" class="mx-auto w-full max-w-6xl px-4 py-10">
-      <div class="mx-auto max-w-3xl">
-        <h2 id="about-title" class="mb-4 font-display text-2xl font-semibold text-text">关于我</h2>
-        <div class="space-y-4 text-base leading-relaxed text-text"><AboutContent /></div>
+  <section aria-labelledby="skills-title" class="editorial-section">
+    <div class="editorial-container editorial-section__grid">
+      <div>
+        <p class="section-kicker">02 · Index</p>
+        <p class="editorial-note mt-4">能力坐标<br />Field notes</p>
       </div>
-    </section>
-  ) : null}
-
-  <section aria-labelledby="skills-title" class="mx-auto w-full max-w-6xl px-4 py-10">
-    <h2 id="skills-title" class="mb-4 font-display text-2xl font-semibold text-text">技能</h2>
-    <div class="flex flex-wrap gap-2">
-      {skills.length > 0 ? skills.map((skill) => <Tag tone="neutral">{skill}</Tag>) : <p class="text-sm text-text-dim">技能信息待补充。</p>}
+      <div>
+        <div class="section-heading"><h2 id="skills-title">技术索引</h2></div>
+        {skills.length > 0 ? (
+          <div class="skills-ledger">
+            {skills.map((skill) => <Tag tone="neutral">{skill}</Tag>)}
+          </div>
+        ) : (
+          <div class="public-empty-state"><strong>暂无技能资料</strong><span>内容配置完成后将在这里形成技术索引。</span></div>
+        )}
+      </div>
     </div>
   </section>
 
-  <section aria-labelledby="featured-title" class="mx-auto w-full max-w-6xl px-4 py-10">
-    <div class="mb-4 flex items-center justify-between">
-      <h2 id="featured-title" class="font-display text-2xl font-semibold text-text">精选项目</h2>
-      <a href="/projects" class="text-sm text-accent hover:underline focus-ring">全部项目 →</a>
-    </div>
-    {featured.length > 0 ? (
-      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {featured.map((repo) => (
-          <a
-            href={repo.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            class="card card-hover flex h-full flex-col gap-2 p-4 focus-ring"
-          >
-            <span class="font-semibold text-text">{repo.name}</span>
-            <p class="line-clamp-2 flex-1 text-sm text-text-dim">{repo.description ?? "暂无描述"}</p>
-            <span class="text-xs text-text-dim">★ {repo.stars} · 更新于 {new Date(repo.updatedAt).toLocaleDateString("zh-CN")}</span>
-          </a>
-        ))}
+  <section aria-labelledby="featured-title" class="editorial-section">
+    <div class="editorial-container">
+      <div class="section-heading">
+        <h2 id="featured-title">项目航标</h2>
+        <a href="/projects" class="text-sm text-accent hover:underline focus-ring rounded">查看全部项目 →</a>
       </div>
-    ) : (
-      <p class="text-sm text-text-dim">暂无精选项目数据(构建期快照为空或未配置仓库来源)。</p>
-    )}
+      {featured.length > 0 ? (
+        <div class="featured-ledger">
+          {featured.map((repo, index) => (
+            <a href={repo.url} target="_blank" rel="noopener noreferrer" class="featured-entry focus-ring">
+              <span class="featured-entry__number">MARK / {String(index + 1).padStart(2, "0")}</span>
+              <span class="featured-entry__title">{repo.name}</span>
+              <p class="line-clamp-2 text-sm text-text-dim">{repo.description ?? "暂无描述"}</p>
+              <span class="featured-entry__meta">★ {repo.stars} · 更新于 {new Date(repo.updatedAt).toLocaleDateString("zh-CN")}</span>
+            </a>
+          ))}
+        </div>
+      ) : (
+        <div class="public-empty-state" role="status">
+          <strong>航标尚未点亮</strong>
+          <span>构建期仓库快照为空，或尚未配置仓库来源。</span>
+        </div>
+      )}
+    </div>
   </section>
 
   {projects.length > 0 ? (
-    <section aria-labelledby="projects-title" class="mx-auto w-full max-w-6xl px-4 py-10">
+    <section aria-labelledby="projects-title" class="editorial-section">
+      <div class="editorial-container">
       <h2 id="projects-title" class="sr-only">项目文章</h2>
-      <div class="grid gap-4 sm:grid-cols-2">
+      <div class="project-story-list">
         {projects.map((p) => (
-          <a href="/projects" class="card card-hover p-4 focus-ring">
-            <h3 class="font-semibold text-text">{p.data.title}</h3>
+          <a href="/projects" class="project-story focus-ring">
+            <h3 class="font-display text-lg font-semibold text-text">{p.data.title}</h3>
             <p class="mt-1 line-clamp-2 text-sm text-text-dim">{stripMd(p.body).slice(0, 120)}…</p>
             <div class="mt-3 flex flex-wrap gap-2">
               {p.data.tags.map((t) => <Tag tone="neutral">{t}</Tag>)}
@@ -114,10 +159,11 @@ const structuredData = {
           </a>
         ))}
       </div>
+      </div>
     </section>
   ) : null}
 
-  <div id="modules" class="mx-auto w-full max-w-6xl px-4 py-10">
+  <div id="modules" class="editorial-section">
     <ModuleDock />
   </div>
 </Portal>

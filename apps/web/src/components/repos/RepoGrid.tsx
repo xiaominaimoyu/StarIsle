@@ -117,9 +117,9 @@ function RepoCardInner({ repo }: { repo: Repo }) {
         <span className="truncate font-semibold text-text group-hover:text-accent">{repo.name}</span>
         <div className="flex shrink-0 gap-1">
           {repo.featured ? (
-            <span className="inline-flex items-center rounded-full border border-accent-warm/50 px-2 py-0.5 text-xs text-accent-warm">精选</span>
+            <span className="inline-flex items-center rounded-sm border border-accent-warm/50 px-2 py-0.5 font-mono text-xs text-accent-warm">精选</span>
           ) : null}
-          <span className="inline-flex items-center rounded-full border border-border px-2 py-0.5 text-xs text-text-dim">
+          <span className="inline-flex items-center rounded-sm border border-border px-2 py-0.5 font-mono text-xs text-text-dim">
             {repo.source === "github" ? "GitHub" : "Gitee"}
           </span>
         </div>

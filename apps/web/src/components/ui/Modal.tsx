@@ -70,14 +70,14 @@ export default function Modal({
       <div
         ref={dialogRef}
         tabIndex={-1}
-        className="modal-enter card relative z-10 w-full max-w-2xl p-6 shadow-2 focus-ring"
+        className="modal-enter card relative z-10 w-full max-w-2xl rounded-sm border-t-2 border-t-accent-warm p-6 shadow-2 focus-ring"
       >
         <h2 className="mb-2 text-xl font-semibold text-text">{title}</h2>
         {children ? <div className="mb-4 text-base text-text-dim">{children}</div> : null}
         <div className="flex justify-end gap-3">
           <button
             type="button"
-            className="inline-flex h-10 items-center rounded-md border border-border px-4 hover:border-accent/60 focus-ring"
+            className="inline-flex h-10 items-center rounded-sm border border-border bg-surface/70 px-4 hover:border-accent-warm/70 focus-ring"
             onClick={onClose}
           >
             {cancelLabel}
@@ -86,10 +86,10 @@ export default function Modal({
             <button
               type="button"
               disabled={confirmLoading}
-              className={`inline-flex h-10 items-center rounded-md px-4 font-medium text-ink focus-ring disabled:opacity-60 ${
+              className={`inline-flex h-10 items-center rounded-sm border px-4 font-medium text-ink focus-ring disabled:opacity-60 ${
                 variant === "destructive"
-                  ? "bg-danger hover:brightness-110"
-                  : "bg-accent hover:brightness-110"
+                  ? "border-danger bg-danger hover:brightness-110"
+                  : "border-accent bg-accent hover:brightness-110"
               }`}
               onClick={onConfirm}
             >

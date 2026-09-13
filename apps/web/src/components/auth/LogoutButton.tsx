@@ -30,7 +30,7 @@ export default function LogoutButton() {
       <button
         type="button"
         disabled={busy}
-        className="inline-flex h-10 items-center rounded-md border border-border px-3 text-sm text-text-dim hover:border-danger/60 hover:text-danger focus-ring disabled:opacity-60"
+        className="inline-flex h-10 items-center rounded-sm border border-border bg-surface/70 px-3 text-sm text-text-dim hover:border-danger/60 hover:text-danger focus-ring disabled:opacity-60"
         onClick={handleLogout}
       >
         {busy ? "退出中…" : "退出"}

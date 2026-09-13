@@ -6,15 +6,24 @@ import LoginForm from "@/components/auth/LoginForm";
 
 <Base title="登录 · 星屿 StarIsle" description="登录进入你的岛屿控制台" noindex>
   <div class="flex min-h-dvh flex-col">
-    <header class="sticky top-0 z-40 border-b border-border bg-bg/80 backdrop-blur">
-      <div class="mx-auto flex h-16 max-w-6xl items-center px-4">
+    <header class="auth-header sticky top-0 z-40 bg-bg/80 backdrop-blur">
+      <div class="auth-header__inner">
         <a href="/" class="font-display text-lg font-semibold text-text focus-ring rounded">
           <span aria-hidden="true">✦</span> 星屿 StarIsle
         </a>
       </div>
     </header>
-    <AuthCard title="登录 StarIsle" message="进入你的岛屿控制台。">
-      <LoginForm client:load />
-    </AuthCard>
+    <main id="main" class="auth-stage">
+      <div class="auth-frame">
+        <aside class="auth-frame__context" aria-label="登录提示">
+          <p>STARISLE<br />SEALED ARCHIVE</p>
+          <span class="auth-frame__constellation" aria-hidden="true">S</span>
+          <p>身份验证后进入<br />个人控制台。</p>
+        </aside>
+        <AuthCard title="登录 StarIsle" message="进入你的岛屿控制台。">
+          <LoginForm client:load />
+        </AuthCard>
+      </div>
+    </main>
   </div>
 </Base>

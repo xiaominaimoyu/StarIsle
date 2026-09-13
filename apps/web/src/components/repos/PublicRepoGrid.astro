@@ -13,33 +13,33 @@ const snapshotDate = snapshot.fetchedAt ? new Date(snapshot.fetchedAt).toLocaleD
 ---
 
 {snapshot.sources.length === 0 ? (
-  <div class="card p-6 text-center">
-    <h3 class="text-lg font-semibold text-text">暂未配置仓库来源</h3>
+  <div class="public-empty-state">
+    <h3 class="font-display text-lg font-semibold text-text">暂未配置仓库来源</h3>
     <p class="mt-2 text-sm text-text-dim">构建时已跳过抓取。配置 GITHUB_USERNAME / GITEE_USERNAME 后重新构建即可展示。</p>
   </div>
 ) : (
-  <section data-public-repo-grid aria-label="仓库快照" class="flex flex-col gap-4">
+  <section data-public-repo-grid aria-label="仓库快照" class="flex flex-col gap-5">
     {sourcesOk < snapshot.sources.length ? (
-      <div class="flex items-center gap-2 rounded-md border border-accent/40 bg-surface px-3 py-2 text-sm text-accent" role="status">
+      <div class="repo-status flex items-start gap-2 leading-6" role="status">
         <span aria-hidden="true">ℹ</span>
         <span>以下为构建期快照，采集于 {snapshotDate}；部分来源抓取失败，已显示最近成功缓存；最新数据请访问来源平台。</span>
       </div>
     ) : null}
 
-    <div class="flex flex-wrap items-center gap-2" role="group" aria-label="仓库筛选">
-      <div class="flex overflow-hidden rounded-md border border-border" role="group" aria-label="按来源筛选">
-        <button type="button" data-repo-source="all" aria-pressed="true" class="bg-accent px-3 py-1.5 text-sm text-accent-foreground focus-ring">全部</button>
-        <button type="button" data-repo-source="github" aria-pressed="false" class="bg-transparent px-3 py-1.5 text-sm text-text-dim hover:text-text focus-ring">GitHub</button>
-        <button type="button" data-repo-source="gitee" aria-pressed="false" class="bg-transparent px-3 py-1.5 text-sm text-text-dim hover:text-text focus-ring">Gitee</button>
+    <div class="repo-toolbar" role="group" aria-label="仓库筛选">
+      <div class="repo-filter-group" role="group" aria-label="按来源筛选">
+        <button type="button" data-repo-source="all" aria-pressed="true" class="min-h-11 bg-accent px-3 py-1.5 text-sm text-accent-foreground focus-ring">全部</button>
+        <button type="button" data-repo-source="github" aria-pressed="false" class="min-h-11 bg-transparent px-3 py-1.5 text-sm text-text-dim hover:text-text focus-ring">GitHub</button>
+        <button type="button" data-repo-source="gitee" aria-pressed="false" class="min-h-11 bg-transparent px-3 py-1.5 text-sm text-text-dim hover:text-text focus-ring">Gitee</button>
       </div>
-      <div class="flex overflow-hidden rounded-md border border-border" role="group" aria-label="排序方式">
-        <button type="button" data-repo-sort="featured" aria-pressed="true" class="bg-accent px-3 py-1.5 text-sm text-accent-foreground focus-ring">精选优先</button>
-        <button type="button" data-repo-sort="updated" aria-pressed="false" class="bg-transparent px-3 py-1.5 text-sm text-text-dim hover:text-text focus-ring">最近更新</button>
+      <div class="repo-filter-group" role="group" aria-label="排序方式">
+        <button type="button" data-repo-sort="featured" aria-pressed="true" class="min-h-11 bg-accent px-3 py-1.5 text-sm text-accent-foreground focus-ring">精选优先</button>
+        <button type="button" data-repo-sort="updated" aria-pressed="false" class="min-h-11 bg-transparent px-3 py-1.5 text-sm text-text-dim hover:text-text focus-ring">最近更新</button>
       </div>
     </div>
 
-    <p data-repo-empty class="card p-6 text-center text-sm text-text-dim" hidden>该筛选下暂无仓库。换一个来源或排序方式试试；快照数据来自构建期抓取。</p>
-    <ul data-repo-list class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <p data-repo-empty class="public-empty-state" hidden>该筛选下暂无仓库。换一个来源或排序方式试试；快照数据来自构建期抓取。</p>
+    <ul data-repo-list class="repo-list">
       {repos.map((repo, index) => (
         <li data-repo-card data-repo-source={repo.source} data-repo-featured={String(repo.featured)} data-repo-updated-at={repo.updatedAt} data-repo-order={index}>
           <RepoCard repo={repo} />

@@ -335,7 +335,7 @@ export default function MailInbox() {
           {loading ? (
             <div className="flex flex-col gap-2" aria-busy="true">
               {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="skeleton h-16 rounded-md" />
+                <div key={i} className="skeleton h-16 rounded-sm" />
               ))}
             </div>
           ) : loadError ? (
@@ -353,8 +353,8 @@ export default function MailInbox() {
                     onClick={() => openMail(m)}
                     data-testid="mail-item"
                     aria-current={selectedId === m.id ? "true" : undefined}
-                    className={`w-full rounded-md border px-3 py-2 text-left focus-ring ${
-                      selectedId === m.id ? "border-accent/50 bg-accent/10" : "border-transparent hover:bg-surface"
+                    className={`w-full rounded-sm border border-l-2 px-3 py-2 text-left focus-ring ${
+                      selectedId === m.id ? "border-border border-l-accent-warm bg-surface" : "border-transparent border-l-transparent hover:border-border hover:border-l-border hover:bg-surface"
                     }`}
                   >
                     <span className="flex items-baseline justify-between gap-2">
@@ -369,7 +369,7 @@ export default function MailInbox() {
                 </li>
               ))}
               {nextCursor ? (
-                <button type="button" className="mx-auto mt-2 rounded border border-border px-3 py-1.5 text-xs hover:border-accent/60 focus-ring" onClick={() => load(nextCursor)}>
+                <button type="button" className="mx-auto mt-2 rounded-sm border border-border bg-surface/70 px-3 py-1.5 text-xs hover:border-accent-warm/70 focus-ring" onClick={() => load(nextCursor)}>
                   加载更多
                 </button>
               ) : null}
@@ -381,13 +381,13 @@ export default function MailInbox() {
       {/* 阅读器 */}
       <div className={`min-h-0 flex-1 ${view === "list" ? "hidden lg:flex lg:flex-col" : "flex flex-col"}`}>
         {detailLoading ? (
-          <div className="skeleton h-full rounded-card" aria-busy="true" />
+          <div className="skeleton h-full rounded-sm" aria-busy="true" />
         ) : detailError ? (
           <StatusBanner tone="error" action={<button type="button" onClick={retryDetail}>重试</button>}>
             {detailError}
           </StatusBanner>
         ) : detail ? (
-          <article className="card flex min-h-0 flex-1 flex-col overflow-hidden">
+          <article className="card flex min-h-0 flex-1 flex-col overflow-hidden rounded-sm border-t-2 border-t-accent-warm/60">
             <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
               <button type="button" className="rounded px-2 text-xs text-accent hover:underline focus-ring lg:hidden" onClick={() => setView("list")}>
                 ← 返回列表
@@ -408,11 +408,11 @@ export default function MailInbox() {
 
             {detail.htmlSummary ? (
               <div className="flex gap-2 border-b border-border/50 px-4 py-2">
-                <div className="flex overflow-hidden rounded-md border border-border text-xs" role="group" aria-label="正文视图">
+                <div className="flex overflow-hidden rounded-sm border border-border bg-surface/60 text-xs" role="group" aria-label="正文视图">
                   <button
                     type="button"
                     aria-pressed={!htmlView}
-                    className={`px-3 py-1 ${!htmlView ? "bg-accent text-accent-foreground" : "text-text-dim"}`}
+                    className={`border-b-2 px-3 py-1 ${!htmlView ? "border-accent-warm bg-bg text-text" : "border-transparent text-text-dim"}`}
                     onClick={() => setHtmlView(false)}
                   >
                     纯文本
@@ -420,7 +420,7 @@ export default function MailInbox() {
                   <button
                     type="button"
                     aria-pressed={htmlView}
-                    className={`px-3 py-1 ${htmlView ? "bg-accent text-accent-foreground" : "text-text-dim"}`}
+                    className={`border-b-2 px-3 py-1 ${htmlView ? "border-accent-warm bg-bg text-text" : "border-transparent text-text-dim"}`}
                     onClick={() => setHtmlView(true)}
                   >
                     HTML 视图
@@ -445,7 +445,7 @@ export default function MailInbox() {
             ) : (
               <div className="min-h-0 flex-1 overflow-y-auto border-t border-border px-4 py-4">
                 {!loadImages ? (
-                  <div className="mb-2 flex items-center gap-2 rounded-md border border-warning/40 bg-surface px-3 py-2 text-xs text-warning" role="status">
+                  <div className="mb-2 flex items-center gap-2 rounded-sm border border-warning/40 border-l-2 border-l-warning bg-surface px-3 py-2 text-xs text-warning" role="status">
                     <span aria-hidden="true">⚠</span>
                     已阻止该邮件的远程图片。信任发件人时可选择本次加载。
                   </div>
@@ -464,7 +464,7 @@ export default function MailInbox() {
               <div className="border-t border-border px-4 py-3 text-xs text-text-dim">
                 附件:
                 {detail.attachments.map((a) => (
-                  <span key={a.id} className="ml-2 inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5">
+                  <span key={a.id} className="ml-2 inline-flex items-center gap-1 rounded-sm border border-border px-2 py-0.5 font-mono">
                     {a.name}
                   </span>
                 ))}

@@ -46,7 +46,7 @@ export default function StatusBanner({
     <div
       role={live ? "status" : undefined}
       aria-live={live ? "polite" : undefined}
-      className={`flex items-center gap-2 rounded-md border bg-surface px-3 py-2 text-sm ${toneClass[tone]}`}
+      className={`flex items-center gap-2 rounded-sm border border-l-2 bg-surface px-3 py-2 text-sm ${toneClass[tone]}`}
     >
       <span aria-hidden="true" className="shrink-0">{toneIcon[tone]}</span>
       <span className="flex-1 text-text">{children}</span>

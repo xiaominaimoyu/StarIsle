@@ -82,19 +82,19 @@ export default function SessionGate({ children }: { children: ReactNode }) {
       <div className="flex flex-col gap-4" aria-busy="true" aria-label="会话校验中">
         <div className="skeleton h-6 w-48 rounded-md" />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="skeleton h-28 rounded-card" />
-          <div className="skeleton h-28 rounded-card" />
-          <div className="skeleton h-28 rounded-card" />
-          <div className="skeleton h-28 rounded-card" />
+          <div className="skeleton h-28 rounded-sm" />
+          <div className="skeleton h-28 rounded-sm" />
+          <div className="skeleton h-28 rounded-sm" />
+          <div className="skeleton h-28 rounded-sm" />
         </div>
-        <div className="skeleton h-64 rounded-card" />
+        <div className="skeleton h-64 rounded-sm" />
       </div>
     );
   }
 
   if (status === "forbidden") {
     return (
-      <div className="card p-8 text-center">
+      <div className="card rounded-sm border-l-2 border-l-accent-warm p-8 text-left">
         <h2 className="mb-2 text-lg font-semibold text-text">无权访问</h2>
         <p className="text-sm text-text-dim">当前会话无权访问该内容,请重新登录。</p>
       </div>
@@ -103,12 +103,12 @@ export default function SessionGate({ children }: { children: ReactNode }) {
 
   if (status === "error") {
     return (
-      <div className="card p-8 text-center">
+      <div className="card rounded-sm border-l-2 border-l-accent-warm p-8 text-left">
         <h2 className="mb-2 text-lg font-semibold text-text">会话校验失败</h2>
         <p role="alert" className="mb-4 text-sm text-text-dim">服务暂时不可用,请检查连接后重试。</p>
         <button
           type="button"
-          className="inline-flex h-11 items-center rounded-md border border-border px-4 text-sm text-text-dim hover:border-accent/60 hover:text-text focus-ring"
+          className="inline-flex h-11 items-center rounded-sm border border-border bg-surface/70 px-4 text-sm text-text-dim hover:border-accent-warm/70 hover:text-text focus-ring"
           onClick={() => setRetryVersion((current) => current + 1)}
         >
           重试

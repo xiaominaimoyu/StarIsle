@@ -77,7 +77,7 @@ export default function FileTable() {
       {loading ? (
         <div className="flex flex-col gap-2" aria-busy="true">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="skeleton h-12 rounded-md" />
+            <div key={i} className="skeleton h-12 rounded-sm" />
           ))}
         </div>
       ) : loadError ? (
@@ -92,10 +92,10 @@ export default function FileTable() {
       ) : (
         <>
           {/* 桌面表格 */}
-          <div className="card hidden overflow-x-auto md:block">
+          <div className="card hidden overflow-x-auto rounded-sm border-t-2 border-t-accent-warm/60 md:block">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border text-left text-xs text-text-dim">
+                <tr className="border-b border-border text-left font-mono text-xs tracking-wide text-text-dim">
                   <th className="px-4 py-3 font-medium">名称</th>
                   <th className="px-4 py-3 font-medium">大小</th>
                   <th className="px-4 py-3 font-medium">类型</th>
@@ -136,7 +136,7 @@ export default function FileTable() {
           {/* 移动端卡片列表 */}
           <ul className="flex flex-col gap-2 md:hidden">
             {files.map((f) => (
-              <li key={f.id} className="card p-3">
+              <li key={f.id} className="card rounded-sm border-l-2 border-l-accent-warm/60 p-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-text">{f.name}</p>
@@ -161,7 +161,7 @@ export default function FileTable() {
             <button
               type="button"
               disabled={loadingMore}
-              className="mx-auto inline-flex h-10 items-center rounded-md border border-border px-4 text-sm hover:border-accent/60 focus-ring disabled:opacity-60"
+              className="mx-auto inline-flex h-10 items-center rounded-sm border border-border bg-surface/70 px-4 text-sm hover:border-accent-warm/70 focus-ring disabled:opacity-60"
               onClick={() => load(nextCursor)}
             >
               {loadingMore ? "加载中…" : "加载更多"}

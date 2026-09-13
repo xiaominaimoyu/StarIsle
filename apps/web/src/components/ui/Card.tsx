@@ -15,7 +15,7 @@ type CardProps = CardBaseProps &
   );
 
 export default function Card({ children, hover = false, as = "div", href, className = "", ...rest }: CardProps) {
-  const cls = `card ${hover ? "card-hover" : ""} ${className} p-4`;
+  const cls = `card rounded-sm border-t border-t-accent-warm/50 ${hover ? "card-hover" : ""} ${className} p-4`;
   if (as === "a") {
     const anchorProps = rest as AnchorHTMLAttributes<HTMLAnchorElement>;
     return (

@@ -8,20 +8,16 @@ interface AuthCardProps {
 }
 
 /**
- * 认证卡片:居中单栏,最大 22rem,radius-card + surface + border + shadow-1。
- * 标题带脉冲双点装饰(1s 循环,prefers-reduced-motion 下静止)。
+ * 认证入口:保留表单逻辑，使用可读的来信/档案版式承接公开页。
  */
 export default function AuthCard({ title, message, children, footer }: AuthCardProps) {
   return (
-    <main id="main" className="flex flex-1 items-center justify-center px-4 py-12">
-      <div className="card w-full max-w-[22rem] p-5 shadow-1">
-        <h1 className="auth-dots mb-1 text-xl font-semibold tracking-tight text-accent">
-          ✦ {title}
-        </h1>
-        <p className="mb-4 text-sm text-text-dim">{message}</p>
-        {children}
-        {footer ? <div className="mt-4 text-center">{footer}</div> : null}
-      </div>
-    </main>
+    <div className="auth-letter">
+      <p className="auth-letter__eyebrow">PRIVATE CONSOLE · ACCESS</p>
+      <h1>{title}</h1>
+      <p className="auth-letter__message">{message}</p>
+      {children}
+      {footer ? <div className="mt-5 border-t border-border pt-4 text-center">{footer}</div> : null}
+    </div>
   );
 }

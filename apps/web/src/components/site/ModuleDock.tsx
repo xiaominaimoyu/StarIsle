@@ -32,22 +32,25 @@ const MODULES: ModuleEntry[] = [
 
 export default function ModuleDock() {
   return (
-    <section aria-labelledby="modules-title" className="mx-auto w-full max-w-6xl px-4">
-      <h2 id="modules-title" className="mb-4 text-xl font-semibold text-text">
-        模块入口
-      </h2>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {MODULES.map((m) => (
+    <section aria-labelledby="modules-title" className="editorial-container module-dock">
+      <div>
+        <p className="section-kicker">03 · Passage</p>
+        <h2 id="modules-title" className="section-title mt-4">选择一条航线</h2>
+        <p className="mt-4 max-w-xs text-sm leading-7 text-text-dim">
+          调整公开门户的观看方式，或进入只属于你的私人岛屿。
+        </p>
+      </div>
+      <div className="module-dock__list">
+        {MODULES.map((m, index) => (
           <a
             key={m.key}
             href={m.href}
-            className="card card-hover group block p-4 focus-ring"
+            className="module-link group focus-ring"
           >
-            <div className="mb-2 flex items-center gap-2">
-              <span aria-hidden="true" className="text-xl text-accent">{m.icon}</span>
-              <span className="font-semibold text-text">{m.title}</span>
-            </div>
-            <p className="text-sm text-text-dim">{m.description}</p>
+            <span className="module-link__index">{String(index + 1).padStart(2, "0")}</span>
+            <span className="module-link__title"><span className="module-link__icon" aria-hidden="true">{m.icon} </span>{m.title}</span>
+            <span className="module-link__description">{m.description}</span>
+            <span className="module-link__arrow" aria-hidden="true">→</span>
           </a>
         ))}
       </div>
