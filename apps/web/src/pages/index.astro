@@ -4,6 +4,7 @@ import { getCollection, render } from "astro:content";
 import { featuredRepos, loadRepoSnapshot } from "@/lib/repos";
 import { getPublicSiteUrl, publicSiteUrlForPath } from "@/lib/seo";
 import ModuleDock from "@/components/site/ModuleDock";
+import SealMonogramSvg from "@/components/narrative/SealMonogramSvg";
 import Tag from "@/components/ui/Tag";
 
 const about = (await getCollection("about"))[0];
@@ -67,8 +68,9 @@ const structuredData = {
 
       <aside class="home-hero__chart" aria-label="星屿来信索引">
         <div class="star-chart" aria-hidden="true">
+          <SealMonogramSvg className="star-chart__seal" variant="seal" />
           <span class="star-chart__label star-chart__label--north">SEALED / 01</span>
-          <span class="star-chart__label star-chart__label--east">OBSIDIAN</span>
+          <span class="star-chart__label star-chart__label--east">ROSEWOOD</span>
           <span class="star-chart__label star-chart__label--south">STARISLE</span>
         </div>
         <dl class="hero-index">

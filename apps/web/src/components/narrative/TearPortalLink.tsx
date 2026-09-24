@@ -18,6 +18,7 @@ import {
   type TearPointerSample,
 } from "../../lib/narrative/gesture-controller";
 import TearMask from "./TearMask";
+import TearDebrisCanvas from "./TearDebrisCanvas";
 import "./tear-portal-link.css";
 
 type TearPortalPhase = "isleIdle" | "tearing" | "starCommit";
@@ -71,7 +72,7 @@ function StarBackdropSurface() {
   return (
     <>
       <rect width="1000" height="240" fill="var(--tear-star-deep)" />
-      <path d="M0 198 C180 126 286 220 470 148 S790 88 1000 170 V240 H0Z" fill="#172641" opacity="0.72" />
+      <path d="M0 198 C180 126 286 220 470 148 S790 88 1000 170 V240 H0Z" fill="#2a1a0e" opacity="0.72" />
       <path d="M0 54 C196 18 328 112 508 62 S812 14 1000 82" fill="none" stroke="var(--tear-star-glow)" strokeWidth="2" opacity="0.2" />
       <path d="M0 192 C184 128 302 214 476 148 S810 94 1000 164" fill="none" stroke="var(--tear-star-light)" strokeWidth="2" opacity="0.18" />
     </>
@@ -326,6 +327,10 @@ export default function TearPortalLink() {
         <TearMask progress={view.progress} quality={reducedMotion ? "reduced" : "low"}>
           <StarBackdropSurface />
         </TearMask>
+        <TearDebrisCanvas
+          progress={view.progress}
+          quality={reducedMotion ? "reduced" : "low"}
+        />
       </div>
 
       <button

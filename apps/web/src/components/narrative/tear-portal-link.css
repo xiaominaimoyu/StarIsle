@@ -5,7 +5,7 @@
   --tear-rotate-top: 0deg;
   --tear-rotate-bottom: 0deg;
   --tear-handle-shift: 0px;
-  --tear-star-deep: #09111f;
+  --tear-star-deep: #150d07;
   --tear-star-light: #d1ad7a;
   --tear-star-glow: #b98d62;
 
@@ -47,7 +47,7 @@
   background:
     radial-gradient(ellipse at 42% 46%, rgb(70 91 126 / 0.68), transparent 44%),
     repeating-linear-gradient(101deg, transparent 0 2.8rem, rgb(225 232 245 / 0.035) 2.85rem 2.9rem),
-    linear-gradient(135deg, var(--tear-star-deep), #172641 56%, #080d18);
+    linear-gradient(135deg, var(--tear-star-deep), #2a1a0e 56%, #0d0705);
 }
 
 .tear-portal-link__paper {

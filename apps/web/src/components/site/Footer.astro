@@ -1,4 +1,6 @@
 ---
+import SealMonogramSvg from "@/components/narrative/SealMonogramSvg";
+
 interface Props {
   snapshotAt?: string;
   sources?: { source: "github" | "gitee"; ok: boolean; error?: string }[];
@@ -10,7 +12,7 @@ const year = new Date().getFullYear();
 <footer class="public-footer no-print">
   <div class="public-footer__inner">
     <div class="public-footer__meta">
-      <span class="public-footer__brand">✦ 星屿 StarIsle</span>
+      <span class="public-footer__brand"><SealMonogramSvg className="brand-seal brand-seal--footer" variant="compact" /> 星屿 StarIsle</span>
       <span>© {year} · 由本人设计与实现</span>
     </div>
     <div class="public-footer__meta">

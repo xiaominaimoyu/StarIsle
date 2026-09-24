@@ -1,16 +1,25 @@
 /**
  * Presentation-only state for the /enter route.
  *
- * This deliberately has no authentication, navigation, storage, or API
- * concerns. A full-document navigation destroys this state with the page.
+ * The seal path exits to the public site. The tear path exits to the existing
+ * login route. Authentication and navigation remain outside this state
+ * machine so the React island cannot grant or infer a session.
  */
-export type EnterNarrativeState = "idle" | "sealed" | "melting" | "loginReveal" | "isle";
+export type EnterNarrativeState =
+  | "idle"
+  | "sealed"
+  | "melting"
+  | "dragging"
+  | "publicExit"
+  | "privateExit";
+
 export type EnterNarrativeEvent =
   | "render"
   | "activateSeal"
   | "meltComplete"
-  | "loginFailure"
-  | "loginSuccess";
+  | "startTear"
+  | "cancelTear"
+  | "tearComplete";
 
 export const initialEnterNarrativeState: EnterNarrativeState = "idle";
 
@@ -20,12 +29,14 @@ export function transitionEnterNarrative(
 ): EnterNarrativeState {
   if (state === "idle" && event === "render") return "sealed";
   if (state === "sealed" && event === "activateSeal") return "melting";
-  if (state === "melting" && event === "meltComplete") return "loginReveal";
-  if (state === "loginReveal" && event === "loginSuccess") return "isle";
+  if (state === "melting" && event === "meltComplete") return "publicExit";
+  if (state === "sealed" && event === "startTear") return "dragging";
+  if (state === "dragging" && event === "cancelTear") return "sealed";
+  if (state === "dragging" && event === "tearComplete") return "privateExit";
   return state;
 }
 
-/** React SSR 已经越过概念上的 render 边界，首个可操作状态必须是 sealed。 */
+/** React SSR has already crossed the conceptual render boundary. */
 export function renderedEnterNarrativeState(): EnterNarrativeState {
   return transitionEnterNarrative(initialEnterNarrativeState, "render");
 }
@@ -38,14 +49,22 @@ export function completeMelt(state: EnterNarrativeState): EnterNarrativeState {
   return transitionEnterNarrative(state, "meltComplete");
 }
 
-export function reportLoginFailure(state: EnterNarrativeState): EnterNarrativeState {
-  return transitionEnterNarrative(state, "loginFailure");
+export function startTear(state: EnterNarrativeState): EnterNarrativeState {
+  return transitionEnterNarrative(state, "startTear");
 }
 
-export function acknowledgeLoginSuccess(state: EnterNarrativeState): EnterNarrativeState {
-  return transitionEnterNarrative(state, "loginSuccess");
+export function cancelTear(state: EnterNarrativeState): EnterNarrativeState {
+  return transitionEnterNarrative(state, "cancelTear");
+}
+
+export function completeTear(state: EnterNarrativeState): EnterNarrativeState {
+  return transitionEnterNarrative(state, "tearComplete");
 }
 
 export function meltDurationMs(reducedMotion: boolean): number {
-  return reducedMotion ? 140 : 2600;
+  return reducedMotion ? 160 : 2200;
+}
+
+export function tearDurationMs(reducedMotion: boolean): number {
+  return reducedMotion ? 160 : 1180;
 }

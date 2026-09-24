@@ -4,6 +4,7 @@ import PublicSiteNav from "@/components/site/PublicSiteNav.astro";
 import PublicThemeToggle from "@/components/site/PublicThemeToggle.astro";
 import PublicBackgroundController from "@/components/background/PublicBackgroundController.astro";
 import Footer from "@/components/site/Footer.astro";
+import SealMonogramSvg from "@/components/narrative/SealMonogramSvg";
 
 interface Props {
   title: string;
@@ -23,7 +24,7 @@ const { title, description, canonical, noindex, showAuth = true, snapshotAt, sou
   <header class="public-header no-print z-40">
     <div class="public-header__inner">
       <a href="/" class="brand-lockup focus-ring rounded" aria-label="星屿 StarIsle 首页">
-        <span class="brand-sigil" aria-hidden="true">✦</span>
+        <SealMonogramSvg className="brand-seal" variant="compact" />
         <span class="brand-lockup__text">
           <strong>星屿</strong>
           <small>StarIsle</small>

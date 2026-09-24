@@ -5,27 +5,12 @@ import Base from "@/layouts/Base.astro";
 
 <Base
   title="开启信封 · 星屿 StarIsle"
-  description="一封可跳过的星屿来信。"
+  description="一封通往星屿公开页与私人入口的来信。"
   noindex
   chrome={false}
 >
-  <main id="main" class="entry-page">
-    <section class="entry-layout">
-      <div class="entry-intro">
-      <p class="featured-entry__number">STARISLE LETTER · 01</p>
-      <h1>来自星屿的一封信</h1>
-      <p>
-        这是一段可选择停留的入口。无论是否开启封印，你都可以直接进入公开主页，或使用既有登录页面。
-      </p>
-      <nav class="mt-6 flex flex-wrap justify-center gap-3" aria-label="继续前往">
-        <a class="inline-flex min-h-11 items-center rounded-md bg-accent px-4 py-3 font-medium text-accent-foreground focus-ring" href="/" data-enter-bypass>前往星</a>
-        <a class="inline-flex min-h-11 items-center rounded-md border border-border px-4 py-3 font-medium text-text focus-ring" href="/login">普通登录</a>
-      </nav>
-      </div>
-      <div class="entry-narrative">
-        <NarrativeEntry client:load />
-      </div>
-    </section>
+  <main id="main" class="entry-page entry-page--immersive">
+    <NarrativeEntry client:load />
   </main>
 </Base>
 
@@ -34,26 +19,21 @@ import Base from "@/layouts/Base.astro";
     try {
       sessionStorage.setItem("star-isle:enter-completed", "true");
     } catch {
-      // sessionStorage 不可用，仍执行跳转
+      // sessionStorage 不可用时仍允许普通文档导航。
     }
   };
 
-  const handleEnterCompleted = () => {
+  const leaveEntry = (destination: "/" | "/login") => {
     markEnterCompleted();
-    fetch("/api/v1/auth/me", { credentials: "include" })
-      .then((resp) => {
-        if (resp.ok) {
-          window.location.assign("/console");
-        } else {
-          window.location.assign("/");
-        }
-      })
-      .catch(() => {
-        window.location.assign("/");
-      });
+    window.location.assign(destination);
   };
-  document.querySelector("[data-enter-bypass]")?.addEventListener("click", markEnterCompleted);
-  window.addEventListener("narrative:enter-completed", handleEnterCompleted);
-  (window as any).__narrativeEnterHandler = handleEnterCompleted;
+
+  const handlePublicEntry = () => leaveEntry("/");
+  const handlePrivateEntry = () => leaveEntry("/login");
+
+  window.addEventListener("narrative:public-enter", handlePublicEntry);
+  window.addEventListener("narrative:private-enter", handlePrivateEntry);
+  (window as any).__narrativePublicEntryHandler = handlePublicEntry;
+  (window as any).__narrativePrivateEntryHandler = handlePrivateEntry;
   (window as any).__narrativeEnterListenerReady = true;
 </script>

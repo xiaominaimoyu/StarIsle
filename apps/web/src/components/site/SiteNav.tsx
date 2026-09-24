@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import SealMonogramSvg from "@/components/narrative/SealMonogramSvg";
 
 interface NavLink {
   href: string;
@@ -94,7 +95,9 @@ export default function SiteNav({ showAuth = true }: SiteNavProps) {
             className="modal-enter absolute right-0 top-0 flex h-full w-64 flex-col gap-1 border-l-2 border-l-accent-warm bg-surface p-4 shadow-2"
           >
             <div className="mb-3 flex items-center justify-between">
-              <span className="font-display text-lg font-semibold text-text">✦ 星屿</span>
+              <span className="flex items-center gap-2 font-display text-lg font-semibold text-text">
+                <SealMonogramSvg className="brand-seal" variant="compact" /> 星屿
+              </span>
               <button
                 type="button"
                 aria-label="关闭导航菜单"

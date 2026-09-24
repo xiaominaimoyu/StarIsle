@@ -44,37 +44,39 @@
   --color-danger: var(--danger);
 }
 
+/* 全站共用"烛光书房"材质：红木桌面、黄铜配件、羊皮纸与火漆。
+   公开页（星）偏窗侧夜色，控制台（屿）偏桌面内侧抽屉，两者同一光源。 */
 :root {
-  --bg: #07111b;
-  --surface: #0d1117;
-  --surface-raised: #15191f;
-  --text: #e9e5dc;
-  --text-dim: #aaa9a3;
-  --border: #4b4e50;
-  --accent: #c1c4c6;
-  --accent-foreground: #101216;
-  --accent-warm: #b68a4f;
-  --paper-tint: #d9cfbd;
-  --wax: #765138;
+  --bg: #120c08;
+  --surface: #1a1209;
+  --surface-raised: #241a0e;
+  --text: #ece3d2;
+  --text-dim: #a2947d;
+  --border: #4c3a24;
+  --accent: #c9a25f;
+  --accent-foreground: #1a1207;
+  --accent-warm: #d18d45;
+  --paper-tint: #d9c9a8;
+  --wax: #8c3a28;
   --hairline: color-mix(in srgb, var(--border) 72%, transparent);
   --page-gutter: clamp(1rem, 3vw, 2rem);
-  --success: #83ad91;
-  --warning: #c39a57;
-  --danger: #cf8989;
+  --success: #8aa877;
+  --warning: #c9974f;
+  --danger: #d0897e;
 }
 
 :root[data-theme="light"] {
-  --bg: #e8dfcd;
-  --surface: #f6efdf;
-  --surface-raised: #fff9ec;
-  --text: #1d2122;
-  --text-dim: #615f59;
-  --border: #a8a398;
-  --accent: #30383a;
-  --accent-foreground: #fff9ec;
-  --accent-warm: #785a34;
-  --paper-tint: #d8c9ae;
-  --wax: #7b5738;
+  --bg: #e9dcc4;
+  --surface: #f7f0e0;
+  --surface-raised: #fffaee;
+  --text: #221a12;
+  --text-dim: #6b5c47;
+  --border: #b39a72;
+  --accent: #3a2c1a;
+  --accent-foreground: #fffaee;
+  --accent-warm: #8a5220;
+  --paper-tint: #d8c4a0;
+  --wax: #8c3a28;
   --hairline: color-mix(in srgb, var(--border) 82%, transparent);
   --success: #3d7454;
   --warning: #7c5f24;
@@ -94,16 +96,18 @@
     min-height: 100dvh;
     color: var(--text);
     background:
-      radial-gradient(ellipse at 12% -18%, color-mix(in srgb, #294057 36%, transparent), transparent 48%),
-      linear-gradient(113deg, color-mix(in srgb, #0a1927 82%, var(--bg)) 0%, var(--bg) 48%, #05090d 100%);
+      radial-gradient(ellipse at 86% 2%, color-mix(in srgb, var(--accent-warm) 15%, transparent), transparent 44%),
+      radial-gradient(ellipse at 6% 98%, color-mix(in srgb, #6b3f1d 28%, transparent), transparent 54%),
+      linear-gradient(152deg, #1d1409 0%, var(--bg) 44%, #0a0604 100%);
     line-height: 1.6;
     text-rendering: optimizeLegibility;
   }
 
   :root[data-theme="light"] body {
     background:
+      radial-gradient(ellipse at 86% 2%, color-mix(in srgb, var(--accent-warm) 16%, transparent), transparent 46%),
       radial-gradient(ellipse at 12% -18%, color-mix(in srgb, var(--paper-tint) 44%, transparent), transparent 48%),
-      linear-gradient(113deg, #eee5d4 0%, var(--bg) 52%, #d8cdb8 100%);
+      linear-gradient(152deg, #f1e7d3 0%, var(--bg) 52%, #d9c9ac 100%);
   }
 
   a,
@@ -270,7 +274,7 @@
     animation: heartbeat 1200ms ease-in-out infinite;
   }
 
-  /* 公开门户：一张放在深海缎面上的黑曜石来信，而不是卡片网格。 */
+  /* 公开门户（星）：钉在书房墙上的一张星图，线条用黄铜而非冷银。 */
   .portal-main,
   .public-header,
   .public-footer {
@@ -289,8 +293,8 @@
     z-index: -1;
     content: "";
     pointer-events: none;
-    opacity: 0.34;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 960 720'%3E%3Cg fill='none' stroke='%23c1c4c6' stroke-opacity='.28' stroke-width='1'%3E%3Cpath d='M20 144 166 174l67 82 123 19 71 92 127-23 65 67 178-38'/%3E%3Cpath d='m236 256-28 92 77 65-12 118 98 43'/%3E%3Cpath d='m554 344 31-107 97-74 41-111'/%3E%3Cpath d='m285 413-107 56-81 98'/%3E%3C/g%3E%3C/svg%3E");
+    opacity: 0.3;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 960 720'%3E%3Cg fill='none' stroke='%23c9a25f' stroke-opacity='.3' stroke-width='1'%3E%3Cpath d='M20 144 166 174l67 82 123 19 71 92 127-23 65 67 178-38'/%3E%3Cpath d='m236 256-28 92 77 65-12 118 98 43'/%3E%3Cpath d='m554 344 31-107 97-74 41-111'/%3E%3Cpath d='m285 413-107 56-81 98'/%3E%3C/g%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: top center;
     background-size: min(100%, 60rem) auto;
@@ -342,36 +346,21 @@
     text-decoration: none;
   }
 
-  .brand-sigil {
-    position: relative;
-    display: grid;
-    width: 2rem;
-    height: 2rem;
+  .brand-seal {
+    display: block;
+    width: 2.1rem;
+    height: 2.1rem;
     flex: none;
-    place-items: center;
-    border: 1px solid color-mix(in srgb, var(--accent-warm) 72%, var(--border));
-    border-radius: 50%;
-    color: var(--accent-warm);
-    background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--accent-warm) 23%, transparent), transparent 48%);
-    font-size: 0.82rem;
+    filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.55));
   }
 
-  .brand-sigil::before,
-  .brand-sigil::after {
-    position: absolute;
-    content: "";
-    background: currentColor;
-    opacity: 0.55;
+  .brand-lockup:hover .brand-seal {
+    filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.55)) brightness(1.12);
   }
 
-  .brand-sigil::before {
-    width: calc(100% + 0.55rem);
-    height: 1px;
-  }
-
-  .brand-sigil::after {
-    width: 1px;
-    height: calc(100% + 0.55rem);
+  .brand-seal--footer {
+    width: 1.55rem;
+    height: 1.55rem;
   }
 
   .brand-lockup__text {
@@ -666,13 +655,13 @@
     border: 1px solid color-mix(in srgb, var(--accent) 72%, var(--border));
     border-radius: var(--radius-sm);
     background:
-      linear-gradient(31deg, transparent 0 37%, rgb(193 196 198 / 0.2) 37.15% 37.35%, transparent 37.55%),
+      linear-gradient(31deg, transparent 0 37%, rgb(201 162 95 / 0.2) 37.15% 37.35%, transparent 37.55%),
       linear-gradient(149deg, transparent 0 37%, rgb(182 138 79 / 0.16) 37.15% 37.35%, transparent 37.55%),
-      linear-gradient(118deg, transparent 0 28%, rgb(193 196 198 / 0.13) 28.15% 28.35%, transparent 28.55% 67%, rgb(193 196 198 / 0.1) 67.15% 67.35%, transparent 67.55%),
-      linear-gradient(152deg, #1b1b20, #0a0d12 55%, #17161b);
+      linear-gradient(118deg, transparent 0 28%, rgb(201 162 95 / 0.13) 28.15% 28.35%, transparent 28.55% 67%, rgb(201 162 95 / 0.1) 67.15% 67.35%, transparent 67.55%),
+      linear-gradient(152deg, #241a12, #120b07 55%, #1d1410);
     box-shadow:
       inset 0 0 0 0.24rem rgb(0 0 0 / 0.58),
-      inset 0 0 0 0.3rem rgb(193 196 198 / 0.14),
+      inset 0 0 0 0.3rem rgb(201 162 95 / 0.14),
       0 1.4rem 3rem rgb(0 0 0 / 0.38);
   }
 
@@ -689,26 +678,14 @@
     clip-path: polygon(0 0, 22% 0, 22% 1px, 1px 1px, 1px 25%, 0 25%, 0 0, 100% 0, 100% 25%, calc(100% - 1px) 25%, calc(100% - 1px) 1px, 78% 1px, 78% 0, 100% 0, 100% 100%, 78% 100%, 78% calc(100% - 1px), calc(100% - 1px) calc(100% - 1px), calc(100% - 1px) 75%, 100% 75%, 100% 100%, 0 100%, 0 75%, 1px 75%, 1px calc(100% - 1px), 22% calc(100% - 1px), 22% 100%, 0 100%);
   }
 
-  .star-chart::after {
+  .star-chart__seal {
+    position: absolute;
     top: 52%;
     left: 50%;
     width: 4.15rem;
-    aspect-ratio: 1;
-    border: 1px solid color-mix(in srgb, var(--accent-warm) 78%, #2d211b);
-    border-radius: 50%;
-    color: #dbc09b;
-    content: "S";
-    place-items: center;
-    background:
-      radial-gradient(circle at 34% 28%, rgb(255 231 194 / 0.32), transparent 19%),
-      radial-gradient(circle, #966d4b 0 46%, var(--wax) 68%, #2b201c 100%);
-    box-shadow:
-      inset 0 0 0 0.24rem rgb(42 29 23 / 0.46),
-      inset 0 0 0 0.34rem rgb(222 181 128 / 0.2),
-      0 0.7rem 1.2rem rgb(0 0 0 / 0.44);
-    font: 600 1.15rem/1 var(--font-display);
-    text-shadow: 0 1px 1px rgb(0 0 0 / 0.72);
+    height: 4.15rem;
     translate: -50% -50%;
+    filter: drop-shadow(0 0.7rem 1.2rem rgb(0 0 0 / 0.44));
   }
 
   .star-chart__label {
@@ -1169,17 +1146,11 @@
   }
 
   .auth-frame__constellation {
-    display: grid;
+    display: block;
     width: 7.5rem;
-    aspect-ratio: 1;
+    height: 7.5rem;
     margin: auto;
-    place-items: center;
-    border: 1px solid color-mix(in srgb, var(--accent-warm) 68%, var(--border));
-    border-radius: 50%;
-    color: var(--accent-warm);
-    background: radial-gradient(circle at 35% 28%, color-mix(in srgb, var(--wax) 72%, var(--accent-warm)), var(--wax) 72%);
-    box-shadow: inset 0 0 0 0.35rem color-mix(in srgb, var(--wax) 74%, black);
-    font-size: 2rem;
+    filter: drop-shadow(0 0.6rem 1.1rem rgb(0 0 0 / 0.55));
   }
 
   .auth-frame__context p {
@@ -1286,7 +1257,12 @@
   }
 
   /* Console：保留工具密度，但使用刻线黑曜石而非玻璃化数据面板。 */
-  .console-shell { min-height: 100dvh; background: linear-gradient(112deg, #07111b, #05090d); }
+  .console-shell {
+    min-height: 100dvh;
+    background:
+      radial-gradient(ellipse 76% 34% at 50% -4%, color-mix(in srgb, var(--accent-warm) 12%, transparent), transparent 62%),
+      linear-gradient(112deg, #1c1309, #0b0604);
+  }
   .console-sidebar { background: linear-gradient(180deg, var(--surface-raised), var(--surface)); }
   .console-brand { padding: 0.4rem 0.55rem 1.2rem; border-bottom: 1px solid var(--hairline); }
   .console-nav { margin-top: 1.2rem; }
@@ -1416,7 +1392,7 @@
     font-size: 0.76rem;
   }
 
-  .public-footer__brand { color: var(--text); font-family: var(--font-display); font-size: 1rem; }
+  .public-footer__brand { display: inline-flex; align-items: center; gap: 0.45rem; color: var(--text); font-family: var(--font-display); font-size: 1rem; }
   .public-footer__meta { display: grid; gap: 0.25rem; }
   .public-footer__links { display: flex; flex-wrap: wrap; gap: 1rem; }
   .public-footer__links a { min-height: 44px; display: inline-flex; align-items: center; color: var(--text-dim); text-decoration: none; }
@@ -1714,11 +1690,11 @@
   .auth-stage::before,
   .entry-page::before,
   .lost-page::before,
-  .star-chart::after {
+  .star-chart__seal {
     display: none;
   }
 
-  .brand-sigil,
+  .brand-seal,
   .public-action,
   .featured-entry,
   .project-story,

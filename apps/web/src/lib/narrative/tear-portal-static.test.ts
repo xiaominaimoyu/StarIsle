@@ -12,6 +12,11 @@ const styles = readFileSync(
   new URL("../../components/narrative/tear-portal-link.css", import.meta.url),
   "utf8",
 );
+const debrisStyles = readFileSync(
+  new URL("../../components/narrative/tear-debris.css", import.meta.url),
+  "utf8",
+);
+const markupForGuards = renderToStaticMarkup(createElement(TearPortalLink));
 const gate = readFileSync(
   new URL("../../components/auth/ConsoleSessionGate.tsx", import.meta.url),
   "utf8",
@@ -65,12 +70,18 @@ describe("Console TearPortalLink isolation guards", () => {
     expect(component).toContain("<TearMask progress={view.progress}");
   });
 
-  it("does not import authentication, API, audio, player, entry, or Canvas code", () => {
-    expect(component).not.toMatch(/from\s+["'][^"']*(?:session|api|audio|player|NarrativeEntry|entry-state)[^"']*["']/i);
+  it("mounts the shared fleck layer without dragging in the envelope, audio or auth bundle", () => {
+    expect(component).toContain("<TearDebrisCanvas");
+    expect(debrisStyles).toContain(".narrative-tear-debris");
+    expect(debrisStyles).toContain("pointer-events: none");
+    expect(component).not.toMatch(/from\s+["'][^"']*(?:session|api|audio|player|NarrativeEntry|entry-state|WaxSeal|narrative-entry)[^"']*["']/i);
+    expect(component).not.toMatch(/from\s+["'][^"']*tear-debris-canvas["']/i);
     expect(component).not.toContain("fetch(");
-    expect(component).not.toContain("<canvas");
     expect(component).not.toContain("AudioContext");
     expect(component).not.toContain("ClientRouter");
+    // The flecks are decorative only; the panel keeps one semantic control and one native link.
+    expect(markupForGuards.match(/<canvas/g) ?? []).toHaveLength(1);
+    expect(markupForGuards.match(/<a href="\/"/g) ?? []).toHaveLength(1);
   });
 
   it("preserves scroll/zoom and defines reduced-motion and forced-colors fallbacks", () => {

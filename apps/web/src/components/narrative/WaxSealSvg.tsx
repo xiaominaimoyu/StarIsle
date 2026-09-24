@@ -1,67 +1,98 @@
-/** Purely decorative, programmatic wax artwork for the /enter route. */
+/** Liquid-wax overlays; the intact seal itself comes from the original project asset. */
 export default function WaxSealSvg() {
   return (
     <svg
       className="narrative-entry__seal-svg"
-      viewBox="0 0 180 180"
+      viewBox="0 0 220 260"
       aria-hidden="true"
       focusable="false"
     >
       <defs>
-        <filter
-          id="narrative-wax-filter"
-          x="20"
-          y="18"
-          width="140"
-          height="145"
-          filterUnits="userSpaceOnUse"
-          primitiveUnits="userSpaceOnUse"
-        >
+        <radialGradient id="narrative-wax-heat" cx="50%" cy="48%" r="50%">
+          <stop offset="0" stopColor="#ffd6a0" stopOpacity="0.45" />
+          <stop offset="0.5" stopColor="#b55d34" stopOpacity="0.2" />
+          <stop offset="1" stopColor="#5c241b" stopOpacity="0" />
+        </radialGradient>
+        <linearGradient id="narrative-wax-liquid" x1="24%" y1="8%" x2="74%" y2="100%">
+          <stop offset="0" stopColor="#87503c" />
+          <stop offset="0.24" stopColor="#653025" />
+          <stop offset="0.7" stopColor="#3b1815" />
+          <stop offset="1" stopColor="#1c0909" />
+        </linearGradient>
+        <linearGradient id="narrative-wax-highlight" x1="20%" y1="0" x2="80%" y2="100%">
+          <stop offset="0" stopColor="#f2c295" stopOpacity="0.54" />
+          <stop offset="0.42" stopColor="#a85b43" stopOpacity="0.24" />
+          <stop offset="1" stopColor="#6f271e" stopOpacity="0" />
+        </linearGradient>
+        <filter id="narrative-wax-wobble" x="-24%" y="-20%" width="148%" height="158%">
           <feTurbulence
             type="fractalNoise"
-            baseFrequency="0.018"
-            numOctaves="2"
-            seed="37"
-            result="grain"
+            baseFrequency="0.018 0.035"
+            numOctaves="1"
+            seed="41"
+            result="waxNoise"
           />
           <feDisplacementMap
             in="SourceGraphic"
-            in2="grain"
-            scale="3"
+            in2="waxNoise"
+            scale="4.5"
             xChannelSelector="R"
             yChannelSelector="G"
           />
+          <feDropShadow dx="0" dy="8" stdDeviation="7" floodColor="#050109" floodOpacity="0.72" />
+        </filter>
+        <filter id="narrative-wax-soft-glow" x="-40%" y="-40%" width="180%" height="180%">
+          <feGaussianBlur stdDeviation="7" />
         </filter>
       </defs>
 
-      <g className="narrative-entry__wax-deform" filter="url(#narrative-wax-filter)">
-        <g className="narrative-entry__wax-layer narrative-entry__wax-layer--base" data-layer="base">
-          <path d="M90 24c19 0 29 8 43 20 13 11 18 26 16 43-1 16-9 27-19 39-10 11-23 18-40 18-18 0-32-6-43-18-10-12-17-25-16-41 0-17 7-30 19-42 12-12 23-19 40-19Z" />
-        </g>
-        <g className="narrative-entry__wax-layer narrative-entry__wax-layer--rim" data-layer="rim">
-          <circle cx="90" cy="84" r="47" />
-          <circle cx="90" cy="84" r="40" />
-        </g>
-        <g className="narrative-entry__wax-layer narrative-entry__wax-layer--imprint" data-layer="imprint">
-          <path d="M90 48 100 66 120 73 105 83l3 22-18-11-18 11 3-22-15-10 20-7 10-18Z" />
-          <path d="M84 67h12v29H84zM72 78h36v10H72z" opacity="0.72" />
-        </g>
+      <g className="narrative-entry__wax-layer narrative-entry__wax-layer--heat" data-layer="heat">
+        <ellipse
+          cx="110"
+          cy="94"
+          rx="76"
+          ry="66"
+          fill="url(#narrative-wax-heat)"
+          filter="url(#narrative-wax-soft-glow)"
+        />
+        <ellipse
+          cx="110"
+          cy="96"
+          rx="58"
+          ry="51"
+          fill="none"
+          stroke="#e5a56e"
+          strokeOpacity="0.42"
+          strokeWidth="2"
+        />
       </g>
 
-      <g className="narrative-entry__wax-layer narrative-entry__wax-layer--residue" data-layer="residue">
-        <path d="M48 124c15 5 27 10 42 10 14 0 28-4 43-11l-7 20c-12 7-24 11-37 10-14 0-25-4-35-10l-6-19Z" />
-        <path d="M70 139c2 6 3 11 1 16-1 4-5 5-8 2-4-4-1-12 7-18Zm41-2c7 4 10 12 6 17-3 4-7 2-8-2-2-5-1-10 2-15Z" />
+      <g
+        className="narrative-entry__wax-layer narrative-entry__wax-layer--pool"
+        data-layer="pool"
+        filter="url(#narrative-wax-wobble)"
+      >
+        <path
+          d="M48 105c8-17 24-27 43-29 13-12 34-10 45 1 19 1 33 12 38 27 5 17-8 31-25 35-12 11-31 13-45 6-17 5-36-1-44-13-13-4-18-15-12-27Z"
+          fill="url(#narrative-wax-liquid)"
+        />
+        <path
+          d="M68 96c13-12 27-16 42-15 11-5 25-2 34 6-22-5-47 1-62 16-7 7-11 15-12 25-10-8-11-21-2-32Z"
+          fill="url(#narrative-wax-highlight)"
+          opacity="0.38"
+        />
       </g>
 
-      <g className="narrative-entry__wax-layer narrative-entry__wax-layer--magic" data-layer="magic">
-        <circle cx="46" cy="62" r="2.3" />
-        <circle cx="132" cy="56" r="1.8" />
-        <circle cx="142" cy="91" r="2.1" />
-        <circle cx="38" cy="99" r="1.6" />
-        <circle cx="62" cy="38" r="1.5" />
-        <circle cx="118" cy="126" r="1.7" />
-        <circle cx="53" cy="129" r="1.3" />
-        <circle cx="126" cy="35" r="1.2" />
+      <g
+        className="narrative-entry__wax-layer narrative-entry__wax-layer--highlights"
+        data-layer="highlights"
+        fill="none"
+        stroke="url(#narrative-wax-highlight)"
+        strokeLinecap="round"
+      >
+        <path d="M65 103c7-12 18-19 31-22" strokeWidth="4.5" />
+        <path d="M104 132c9 4 13 12 11 22" strokeWidth="3" />
+        <path d="M138 127c6 3 9 8 9 14" strokeWidth="2.2" />
       </g>
     </svg>
   );

@@ -1,41 +1,47 @@
 import { describe, expect, it } from "vitest";
 import {
-  acknowledgeLoginSuccess,
   activateSeal,
+  cancelTear,
   completeMelt,
+  completeTear,
   initialEnterNarrativeState,
   meltDurationMs,
   renderedEnterNarrativeState,
-  reportLoginFailure,
+  startTear,
+  tearDurationMs,
 } from "./entry-state";
 
 describe("/enter narrative state", () => {
-  it("moves only from idle through the rendered and revealed states", () => {
+  it("routes a seal activation only through the public exit sequence", () => {
     expect(initialEnterNarrativeState).toBe("idle");
     const sealed = renderedEnterNarrativeState();
     const melting = activateSeal(sealed);
 
     expect(sealed).toBe("sealed");
     expect(melting).toBe("melting");
-    expect(completeMelt(melting)).toBe("loginReveal");
+    expect(completeMelt(melting)).toBe("publicExit");
   });
 
-  it("does not let repeated events skip or restart the sequence", () => {
-    expect(activateSeal("melting")).toBe("melting");
-    expect(activateSeal("loginReveal")).toBe("loginReveal");
-    expect(completeMelt("idle")).toBe("idle");
+  it("routes a completed tear only through the private exit sequence", () => {
+    const dragging = startTear(renderedEnterNarrativeState());
+
+    expect(dragging).toBe("dragging");
+    expect(completeTear(dragging)).toBe("privateExit");
+    expect(cancelTear(dragging)).toBe("sealed");
+  });
+
+  it("does not let events cross or restart either path", () => {
+    expect(startTear("melting")).toBe("melting");
+    expect(activateSeal("dragging")).toBe("dragging");
     expect(completeMelt("sealed")).toBe("sealed");
-    expect(completeMelt("loginReveal")).toBe("loginReveal");
+    expect(completeTear("sealed")).toBe("sealed");
+    expect(cancelTear("privateExit")).toBe("privateExit");
   });
 
-  it("keeps login outcomes presentation-only and ordered", () => {
-    expect(reportLoginFailure("loginReveal")).toBe("loginReveal");
-    expect(acknowledgeLoginSuccess("sealed")).toBe("sealed");
-    expect(acknowledgeLoginSuccess("loginReveal")).toBe("isle");
-  });
-
-  it("uses the approved normal and reduced-motion timing candidates", () => {
-    expect(meltDurationMs(false)).toBe(2600);
-    expect(meltDurationMs(true)).toBe(140);
+  it("uses bounded normal and reduced-motion timings", () => {
+    expect(meltDurationMs(false)).toBe(2200);
+    expect(meltDurationMs(true)).toBe(160);
+    expect(tearDurationMs(false)).toBe(1180);
+    expect(tearDurationMs(true)).toBe(160);
   });
 });

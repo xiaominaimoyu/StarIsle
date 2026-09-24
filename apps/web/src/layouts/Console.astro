@@ -2,6 +2,7 @@
 import Base from "./Base.astro";
 import ThemeToggle from "@/components/site/ThemeToggle";
 import LogoutButton from "@/components/auth/LogoutButton";
+import SealMonogramSvg from "@/components/narrative/SealMonogramSvg";
 
 interface Props {
   title: string;
@@ -24,7 +25,7 @@ const items = [
     <div class="flex flex-1">
       <aside class="console-sidebar no-print sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-border bg-surface/40 p-4 lg:flex">
         <a href="/" class="console-brand mb-2 flex min-h-11 items-center gap-2 rounded font-display text-lg font-semibold text-text focus-ring">
-          <span aria-hidden="true" class="text-accent-warm">✦</span> 星屿
+          <SealMonogramSvg className="brand-seal" variant="compact" /> 星屿
         </a>
         <p class="featured-entry__number mb-2 px-3">NIGHT FLIGHT · CONSOLE</p>
         <nav aria-label="控制台导航" class="console-nav flex flex-1 flex-col gap-1">

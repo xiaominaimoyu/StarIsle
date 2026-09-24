@@ -2,14 +2,15 @@
 import Base from "@/layouts/Base.astro";
 import AuthCard from "@/components/auth/AuthCard";
 import LoginForm from "@/components/auth/LoginForm";
+import SealMonogramSvg from "@/components/narrative/SealMonogramSvg";
 ---
 
 <Base title="登录 · 星屿 StarIsle" description="登录进入你的岛屿控制台" noindex>
   <div class="flex min-h-dvh flex-col">
     <header class="auth-header sticky top-0 z-40 bg-bg/80 backdrop-blur">
       <div class="auth-header__inner">
-        <a href="/" class="font-display text-lg font-semibold text-text focus-ring rounded">
-          <span aria-hidden="true">✦</span> 星屿 StarIsle
+        <a href="/" class="brand-lockup flex items-center gap-2 font-display text-lg font-semibold text-text focus-ring rounded">
+          <SealMonogramSvg className="brand-seal" variant="compact" /> 星屿 StarIsle
         </a>
       </div>
     </header>
@@ -17,7 +18,7 @@ import LoginForm from "@/components/auth/LoginForm";
       <div class="auth-frame">
         <aside class="auth-frame__context" aria-label="登录提示">
           <p>STARISLE<br />SEALED ARCHIVE</p>
-          <span class="auth-frame__constellation" aria-hidden="true">S</span>
+          <SealMonogramSvg className="auth-frame__constellation" variant="seal" />
           <p>身份验证后进入<br />个人控制台。</p>
         </aside>
         <AuthCard title="登录 StarIsle" message="进入你的岛屿控制台。">

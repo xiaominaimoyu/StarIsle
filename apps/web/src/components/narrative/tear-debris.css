@@ -1,0 +1,19 @@
+.narrative-tear-debris {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.tear-portal-link .narrative-tear-debris {
+  z-index: 3;
+}
+
+@media (forced-colors: active) {
+  .narrative-tear-debris {
+    display: none;
+  }
+}
