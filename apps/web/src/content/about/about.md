@@ -1,5 +1,5 @@
 ---
-name: "你的名字"
+name: "沐明"
 role: "全栈工程师 · AI 工程"
 tagline: "在夜空中点亮一座属于自己的数字岛屿"
 skills:
