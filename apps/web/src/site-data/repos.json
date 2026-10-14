@@ -1,5 +1,83 @@
 {
-  "repos": [],
-  "fetchedAt": "2026-08-27T06:29:39.613Z",
-  "sources": []
+  "repos": [
+    {
+      "source": "github",
+      "name": "KVault",
+      "description": "一款面向个人的本地化知识库桌面应用，基于 PySide6 构建 GUI，通过 RAG 流水线实现文档管理与语义检索",
+      "url": "https://github.com/xiaominaimoyu/KVault",
+      "language": "Python",
+      "stars": 1,
+      "forks": 0,
+      "updatedAt": "2026-10-10T09:53:31Z",
+      "featured": true,
+      "topics": []
+    },
+    {
+      "source": "github",
+      "name": "auto_music_player",
+      "description": "这是一个可用于在鸣潮/原神上进行自动化乐器演奏的软件项目",
+      "url": "https://github.com/xiaominaimoyu/auto_music_player",
+      "language": "Python",
+      "stars": 16,
+      "forks": 6,
+      "updatedAt": "2026-10-04T14:39:56Z",
+      "featured": true,
+      "topics": []
+    },
+    {
+      "source": "github",
+      "name": "Quantitative_Trading",
+      "description": "这是一个个人的可用ai分析的量化交易分析平台",
+      "url": "https://github.com/xiaominaimoyu/Quantitative_Trading",
+      "language": "TypeScript",
+      "stars": 0,
+      "forks": 0,
+      "updatedAt": "2026-08-30T05:48:44Z",
+      "featured": true,
+      "topics": []
+    },
+    {
+      "source": "github",
+      "name": "chatgpt-Multi-model-collaboration-plugin",
+      "description": "一个用于chatgpt的多模型合作插件",
+      "url": "https://github.com/xiaominaimoyu/chatgpt-Multi-model-collaboration-plugin",
+      "language": null,
+      "stars": 0,
+      "forks": 0,
+      "updatedAt": "2026-09-05T09:18:49Z",
+      "featured": false,
+      "topics": []
+    },
+    {
+      "source": "github",
+      "name": "desktop-pet-demo",
+      "description": "Desktop Pet 是一款基于 Tauri v2 + Rust 开发的 Windows 桌面宠物应用。它能实时感知 AI 编程工具（Claude Code / OpenCode / Copilot / TRAE Work）的编码状态，并通过可爱的像素风宠物动画、气泡提示和交互菜单，为开发者提供轻量化的状态反馈与情绪陪伴。",
+      "url": "https://github.com/xiaominaimoyu/desktop-pet-demo",
+      "language": "HTML",
+      "stars": 0,
+      "forks": 0,
+      "updatedAt": "2026-08-21T15:58:23Z",
+      "featured": false,
+      "topics": []
+    },
+    {
+      "source": "github",
+      "name": "skills-copilot-codespaces-vscode",
+      "description": "My clone repository",
+      "url": "https://github.com/xiaominaimoyu/skills-copilot-codespaces-vscode",
+      "language": null,
+      "stars": 0,
+      "forks": 0,
+      "updatedAt": "2026-06-02T14:11:37Z",
+      "featured": false,
+      "topics": []
+    }
+  ],
+  "fetchedAt": "2026-10-14T14:18:01.117Z",
+  "sources": [
+    {
+      "source": "github",
+      "ok": true
+    }
+  ]
 }
