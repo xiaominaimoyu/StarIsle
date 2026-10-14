@@ -5,6 +5,8 @@ import PublicThemeToggle from "@/components/site/PublicThemeToggle.astro";
 import PublicBackgroundController from "@/components/background/PublicBackgroundController.astro";
 import Footer from "@/components/site/Footer.astro";
 import SealMonogramSvg from "@/components/narrative/SealMonogramSvg";
+import { hasPlayableTracks } from "@/lib/public-ui";
+import playlist from "@/site-data/playlist.json";
 
 interface Props {
   title: string;
@@ -18,6 +20,8 @@ interface Props {
 }
 
 const { title, description, canonical, noindex, showAuth = true, snapshotAt, sources } = Astro.props;
+/** Mirrors Base.astro's gate so a ♪ button is never rendered without a player behind it. */
+const showPlayer = hasPlayableTracks(playlist.tracks);
 ---
 
 <Base title={title} description={description} canonical={canonical} noindex={noindex}>
@@ -35,16 +39,18 @@ const { title, description, canonical, noindex, showAuth = true, snapshotAt, sou
         <span class="public-toolbar">
           <PublicThemeToggle />
           <PublicBackgroundController />
-          <button
-            type="button"
-            data-open-public-playlist
-            aria-controls="player-dialog"
-            aria-label="打开音乐播放器"
-            title="音乐播放器"
-            class="public-icon-button focus-ring"
-          >
-            <span aria-hidden="true">♪</span>
-          </button>
+          {showPlayer && (
+            <button
+              type="button"
+              data-open-public-playlist
+              aria-controls="player-dialog"
+              aria-label="打开音乐播放器"
+              title="音乐播放器"
+              class="public-icon-button focus-ring"
+            >
+              <span aria-hidden="true">♪</span>
+            </button>
+          )}
         </span>
       </div>
     </div>

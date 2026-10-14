@@ -30,9 +30,18 @@ export function nextPublicTheme(theme: PublicTheme): PublicTheme {
   return theme === "light" ? "dark" : "light";
 }
 
+/**
+ * The player is only mountable when the build-time playlist actually has
+ * entries; otherwise every "♪ 音乐播放器" affordance opens an empty dialog.
+ * Callers use this for both the dock and the header button so the two cannot
+ * drift apart.
+ */
+export function hasPlayableTracks(tracks: readonly unknown[]): boolean {
+  return Array.isArray(tracks) && tracks.length > 0;
+}
+
 /** Keeps the existing player contract: missing or malformed storage uses 0.8, while "0" remains muted. */
-export function parsePublicPlayerVolume(raw: string | null): number {
-  if (raw === null || raw.trim() === "") return 0.8;
+export function parsePublicPlayerVolume(raw: string | null): number {  if (raw === null || raw.trim() === "") return 0.8;
   const volume = Number(raw);
   return Number.isFinite(volume) && volume >= 0 && volume <= 1 ? volume : 0.8;
 }

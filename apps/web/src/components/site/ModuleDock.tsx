@@ -1,3 +1,6 @@
+import playlist from "@/site-data/playlist.json";
+import { hasPlayableTracks } from "@/lib/public-ui";
+
 interface ModuleEntry {
   key: string;
   title: string;
@@ -30,6 +33,11 @@ const MODULES: ModuleEntry[] = [
   },
 ];
 
+/** Drops the player card while the playlist is empty, so no card links to a missing dialog. */
+const VISIBLE_MODULES = MODULES.filter(
+  (entry) => entry.key !== "player" || hasPlayableTracks(playlist.tracks),
+);
+
 export default function ModuleDock() {
   return (
     <section aria-labelledby="modules-title" className="editorial-container module-dock">
@@ -41,7 +49,7 @@ export default function ModuleDock() {
         </p>
       </div>
       <div className="module-dock__list">
-        {MODULES.map((m, index) => (
+        {VISIBLE_MODULES.map((m, index) => (
           <a
             key={m.key}
             href={m.href}

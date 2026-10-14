@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  hasPlayableTracks,
   nextPublicTheme,
   parsePublicBackgroundSettings,
   parsePublicPlayerVolume,
@@ -60,5 +61,13 @@ describe("public UI helpers", () => {
       "missing-a",
       "missing-b",
     ]);
+  });
+
+  it("hides every player affordance while the playlist is empty", () => {
+    expect(hasPlayableTracks([])).toBe(false);
+    expect(hasPlayableTracks([{ title: "x" }])).toBe(true);
+    // A malformed snapshot must not render a dock that cannot play anything.
+    expect(hasPlayableTracks(null as unknown as readonly unknown[])).toBe(false);
+    expect(hasPlayableTracks(undefined as unknown as readonly unknown[])).toBe(false);
   });
 });

@@ -3,6 +3,7 @@ import "../styles/global.css";
 import PublicBackgroundLayer from "@/components/background/PublicBackgroundLayer.astro";
 import PublicMusicPlayer from "@/components/player/PublicMusicPlayer.astro";
 import { getPublicSiteUrl, publicSiteUrlForPath } from "@/lib/seo";
+import { hasPlayableTracks } from "@/lib/public-ui";
 import playlist from "@/site-data/playlist.json";
 
 interface Props {
@@ -24,6 +25,8 @@ const {
 
 const siteUrl = getPublicSiteUrl(import.meta.env.PUBLIC_SITE_URL);
 const canonicalUrl = noindex ? undefined : canonical ?? publicSiteUrlForPath(siteUrl, Astro.url.pathname);
+/** No tracks yet means nothing to play; the header button reads this too. */
+const showPlayer = chrome && hasPlayableTracks(playlist.tracks);
 ---
 
 <!doctype html>
@@ -68,12 +71,8 @@ const canonicalUrl = noindex ? undefined : canonical ?? publicSiteUrlForPath(sit
     >
       跳转到主内容
     </a>
-    {chrome ? (
-      <>
-        <PublicBackgroundLayer />
-        <PublicMusicPlayer tracks={playlist.tracks} />
-      </>
-    ) : null}
+    {chrome ? <PublicBackgroundLayer /> : null}
+    {showPlayer ? <PublicMusicPlayer tracks={playlist.tracks} /> : null}
     <slot />
   </body>
 </html>
