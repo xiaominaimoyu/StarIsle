@@ -2,7 +2,7 @@
 title: "构建期仓库快照工具"
 date: 2026-08-27
 tags: [TypeScript, GitHub API, 工程化]
-sourceUrl: "https://github.com/yourname/star-isle"
+sourceUrl: "https://github.com/xiaominaimoyu/StarIsle/blob/main/scripts/fetch-repos.ts"
 status: done
 ---
 

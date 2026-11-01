@@ -2,20 +2,19 @@
 name: "沐明"
 role: "全栈工程师 · AI 工程"
 location: "中国"
-email: "you@example.com"
-website: "https://star-isle.example.com"
-summary: "全栈与 AI 工程方向实践者。构建过从静态门户到私有服务、RAG 知识库的完整个人系统,重视安全边界、可访问性与可验证的工程交付。"
+email: "18780497725@163.com"
+summary: "全栈与 AI 工程方向实践者。已实现个人门户、私有数据服务与知识库的本地工程链路,重视安全边界、可访问性与可验证的工程交付。"
 ---
 
-## 工作经历
+## 项目实践
 
 ### 全栈个人项目 · 星屿 StarIsle(2026 至今)
 
-独立设计并实现个人全栈门户,分三期交付:
+独立设计并实现个人全栈门户,按公开展示、私有服务和知识库三个阶段持续推进:
 
-- **一期(静态门户)**:Astro + Tailwind 公开求职展示、构建期 GitHub/Gitee 仓库快照、IndexedDB 自定义背景、HTML5 音乐播放器(进度续播);移动端 Lighthouse 四维度均不低于 90
-- **二期(私有服务)**:FastAPI + SQLite 单用户 Cookie 鉴权(Argon2id、CSRF/Origin)、文件与照片存储(魔数校验、随机对象 ID)、Cloudflare Email Worker → FastAPI HMAC 邮件接收链路
-- **三期(RAG 知识库)**:本地双 `llama-server` 实例、`sqlite-vec` 向量检索、带引用的流式问答
+- **公开门户**:Astro + Tailwind 展示页、构建期仓库快照、IndexedDB 自定义背景和 HTML5 播放器代码已实现;当前展示 GitHub 仓库快照,授权曲目与当前版本发布验收待补齐
+- **私有服务**:实现 FastAPI + SQLite 单用户 Cookie 鉴权(Argon2id、CSRF/Origin)、文件与照片存储(魔数校验、随机对象 ID),以及 Cloudflare Email Worker → FastAPI HMAC 邮件接收参考实现;真实邮件与部署环境仍待验收
+- **RAG 知识库**:实现文档索引、`sqlite-vec` 检索、带引用的流式问答和内部双 `llama-server` 对接接口;离线后端链路已验证,真实模型、语料质量与性能仍待评测
 
 ## 技能
 

@@ -2,11 +2,25 @@
 
 个人全栈门户：公开展示站点（星）与受 Cookie 保护的私有空间（屿）。前端使用 Astro，私有 API 使用 FastAPI；浏览器只请求同源 `/api/v1`，JWT 只保存在 Secure/HttpOnly Cookie 中。
 
-本仓库的四份规划文档仍是计划基线；本 README 只说明本机可重复的开发、验证和恢复流程，不代表已完成生产部署或外部服务验收。
+本仓库的四份规划文档仍是计划基线；本 README 说明本机开发、验证、恢复和公开站 Pages 部署。完整私有栈与外部服务仍按各自验收证据判断。
+
+## 当前进度（2026-11-01）
+
+当前实施先读 [PROGRESS.md](./PROGRESS.md) 与 [开发进度 §55](./docs/开发进度.md)；开工前的复核见 [项目现状与恢复开发清单](./docs/2026-11-01_项目现状与恢复开发清单.md)，剩余任务、依赖、验收与工期估算见 [后续开发计划](./docs/2026-11-01_后续开发计划.md)。四份原规划文档保留目标与验收要求，早期报告和阶段快照保留历史证据。
+
+当前源码已具备公开门户、书桌信封入口、私有控制台、文件/照片、邮件接收、知识库/RAG 及运维脚本。11-01 首批修正了公开内容和信封入口的可访问性，并恢复当前版本的浏览器回归：Web 154、contracts 8、Email Worker 14、harness 安全 31 项测试通过；Astro 104 files 诊断零错误/警告/提示，静态构建 11 页；完整隔离浏览器 E2E 为 12 组、0 失败。内容同步的重复 ID 提示已定位为当前依赖的缓存重载诊断，仍有保留项。API 608 与后端 smoke 是同日开工前的检查，本批未重跑全量 API。当前 Lighthouse、完整私有栈生产部署与模型评测仍未验收，M1/M2/M3 保持未完成。
+
+源码基线为 `main@c07e8f1`（2026-10-14），当前叠加未提交的首批实现与文档；本地记录相对 `origin/main` 领先 3 个提交，实际远端未联网刷新。姓名/教育背景和 6 个 GitHub 仓库快照已填入，两处项目源码链接已修正；用户确认的公开邮箱已填入首页与简历，正式域名尚未确定，授权音频仍待补齐。空歌单时播放器入口保持隐藏。本轮临时服务已关闭，运行与验收边界见当前进度。
+
+## Cloudflare 公开站
+
+公开站已发布至 [starisle-6bt.pages.dev](https://starisle-6bt.pages.dev/)，仅托管公开静态页面。私人入口显示暂未开放，控制台路径转至该提示页；API、SQLite、文件、邮件和 RAG 服务继续在本地开发。现有本地登录和控制台功能保留。
+
+生产构建使用 `PUBLIC_SITE_URL=https://starisle-6bt.pages.dev` 和 `pnpm build:pages`，上传目录为 `apps/web/dist`。脚本关闭公开候选的登录表单，生成 Pages 重定向及响应头，并运行原发布门禁。19 项线上 HTTP 检查、5 页 HTML 哈希比对和桌面/移动 Chromium 检查通过；这不替代当前 Lighthouse、音频授权、真机或完整私有栈验收。发布、更新和回滚方式见 [Cloudflare Pages 部署](./docs/Cloudflare-Pages部署.md)。
 
 ## 本机快速开始
 
-前置条件：Node.js 20+、pnpm 9、Python 3.12+。当前源码树包含静态仓库快照与空播放列表，在依赖已经安装时可直接构建；仓库尚未建立首个 Git commit，不能将这些文件称为已受版本控制。`pnpm fetch:repos` 只在需要更新 GitHub/Gitee 构建期快照时才运行。
+前置条件：Node.js 20+、pnpm 9、Python 3.12+。当前源码树包含已跟踪的静态仓库快照与空播放列表，在依赖已经安装时可直接构建。`pnpm fetch:repos` 只在需要更新 GitHub/Gitee 构建期快照时才运行。2026-11-01 已验证项目 `apps/api/.venv` 的 Python 3.14.7 可运行；不要依据早期记录重复重建环境。
 
 ```bash
 pnpm install
@@ -17,21 +31,21 @@ pnpm build
 
 普通 `pnpm build` 仍是本机开发构建，不要求生产域名，也不会把当前个人内容或空数据源变成可发布状态。发布候选必须使用 `pnpm build:release`：它先只验证 `PUBLIC_SITE_URL`，完成构建后再检查静态制品、SEO、私有页索引规则、占位内容和受限文件，并输出制品 fingerprint 与固定构建输入 inventory 的 SHA-256 聚合值。
 
-`PUBLIC_SITE_URL` 必须是已经由 Caddy 使用的真实根 HTTPS URL（只允许站点根，不含端口、路径、query 或 fragment），不能使用示例、保留或测试域名。以下命令会在终端读取这个已部署域名，避免把虚构域名写进发布命令：
+`PUBLIC_SITE_URL` 必须是实际分配或配置的站点根 HTTPS URL（只允许站点根，不含端口、路径、query 或 fragment），可以使用 Pages 分配的地址或 Caddy 使用的真实域名，不能使用示例、保留或测试域名。以下为完整前端候选的构建命令；仅公开页面的 Pages 部署使用上述 `build:pages`，具体流程见部署说明：
 
 ```powershell
-$env:PUBLIC_SITE_URL = Read-Host 'Actual Caddy root HTTPS URL'
+$env:PUBLIC_SITE_URL = Read-Host 'Actual root HTTPS URL'
 pnpm build:release
 ```
 
 ```sh
-printf '%s' 'Actual Caddy root HTTPS URL: '
+printf '%s' 'Actual root HTTPS URL: '
 IFS= read -r PUBLIC_SITE_URL
 export PUBLIC_SITE_URL
 pnpm build:release
 ```
 
-当前占位内容或空的个人数据源会故意使 production gate 失败；这表示发布前仍需由项目所有者提供经授权的真实内容，而不是由构建伪造内容。
+候选中出现受检占位内容或空的个人数据源时，production gate 会故意失败；应由项目所有者提供经授权的真实内容，不能由构建伪造内容。
 
 该门禁只检查静态制品，不能证明 DNS、TLS、Caddy、CDN、真实部署、Lighthouse、SBOM、SCA、签名、漏洞可达性，或真实内容的授权状态。
 
@@ -213,6 +227,6 @@ $report = 'D:\recovery-reports\star-isle-drill.json'
 
 ## 当前外部边界
 
-- 本地隔离浏览器的 Cookie+CSRF 登录链路，以及可索引公开页的 production-preview Lighthouse 四维验收已完成；这不等同于真实部署验收。真实部署域名、CDN、Caddy 同源、Cloudflare、真实账号与模型仍未验收。
+- 2026-11-01 已在首批实现后重跑完整隔离浏览器 E2E，12 组、0 失败；随后 Pages 公开站已真实部署并完成基础线上检查。当前版本 Lighthouse 未重跑，历史 production-preview 结果仍按历史记录理解；完整私有栈的 Caddy 同源、邮件 Cloudflare 平台链路、真实业务账号与模型仍缺相应验收证据，详见当前实施进度。
 - `scripts/email-worker.js` 为 Cloudflare Worker 参考实现；失败会拒收并仅记录脱敏状态，实际 Cloudflare 平台重试/退信行为仍需在真实账号中验证。
-- 个人内容、音乐和仓库来源仍由项目所有者按授权与真实性要求维护；空列表会显示空态，不会伪造数据。
+- 个人内容和仓库快照已部分补齐，仍由项目所有者按授权与真实性要求维护；当前空歌单的播放器入口已隐藏，其他空列表按组件提供空态。

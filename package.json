@@ -16,6 +16,7 @@
     "build": "pnpm --filter @star-isle/contracts build && pnpm --filter @star-isle/web build",
     "release:gate": "python -B scripts/release_artifact_gate.py",
     "build:release": "python -B scripts/release_artifact_gate.py --config-only && pnpm build && python -B scripts/release_artifact_gate.py",
+    "build:pages": "python -B scripts/build_cloudflare_pages.py",
     "fetch:repos": "tsx scripts/fetch-repos.ts",
     "dev": "pnpm --filter @star-isle/web dev"
   },

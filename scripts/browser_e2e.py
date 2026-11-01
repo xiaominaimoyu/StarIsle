@@ -632,7 +632,7 @@ def public_native_interaction_checks(page, base: str) -> None:
     page.set_viewport_size({"width": 390, "height": 844})
     page.goto(base + "/", wait_until="networkidle")
     page.get_by_role("button", name="打开导航菜单").click()
-    nav_dialog = page.get_by_role("dialog", name="导航菜单")
+    nav_dialog = page.get_by_role("dialog", name="夜航目录")
     nav_dialog.wait_for(state="visible")
     check(nav_dialog.is_visible(), "移动导航对话框打开")
     check(
@@ -659,7 +659,7 @@ def public_native_interaction_checks(page, base: str) -> None:
     background_button.click()
     background_dialog = page.get_by_role("dialog", name="自定义背景")
     check(background_dialog.is_visible(), "背景对话框打开")
-    page.get_by_role("button", name=re.compile("使用预设背景 starry-night")).click()
+    page.get_by_role("button", name="使用预设背景：深蓝缎面", exact=True).click()
     background_settings = page.evaluate("JSON.parse(localStorage.getItem('star-isle:background-settings'))")
     check(
         background_settings.get("url") == "/presets/backgrounds/starry-night.svg" and not background_settings.get("custom"),
@@ -692,20 +692,46 @@ def public_native_interaction_checks(page, base: str) -> None:
         "背景对话框关闭后恢复触发器焦点",
     )
 
-    player_button = page.get_by_role("button", name="音乐播放器", exact=True)
-    player_button.click()
-    player_dialog = page.get_by_role("dialog", name="歌单")
-    check(player_dialog.is_visible(), "空歌单对话框打开")
-    check("暂无曲目" in player_dialog.inner_text(), "空歌单状态可用")
-    page.keyboard.press("Escape")
-    check(not player_dialog.is_visible(), "歌单 Escape 关闭")
-    check(
-        page.evaluate("document.activeElement?.hasAttribute('data-player-open')"),
-        "歌单关闭后恢复触发器焦点",
-    )
+    player = page.locator("[data-public-player]")
+    if player.count():
+        tracks = json.loads(player.get_attribute("data-playlist") or "[]")
+        check(bool(tracks), "已挂载播放器具有真实歌单")
+        page.locator("[data-player-open]").first.click()
+        player_dialog = page.get_by_role("dialog", name="歌单")
+        check(player_dialog.is_visible(), "歌单对话框打开")
+        page.keyboard.press("Escape")
+        check(not player_dialog.is_visible(), "歌单 Escape 关闭")
+        check(
+            page.evaluate("document.activeElement?.hasAttribute('data-player-open')"),
+            "歌单关闭后恢复触发器焦点",
+        )
+    else:
+        check(page.locator("[data-open-public-playlist]").count() == 0, "空歌单隐藏导航播放器入口")
+        check(page.locator('a[href="/#player"]').count() == 0, "空歌单隐藏模块播放器入口")
+        check(page.get_by_role("dialog", name="歌单").count() == 0, "空歌单不挂载播放器对话框")
 
     page.goto(base + "/projects/", wait_until="networkidle")
-    check(page.get_by_text("暂未配置仓库来源", exact=True).is_visible(), "当前空仓库快照保持空状态")
+    grid = page.locator("[data-public-repo-grid]")
+    if grid.count():
+        cards = grid.locator("[data-repo-card]")
+        total = cards.count()
+        for source in ("github", "gitee"):
+            button = grid.locator(f'button[data-repo-source="{source}"]')
+            button.click()
+            expected = grid.locator(f'[data-repo-card][data-repo-source="{source}"]').count()
+            expect(grid.locator("[data-repo-card]:visible")).to_have_count(expected)
+            check(button.get_attribute("aria-pressed") == "true", f"仓库来源筛选_{source}")
+            check(grid.locator("[data-repo-empty]").is_visible() == (expected == 0), f"仓库筛选空态_{source}")
+        grid.locator('button[data-repo-source="all"]').click()
+        expect(grid.locator("[data-repo-card]:visible")).to_have_count(total)
+        grid.locator('button[data-repo-sort="updated"]').click()
+        dates = grid.locator("[data-repo-card]:visible").evaluate_all(
+            "cards => cards.map(card => Date.parse(card.dataset.repoUpdatedAt) || 0)"
+        )
+        check(dates == sorted(dates, reverse=True), "仓库按最近更新时间排序")
+        check(grid.locator("[data-repo-empty]").is_visible() == (total == 0), "仓库全部来源空态正确")
+    else:
+        check(page.get_by_text("暂未配置仓库来源", exact=True).is_visible(), "未配置来源时展示仓库空态")
 
 
 def public_only_result() -> int:
@@ -1475,9 +1501,8 @@ def _browser_flow(args, sample_txt: Path, sample_png: Path, receipt_file: Path) 
                 if not args.public_only:
                     _screenshot(page, screenshot_name)
 
-            # /enter 是公开、可跳过的叙事增强页：验证真实 Astro 输出、无 JS 前的
-            # 回退路径，以及 reduced-motion/forced-colors 下的本地状态与焦点；
-            # 不得触及私有 API、认证或导航状态。
+            # 当前 /enter 通过封蜡进入公开页、撕裂进入既有登录页；
+            # 以真实键盘操作验证导航和降级，不依赖历史私有事件或嵌入登录 UI。
             page.emulate_media(reduced_motion="reduce", forced_colors="active")
             try:
                 enter_response = page.goto(args.base + "/enter", wait_until="networkidle")
@@ -1486,8 +1511,8 @@ def _browser_flow(args, sample_txt: Path, sample_png: Path, receipt_file: Path) 
                     page.locator("meta[name='robots']").get_attribute("content") == "noindex",
                     "enter_robots_noindex",
                 )
-                home_fallback = page.get_by_role("link", name="前往星", exact=True)
-                login_fallback = page.get_by_role("link", name="普通登录", exact=True)
+                home_fallback = page.get_by_role("link", name="融化封蜡，进入公开页", exact=True)
+                login_fallback = page.get_by_role("link", name="撕开信封，进入私人登录页", exact=True)
                 check(
                     home_fallback.is_visible()
                     and home_fallback.get_attribute("href") == "/"
@@ -1495,61 +1520,56 @@ def _browser_flow(args, sample_txt: Path, sample_png: Path, receipt_file: Path) 
                     and login_fallback.get_attribute("href") == "/login",
                     "enter_visible_fallback_links",
                 )
-                seal = page.get_by_role("button", name="开启封印", exact=True)
-                seal_box = seal.bounding_box()
+                seal_box = home_fallback.bounding_box()
                 check(
-                    seal.is_visible()
-                    and seal_box is not None
+                    seal_box is not None
                     and seal_box["width"] >= 44
                     and seal_box["height"] >= 44,
                     "enter_semantic_seal_min_target",
                 )
                 narrative = page.locator(".narrative-entry")
+                expect(narrative).to_have_attribute("data-quality", "reduced")
                 check(
-                    narrative.get_attribute("data-quality") == "reduced"
-                    and page.evaluate("matchMedia('(forced-colors: active)').matches"),
+                    page.evaluate("matchMedia('(forced-colors: active)').matches"),
                     "enter_accessibility_media_fallbacks_active",
                 )
                 check(
-                    page.locator(".narrative-entry__wax-deform").evaluate(
+                    page.locator(".narrative-entry__wax-layer--pool").evaluate(
                         "element => getComputedStyle(element).filter"
                     )
                     == "none"
-                    and page.locator(".narrative-entry__wax-layer--magic").evaluate(
-                        "element => getComputedStyle(element).display"
-                    )
-                    == "none",
+                    and page.locator(".narrative-tear-debris").count() == 0,
                     "enter_reduced_motion_disables_filter_and_particles",
                 )
-                page.evaluate("window.removeEventListener('narrative:enter-completed', window.__narrativeEnterHandler)")
-                seal.focus()
-                seal.press("Space")
-                expect(narrative).to_have_attribute("data-state", "loginReveal", timeout=1_000)
-                live_region = page.locator(".narrative-entry p[aria-live='polite']")
-                expect(live_region).to_have_text("封印已打开，登录信件已经显示。", timeout=1_000)
-                letter = page.locator("#narrative-letter")
-                letter_title = letter.get_by_role("heading", name="信已开启", exact=True)
-                embedded_password = letter.get_by_role("textbox", name="密码")
-                embedded_login = letter.get_by_role("button", name="登录", exact=True)
-                letter_login = letter.get_by_role("link", name="普通登录", exact=True)
-                letter_home = letter.get_by_role("link", name="前往星", exact=True)
-                expect(letter_title).to_be_focused(timeout=1_000)
-                expect(embedded_password).to_be_visible()
-                expect(embedded_login).to_be_visible()
-                page.keyboard.press("Tab")
-                expect(embedded_password).to_be_focused()
-                embedded_password.press("Enter")
-                expect(letter.get_by_role("alert")).to_have_text("请输入密码。")
+                home_fallback.focus()
+                home_fallback.press("Space")
+                page.wait_for_url(args.base + "/", timeout=15_000)
                 check(
-                    page.url == args.base + "/enter"
-                    and narrative.get_attribute("data-state") == "loginReveal"
-                    and live_region.inner_text() == "封印已打开，登录信件已经显示。"
-                    and letter_login.get_attribute("href") == "/login"
-                    and letter_home.get_attribute("href") == "/",
-                    "enter_reduced_motion_reveals_without_navigation",
+                    page.evaluate("sessionStorage.getItem('star-isle:enter-completed')") == "true",
+                    "enter_reduced_motion_seal_enters_public_and_marks_completion",
                 )
+                page.goto(args.base + "/enter", wait_until="networkidle")
+                expect(page.locator(".narrative-entry")).to_have_attribute("data-quality", "reduced")
+                tear_link = page.get_by_role("link", name="撕开信封，进入私人登录页", exact=True)
+                tear_link.focus()
+                tear_link.press("Enter")
+                page.wait_for_url(args.base + "/login", timeout=15_000)
+                expect(page.get_by_label("密码", exact=True)).to_be_visible()
+                check(page.url == args.base + "/login", "enter_reduced_motion_tear_enters_existing_login")
             finally:
                 page.emulate_media(reduced_motion="no-preference", forced_colors="none")
+
+            fallback_context = page.context.browser.new_context(java_script_enabled=False)
+            try:
+                fallback_page = fallback_context.new_page()
+                fallback_page.goto(args.base + "/enter", wait_until="networkidle")
+                fallback_page.get_by_role("link", name="融化封蜡，进入公开页", exact=True).click()
+                check(fallback_page.url == args.base + "/", "enter_without_javascript_public_link")
+                fallback_page.goto(args.base + "/enter", wait_until="networkidle")
+                fallback_page.get_by_role("link", name="撕开信封，进入私人登录页", exact=True).click()
+                check(fallback_page.url == args.base + "/login", "enter_without_javascript_private_link")
+            finally:
+                fallback_context.close()
 
             page.evaluate("sessionStorage.setItem('star-isle:enter-completed', 'true')")
             root_response = page.goto(args.base + "/", wait_until="networkidle")
@@ -1557,12 +1577,13 @@ def _browser_flow(args, sample_txt: Path, sample_png: Path, receipt_file: Path) 
                 root_response and root_response.status == 200 and "星屿" in page.content(),
                 "enter_keeps_root_behavior",
             )
+            public_native_interaction_checks(page, args.base)
+            page.set_viewport_size({"width": 1440, "height": 900})
         finally:
             PUBLIC_STAGE_ACTIVE = False
         check(not PUBLIC_API_REQUESTS, "公开页阶段无 /api/v1 请求")
 
         if args.public_only:
-            public_native_interaction_checks(page, args.base)
             return public_only_result()
 
         print("== 1.5 默认入口行为 ==")
@@ -1588,19 +1609,18 @@ def _browser_flow(args, sample_txt: Path, sample_png: Path, receipt_file: Path) 
         page.evaluate("sessionStorage.clear()")
         page.goto(args.base + "/enter", wait_until="networkidle")
         page.wait_for_function("window.__narrativeEnterListenerReady === true", timeout=5000)
-        with allow_expected_error_responses(*AUTH_GUARD_EXPECTED_ERROR_RESPONSES):
-            page.evaluate(
-                "window.dispatchEvent(new CustomEvent('narrative:enter-completed', { bubbles: true, detail: { at: Date.now() } }))"
-            )
-            page.wait_for_url(args.base + "/", timeout=15000)
+        seal_link = page.get_by_role("link", name="融化封蜡，进入公开页", exact=True)
+        seal_link.focus()
+        seal_link.press("Space")
+        page.wait_for_url(args.base + "/", timeout=15000)
         check(
             page.evaluate("sessionStorage.getItem('star-isle:enter-completed')") == "true",
             "enter_completed_writes_marker",
         )
 
         page.goto(args.base + "/enter", wait_until="networkidle")
-        star_link = page.get_by_role("link", name="前往星")
-        login_link = page.get_by_role("link", name="普通登录")
+        star_link = page.get_by_role("link", name="融化封蜡，进入公开页", exact=True)
+        login_link = page.get_by_role("link", name="撕开信封，进入私人登录页", exact=True)
         check(star_link.count() > 0 and star_link.first.is_visible(), "enter_fallback_star_link_visible")
         check(login_link.count() > 0 and login_link.first.is_visible(), "enter_fallback_login_link_visible")
         check(star_link.first.get_attribute("href") == "/", "enter_fallback_star_link_href")
@@ -1624,7 +1644,7 @@ def _browser_flow(args, sample_txt: Path, sample_png: Path, receipt_file: Path) 
             "response",
             lambda r: csrf_seen.update(ok=True) if r.url.endswith("/api/v1/auth/csrf") and r.status == 200 else None,
         )
-        page.get_by_role("textbox", name="密码").fill(args.test_password)
+        page.get_by_label("密码", exact=True).fill(args.test_password)
         with page.expect_response(
             lambda r: r.url.endswith("/api/v1/auth/login") and r.request.method == "POST" and r.status == 200
         ):
@@ -2118,8 +2138,8 @@ def _browser_flow(args, sample_txt: Path, sample_png: Path, receipt_file: Path) 
             page.goto(args.base + "/console", wait_until="networkidle")
         storage_stats = storage_response_info.value.json()
         jobs_summary = jobs_response_info.value.json()
-        storage_card = page.locator("section.card").filter(has=page.get_by_role("heading", name="存储用量"))
-        jobs_card = page.locator("section.card").filter(has=page.get_by_role("heading", name="作业摘要"))
+        storage_card = page.get_by_role("heading", name="存储用量", exact=True).locator("xpath=ancestor::section[1]")
+        jobs_card = page.get_by_role("heading", name="作业摘要", exact=True).locator("xpath=ancestor::section[1]")
         storage_text = storage_card.inner_text() if storage_card.is_visible() else ""
         jobs_text = jobs_card.inner_text() if jobs_card.is_visible() else ""
         check(
@@ -2378,14 +2398,14 @@ def _browser_flow(args, sample_txt: Path, sample_png: Path, receipt_file: Path) 
             "fixture_document_pagination_has_no_requestfailed_pollution",
         )
 
-        print("== 9.8 /enter 完成后跳转（已登录）==")
+        print("== 9.8 /enter 私人入口仍前往登录页（已有会话）==")
         page.goto(args.base + "/enter", wait_until="networkidle")
         page.wait_for_function("window.__narrativeEnterListenerReady === true", timeout=5000)
-        page.evaluate(
-            "window.dispatchEvent(new CustomEvent('narrative:enter-completed', { bubbles: true, detail: { at: Date.now() } }))"
-        )
-        page.wait_for_url(args.base + "/console", timeout=15000)
-        check(page.url.endswith("/console"), "enter_completed_authenticated_redirects_to_console")
+        tear_link = page.get_by_role("link", name="撕开信封，进入私人登录页", exact=True)
+        tear_link.focus()
+        tear_link.press("Enter")
+        page.wait_for_url(args.base + "/login", timeout=15000)
+        check(page.url.endswith("/login"), "enter_private_route_does_not_infer_authenticated_session")
 
         print("== 10. 登出 ==")
         page.goto(args.base + "/console", wait_until="networkidle")

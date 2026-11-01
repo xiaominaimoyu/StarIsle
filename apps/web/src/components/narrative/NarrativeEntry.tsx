@@ -328,7 +328,7 @@ export default function NarrativeEntry() {
             className="narrative-entry__desk"
           />
         </picture>
-        <div className="narrative-entry__envelope" aria-hidden="true">
+        <div className="narrative-entry__envelope">
           <span className="narrative-entry__glow" />
           <div className="narrative-entry__image-stack">
             <img {...envelopeImageProps} className="narrative-entry__image narrative-entry__image--sealed" fetchPriority="high" />
