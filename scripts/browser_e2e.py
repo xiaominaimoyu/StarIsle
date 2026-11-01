@@ -1589,7 +1589,7 @@ def _browser_flow(args, sample_txt: Path, sample_png: Path, receipt_file: Path) 
         print("== 1.5 默认入口行为 ==")
         page.evaluate("sessionStorage.clear()")
         page.goto(args.base + "/", wait_until="networkidle")
-        check(page.url.endswith("/enter"), "default_entry_redirects_to_enter")
+        check(urlparse(page.url).path.rstrip("/") == "/enter", "default_entry_redirects_to_enter")
         check(
             page.evaluate("sessionStorage.getItem('star-isle:enter-redirect-count')") == "1",
             "default_entry_redirect_count_incremented",
@@ -1597,13 +1597,13 @@ def _browser_flow(args, sample_txt: Path, sample_png: Path, receipt_file: Path) 
 
         page.evaluate("sessionStorage.setItem('star-isle:enter-completed', 'true')")
         page.goto(args.base + "/", wait_until="networkidle")
-        check(not page.url.endswith("/enter"), "completed_marker_retains_home")
+        check(urlparse(page.url).path.rstrip("/") != "/enter", "completed_marker_retains_home")
         check("星屿" in page.content(), "completed_marker_home_content")
 
         page.evaluate("sessionStorage.clear()")
         page.evaluate("sessionStorage.setItem('star-isle:enter-redirect-count', '1')")
         page.goto(args.base + "/", wait_until="networkidle")
-        check(not page.url.endswith("/enter"), "cycle_guard_degrades_to_home")
+        check(urlparse(page.url).path.rstrip("/") != "/enter", "cycle_guard_degrades_to_home")
         check("星屿" in page.content(), "cycle_guard_home_content")
 
         page.evaluate("sessionStorage.clear()")

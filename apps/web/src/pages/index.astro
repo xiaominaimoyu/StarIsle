@@ -179,7 +179,7 @@ const structuredData = {
       var count = countStr ? parseInt(countStr, 10) : 0;
       if (count >= 1) return;
       sessionStorage.setItem("star-isle:enter-redirect-count", String(count + 1));
-      window.location.assign("/enter");
+      window.location.assign("/enter/");
     } catch (e) {
       // sessionStorage 不可用（隐私模式/禁用），降级保留当前页
     }

@@ -19,7 +19,7 @@
 
 ## 当前批次边界
 
-仅调整公开内容与确认有问题的内容加载配置；保持现有内容 schema、静态输出、路由、导航、唯一播放器与会话边界。修改加载器前核对条目 ID/调用方；不升级框架、修改 API/数据库、引入新依赖或迁移私有数据。
+此前公开站批次仅调整公开内容与确认的问题，保持现有 schema、静态输出、路由、导航、唯一播放器与会话边界。当前 S2 批次验证既有 RAG SSE 生命周期，允许最小修复已复现的断连/清理问题；不改 API 契约或数据库 schema、不升级框架或引入依赖、不迁移私有数据。
 
 已核对 Astro 5.18.2 的 glob-loader：同一文件 digest 变化时，重新解析前 store 已含该 ID，会触发重复提示；当前三个集合的源文件与缓存条目为 1/1/2，没有重复条目或内容丢失。本批保留内容加载配置与依赖，单独记录该诊断行为。验证与证据回写到 [PROGRESS.md](./PROGRESS.md) 和开发进度。
 
@@ -28,3 +28,7 @@
 `pnpm build:pages` → PUBLIC_SITE_URL 配置门禁 → 以 PUBLIC_PRIVATE_AREA_ENABLED=false 构建 → 写入 `_redirects` / `_headers` → 原静态发布门禁 → Wrangler Direct Upload → Cloudflare Pages。只有该构建关闭登录表单；默认构建不改变认证行为。控制台路径由 Pages 302 转至 `/login/` 提示页，API 没有云端代理。
 
 Pages 项目为 starisle，生产分支标记为 main，地址为 https://starisle-6bt.pages.dev/。上传的是当前未提交源码构建出的静态文件，不自动推送 Git，也不部署 FastAPI、SQLite、对象存储、worker 或模型。保留原 Caddy/Compose 路线供私有栈后续决策，当前不迁移数据库至 D1 或文件至 R2。
+
+11-01 后续已通过本机 Docker/Caddy 基础隔离联调：正常私有模式的前端以 --outDir 构建到自有临时目录，Caddy 仅绑定 loopback；API 与 worker 共用该临时数据根，模型 URL 保持空。该正常模式产物不覆盖 Pages 的公开 dist，也不直接上传 Pages。实际本地运行与清理证据见 [Docker-Caddy 隔离联调](./docs/2026-11-01_Docker-Caddy隔离联调.md)，云端私有栈仍未部署。
+
+S2 长流验收在独立临时覆盖层内增加仅容器网络可达的慢速 chat fixture，仅覆盖 API 的 chat URL；worker/embedding 仍不连接模型。Caddy 与 API 的既有路由实际运行，浏览器使用原生 fetch 与取消按钮。fixture 只记受控场景的连接计数，不保存提示词、Cookie 或凭据；该服务不加入正式 Compose 基础层。因实测断流告警会带 CSRF 请求头，Caddy 默认运行 logger 增加 request.headers 过滤；原流式转发配置与 API 契约不变。

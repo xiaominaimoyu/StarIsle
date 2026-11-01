@@ -8,15 +8,21 @@
 
 当前实施先读 [PROGRESS.md](./PROGRESS.md) 与 [开发进度 §55](./docs/开发进度.md)；开工前的复核见 [项目现状与恢复开发清单](./docs/2026-11-01_项目现状与恢复开发清单.md)，剩余任务、依赖、验收与工期估算见 [后续开发计划](./docs/2026-11-01_后续开发计划.md)。四份原规划文档保留目标与验收要求，早期报告和阶段快照保留历史证据。
 
-当前源码已具备公开门户、书桌信封入口、私有控制台、文件/照片、邮件接收、知识库/RAG 及运维脚本。11-01 首批修正了公开内容和信封入口的可访问性，并恢复当前版本的浏览器回归：Web 154、contracts 8、Email Worker 14、harness 安全 31 项测试通过；Astro 104 files 诊断零错误/警告/提示，静态构建 11 页；完整隔离浏览器 E2E 为 12 组、0 失败。内容同步的重复 ID 提示已定位为当前依赖的缓存重载诊断，仍有保留项。API 608 与后端 smoke 是同日开工前的检查，本批未重跑全量 API。当前 Lighthouse、完整私有栈生产部署与模型评测仍未验收，M1/M2/M3 保持未完成。
+当前源码已具备公开门户、书桌信封入口、私有控制台、文件/照片、邮件接收、知识库/RAG 及运维脚本。11-01 首批修正了公开内容和信封入口的可访问性，并恢复浏览器回归；随后完成 Cloudflare Pages 发布及当前移动 Lighthouse，修复仓库来源筛选器误匹配列表项的可访问性/交互问题。本轮 Web 156、harness 安全 31 项通过；Astro 105 files 诊断零错误/警告/提示，静态构建 11 页；完整隔离浏览器 E2E 为 12 组、0 失败。内容同步的重复 ID 提示已定位为当前依赖的缓存重载诊断，仍有保留项。API 608、contracts 8、Email Worker 14 为同日此前的检查，本轮未重跑；完整私有栈生产部署与模型评测仍未验收，M1/M2/M3 保持未全部完成。
 
-源码基线为 `main@c07e8f1`（2026-10-14），当前叠加未提交的首批实现与文档；本地记录相对 `origin/main` 领先 3 个提交，实际远端未联网刷新。姓名/教育背景和 6 个 GitHub 仓库快照已填入，两处项目源码链接已修正；用户确认的公开邮箱已填入首页与简历，正式域名尚未确定，授权音频仍待补齐。空歌单时播放器入口保持隐藏。本轮临时服务已关闭，运行与验收边界见当前进度。
+用户逐文件确认后，21 个文件已提交并推送为 `main@561ef4e`，连同原 3 个未推送提交一并上传；本地、跟踪分支及实际远端哈希已核对一致。之后继续开发的修正尚未再次提交。姓名/教育背景、6 个 GitHub 仓库快照、项目源码链接和公开邮箱已落实，平台子域名已可用。用户明确首发暂时隐藏音乐，授权曲目验收后置；运行与验收边界见当前进度。
+
+Docker Desktop 引擎已恢复至 29.8.2，现有四种组合 config 预检 89 项通过；独立 API/worker/Caddy 临时栈的同源登录、上传入库、带引用的降级 SSE、CSRF 拒绝与登出均通过。另起隔离栈的实际 Chromium 登录控制台、退出清 Cookie 和再次访问拒绝也通过；两次首条 SSE data 分别为 270.61ms / 458.18ms。测试容器、卷、网络与临时数据已清理，Docker 引擎保留运行；该结果不等于云端私有栈、生产 TLS 或真实模型验收，见 [Docker-Caddy 隔离联调](./docs/2026-11-01_Docker-Caddy隔离联调.md)。
+
+随后以受控慢速上游完成真实 Caddy/Chromium 长流、取消/导航与 partial 错误验证，13 组检查通过；正常约 10 秒心跳可观察，4 种关闭场景均未保存未完成的 assistant。修复了断流运行告警带请求头的问题，默认 logger 过滤 request.headers，告警仍保留；新增 [可复用验收入口](./scripts/caddy_sse_e2e.py)，结果及失败记录见 [长流与日志脱敏](./docs/2026-11-01_Caddy长流与日志脱敏.md)。本批未改 RAG 产品逻辑，未重新发布 Pages，仍待主动刷新、文件/照片与容器恢复等验证。
 
 ## Cloudflare 公开站
 
 公开站已发布至 [starisle-6bt.pages.dev](https://starisle-6bt.pages.dev/)，仅托管公开静态页面。私人入口显示暂未开放，控制台路径转至该提示页；API、SQLite、文件、邮件和 RAG 服务继续在本地开发。现有本地登录和控制台功能保留。
 
-生产构建使用 `PUBLIC_SITE_URL=https://starisle-6bt.pages.dev` 和 `pnpm build:pages`，上传目录为 `apps/web/dist`。脚本关闭公开候选的登录表单，生成 Pages 重定向及响应头，并运行原发布门禁。19 项线上 HTTP 检查、5 页 HTML 哈希比对和桌面/移动 Chromium 检查通过；这不替代当前 Lighthouse、音频授权、真机或完整私有栈验收。发布、更新和回滚方式见 [Cloudflare Pages 部署](./docs/Cloudflare-Pages部署.md)。
+生产构建使用 `PUBLIC_SITE_URL=https://starisle-6bt.pages.dev` 和 `pnpm build:pages`，上传目录为 `apps/web/dist`。脚本关闭公开候选的登录表单，生成 Pages 重定向及响应头，并运行原发布门禁。当前部署为 a67f7bdb，19 项线上 HTTP、5 页 HTML 哈希以及桌面/移动/无脚本交互检查通过。
+
+当前移动 Lighthouse 四项（性能/无障碍/最佳实践/SEO）：开封后主页 96/100/100/100、项目和简历均 100/100/100/100；首次 `/` 实际进入 noindex 信封页，为 98/100/100/66，保留重定向警告，不能混为首页首访 SEO 已通过。原始报告和边界见 [Lighthouse 与筛选修复](./docs/2026-11-01_公开站Lighthouse与筛选修复.md)；发布、更新和回滚见 [Cloudflare Pages 部署](./docs/Cloudflare-Pages部署.md)。
 
 ## 本机快速开始
 
@@ -177,8 +183,8 @@ docker compose -f infra/compose/compose.yml -f infra/compose/compose.prod.yml co
 docker compose -f infra/compose/compose.yml -f infra/compose/compose.prod.yml up -d --build
 ```
 
-真实部署前仍须在受控环境实测 Caddy 的 SSE first-byte、heartbeat 和客户端取消语义；本轮的
-预检只证明静态配置候选，不能替代 Caddy 运行验收、TLS/ACME、CDN 或外部服务验收。
+当前本机 Caddy 已完成基础 HTTP/浏览器联调及 SSE 首条 data/无压缩检查，见上方隔离联调报告。
+本机受控上游的 10 秒 heartbeat、取消/断连与错误不保存也已通过。主动刷新、生产 TLS/ACME、CDN 与外部服务仍需验收，不能将本机结果推广为实际生产链路全部通过。
 
 ## 备份、隔离恢复与校验
 
@@ -227,6 +233,6 @@ $report = 'D:\recovery-reports\star-isle-drill.json'
 
 ## 当前外部边界
 
-- 2026-11-01 已在首批实现后重跑完整隔离浏览器 E2E，12 组、0 失败；随后 Pages 公开站已真实部署并完成基础线上检查。当前版本 Lighthouse 未重跑，历史 production-preview 结果仍按历史记录理解；完整私有栈的 Caddy 同源、邮件 Cloudflare 平台链路、真实业务账号与模型仍缺相应验收证据，详见当前实施进度。
+- 2026-11-01 已在首批实现与本轮修正后分别运行完整隔离浏览器 E2E，均为 12 组、0 失败；当前 Pages 公开站已真实部署并完成线上交互、HTTP 和移动 Lighthouse。本机 Caddy 的基础同源及受控上游长流/取消链路已通过；主动刷新、生产 TLS、邮件 Cloudflare 平台链路、真实业务账号与模型仍待补验。历史 production-preview 结果保持历史属性，详见当前实施进度。
 - `scripts/email-worker.js` 为 Cloudflare Worker 参考实现；失败会拒收并仅记录脱敏状态，实际 Cloudflare 平台重试/退信行为仍需在真实账号中验证。
 - 个人内容和仓库快照已部分补齐，仍由项目所有者按授权与真实性要求维护；当前空歌单的播放器入口已隐藏，其他空列表按组件提供空态。

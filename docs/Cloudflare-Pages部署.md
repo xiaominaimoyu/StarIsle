@@ -39,21 +39,24 @@ npx --yes wrangler@4.156.0 login --scopes account:read user:read pages:write
 
 | 项目 | 结果 |
 | --- | --- |
-| 当前生产部署 | `8e857e1d-cae4-4b44-8dc2-c85dbc3f3fdb`，Cloudflare MCP 返回 production / deploy / success |
-| 该次部署 URL | https://8e857e1d.starisle-6bt.pages.dev/ |
-| 最终制品 fingerprint | 55 文件，SHA-256 `b423783cbf2680f75832202e58c2f52f17a182feca08fa816a2367abdf54afad` |
+| 当前生产部署 | `a67f7bdb-7e1b-41b6-b52e-24d6c4050883`，Cloudflare MCP 返回 production / deploy / success |
+| 该次部署 URL | https://a67f7bdb.starisle-6bt.pages.dev/ |
+| 最终制品 fingerprint | 55 文件，SHA-256 `9e29df03aa211bae144ec555f854c3cf5de75db4ee518fd2f0286727b83f85b0` |
 | 固定构建输入 inventory | 原门禁的 5 个输入文件，SHA-256 `acc416cc50d8eadfe8e6f0577774beb093973e9cf9cc32350b607ffc5adcdda3`；不是完整源码树哈希 |
-| 单元和静态检查 | Web 154 项通过；Astro 104 files，0 errors / warnings / hints；新增脚本 Ruff 通过 |
-| 两种构建 | 默认构建保留真实 LoginForm 与表单；Pages 构建无表单且完整发布门禁通过 |
+| 单元和静态检查 | Web 156 项通过；Astro 105 files，0 errors / warnings / hints；构建脚本 Ruff 与浏览器脚本致命错误检查通过，浏览器脚本全量 13 项旧诊断另见专题 |
+| 默认与 Pages 模式 | 默认登录通过完整隔离浏览器 E2E 12 组 / 0 失败；Pages 候选无表单且完整发布门禁通过 |
 | 线上 HTTP | 19 项通过：5 公开页 200、4 尾斜杠 308、6 控制台转向 302、2 未部署/未知路径 404、robots/sitemap 200 |
 | 制品比对 | 5 个公开页面原始 HTML 的 SHA-256 与本地候选一致；sitemap 仅 3 个公开收录 URL |
-| Chromium 桌面/移动 | 桌面 1440×900 验证信封可见与键盘进入、6 个仓库、邮箱、私人提示与转向，受检路径 0 API 请求 / 0 pageerror；移动 390×844 验证信封键盘入口、主页和私人提示，受检页面无横向溢出 |
+| Chromium 桌面/移动/无脚本 | 1440×900 / 390×844 验证信封、6 仓库及筛选/排序/点击状态、邮箱、私人提示与转向；受检页面 0 API 请求 / 0 pageerror，无横向溢出；无脚本两个链接均正常；音乐入口隐藏 |
+| 当前移动 Lighthouse | 开封后主页 96/100/100/100，项目/简历均 100/100/100/100；首访进入 noindex 信封页为 98/100/100/66，带重定向警告，另行记录 |
 
-首次上传版本为 `8a4139ad-121f-4654-8a1e-92c0b881218a`。线上观察到 Pages 自动补尾斜杠，而最初 `_headers` 只匹配 `/login`；随后补 `/login/*` 并让控制台直接转 `/login/`，发布为表中最终版本。没有降低 noindex 门槛或移除失败检查。
+首次上传版本为 `8a4139ad-121f-4654-8a1e-92c0b881218a`。随后补 `/login/*` 响应头并让控制台直接转 `/login/`，修正为 `8e857e1d-cae4-4b44-8dc2-c85dbc3f3fdb`。本轮来源选择器与首访规范路径修正发布为表中 a67f7bdb，首访不再经过无尾斜杠 `/enter`；原开封与 noindex 设计保留。
 
 首次默认 Python urllib 请求被 Cloudflare 拒绝，403 / error 1010；按官方文档为检查客户端设置应用标识 `StarIsle-DeploymentCheck/1.0` 后通过，不伪装浏览器、不关闭防护。一次部署专属 URL 的 Python 请求出现 TLS 握手错误；表中的线上 HTTP 与浏览器验证均针对实际生产地址，不把该专属地址单列为访问验收通过。
 
-部署元数据仍显示原 HEAD `c07e8f1`，同时 `commit_dirty=true`；本次实际上传来自未提交工作区，不能把远端 Source 列视为完整源码已归档。制品 fingerprint 和远端 HTML 比对证明的是本次候选及受检文件。Git 发布继续按用户逐文件确认规则单独处理。
+初次 Pages 源码和文档已按用户确认提交并推送为 `561ef4ea59d981afeb3a1ec37e344aac1b4a004b`。之后继续开发的修正来自当前未提交工作区，部署标签仍为该 HEAD，commit_dirty=true；不能把 Source 列视为新修正已归档。制品 fingerprint、远端 HTML 和浏览器/Lighthouse 证明本次候选；后续 Git 写入继续按用户逐文件确认规则处理。
+
+本轮上传曾遇 Authentication error 10000；第一次刷新又遇浏览器会话 CSRF 错误。经用户在默认浏览器完成相同窄权限的授权刷新后，上传和实际生产查询均成功。失败日志保留，不把“账号能读项目”视作上传权限已经有效。
 
 ## Agent 环境
 
@@ -65,13 +68,13 @@ MCP 授权请求限制为账号/用户读取及 Pages 读取、写入、元数�
 
 在 Cloudflare 控制台打开项目 starisle 的 Deployments，核对要恢复版本的时间与部署 ID 后，使用平台的回滚功能。回滚只恢复静态站版本，不涉及本地数据库或私有文件；本次没有执行回滚。后续若选择 Git 自动部署，先核对 Pages Direct Upload 与 Git 项目切换限制，再按单独批准的 Git 文件清单处理，不自动创建远端提交。
 
-当前未验证 Lighthouse、Safari/iOS/人工读屏、国内不同网络、授权音频和真实模型/私有栈；M1/M2/M3 不因公开站上线而完成。
+当前 Lighthouse 已复测并保留原始报告。用户确认首发音乐暂时隐藏，播放/续播验收后置；Safari/iOS/人工读屏、国内不同网络、首访 SEO 策略和真实模型/私有栈仍需独立验收，M1/M2/M3 未全部完成。详细证据见 [Lighthouse 与筛选修复](./2026-11-01_公开站Lighthouse与筛选修复.md)。
 
 ## Evidence → Finding → Path
 
 | Evidence | Finding | Path |
 | --- | --- | --- |
-| 实际 build:pages 输出及 5 页线上 HTML 哈希 | 公开静态候选已通过现有门禁并实际发布 | 后续运行当前 Lighthouse 与补音频/设备证据 |
+| 实际 build:pages、5 页线上 HTML 哈希与当前 Lighthouse | 当前公开静态候选已发布并完成实验室评估 | 保留首访 SEO / 真实设备边界，音乐按用户决定后置 |
 | Cloudflare MCP 的 production / success 及线上 19 项 HTTP | 项目发布和路由行为已有直接证据 | 保留公开站，私有栈继续按原阶段独立落实 |
 | 默认构建和 Pages 构建登录页面检查 | 云端无需后端即可给出清楚提示，本地认证能力保留 | 获得私有栈资源后另行设计同源接入 |
 

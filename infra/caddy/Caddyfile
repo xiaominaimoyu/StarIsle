@@ -5,6 +5,15 @@
 
 {
 	email {$ACME_EMAIL:admin@example.invalid}
+	# 断流告警也走默认运行日志；只关闭 access log 不足以保护 CSRF 等请求头。
+	log default {
+		format filter {
+			wrap json
+			fields {
+				request>headers delete
+			}
+		}
+	}
 }
 
 {$STAR_ISLE_SITE_ADDRESS::8080} {
@@ -30,5 +39,5 @@
 		Permissions-Policy "camera=(), microphone=(), geolocation=()"
 	}
 
-	# 不启用访问日志，避免记录 Cookie、Authorization 或请求正文。
+	# 不启用访问日志；默认运行日志也过滤整个请求头对象，保留告警本身。
 }

@@ -59,7 +59,7 @@ const snapshotDate = snapshot.fetchedAt ? new Date(snapshot.fetchedAt).toLocaleD
     const repoList = list;
     const emptyState = empty;
     const cards = Array.from(repoList.querySelectorAll<HTMLElement>("[data-repo-card]")).map((element, index) => ({ element, index }));
-    const sourceButtons = Array.from(grid.querySelectorAll<HTMLButtonElement>("[data-repo-source]"));
+    const sourceButtons = Array.from(grid.querySelectorAll<HTMLButtonElement>("button[data-repo-source]"));
     const sortButtons = Array.from(grid.querySelectorAll<HTMLButtonElement>("[data-repo-sort]"));
     let source = "all";
     let sort = "featured";
