@@ -31,7 +31,15 @@ const privateAreaEnabled = import.meta.env.PUBLIC_PRIVATE_AREA_ENABLED !== "fals
           title={privateAreaEnabled ? "登录 StarIsle" : "私人空间暂未开放"}
           message={privateAreaEnabled ? "进入你的岛屿控制台。" : "欢迎先浏览公开作品与简历。"}
         >
-          {privateAreaEnabled ? <LoginForm client:load /> : (
+          {privateAreaEnabled ? <>
+            <LoginForm client:load />
+            <noscript>
+              <p class="mt-4 text-sm text-text-dim">
+                登录需要启用 JavaScript。你也可以
+                <a href="/projects" class="underline focus-ring">先看公开项目</a>。
+              </p>
+            </noscript>
+          </> : (
             <div class="public-actions mt-6">
               <a href="/" class="public-action public-action--primary focus-ring">返回公开主页</a>
               <a href="/projects" class="public-action focus-ring">查看项目</a>

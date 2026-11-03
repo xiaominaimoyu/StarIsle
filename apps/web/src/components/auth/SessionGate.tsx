@@ -18,6 +18,13 @@ export default function SessionGate({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<GateStatus>("checking");
   const [retryVersion, setRetryVersion] = useState(0);
 
+  const openLogin = () => {
+    setAnonymous();
+    setCsrf(null, null);
+    const redirect = encodeURIComponent(window.location.pathname + window.location.search);
+    window.location.href = `/login?redirect=${redirect}`;
+  };
+
   useEffect(() => {
     let cancelled = false;
     setStatus("checking");
@@ -31,6 +38,7 @@ export default function SessionGate({ children }: { children: ReactNode }) {
           // 匿名场景下 CSRF 失败不阻塞;写操作时会重试
         }
       }
+      if (cancelled) return;
       try {
         const user = await fetchMe();
         if (cancelled) return;
@@ -51,6 +59,7 @@ export default function SessionGate({ children }: { children: ReactNode }) {
               token = csrf.csrfToken;
               if (!cancelled) setCsrf(token, new Date(csrf.expiresAt).getTime());
             }
+            if (cancelled) return;
             const user = await refresh(token);
             if (cancelled) return;
             setAuthenticated(user);
@@ -60,10 +69,11 @@ export default function SessionGate({ children }: { children: ReactNode }) {
             if (cancelled) return;
             // refresh 不重试、不递归；只有明确的鉴权失败才按匿名会话处理。
             if (isAuthenticationFailure(refreshError)) {
-              setAnonymous();
-              const redirect = encodeURIComponent(window.location.pathname + window.location.search);
-              window.location.href = `/login?redirect=${redirect}`;
+              openLogin();
               return;
+            }
+            if (refreshError instanceof ApiError && refreshError.code === "CSRF_REQUIRED") {
+              setCsrf(null, null);
             }
             setStatus("error");
             return;
@@ -97,6 +107,13 @@ export default function SessionGate({ children }: { children: ReactNode }) {
       <div className="card rounded-sm border-l-2 border-l-accent-warm p-8 text-left">
         <h2 className="mb-2 text-lg font-semibold text-text">无权访问</h2>
         <p className="text-sm text-text-dim">当前会话无权访问该内容,请重新登录。</p>
+        <button
+          type="button"
+          className="mt-4 inline-flex h-11 items-center rounded-sm border border-border bg-surface/70 px-4 text-sm text-text-dim hover:border-accent-warm/70 hover:text-text focus-ring"
+          onClick={openLogin}
+        >
+          重新登录
+        </button>
       </div>
     );
   }

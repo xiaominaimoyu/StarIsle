@@ -1255,6 +1255,84 @@ def _seed_deferred_rebuild_job(db_path: Path, document_id: str) -> str:
     return job_id
 
 
+def auth_recovery_interaction_checks(page, base: str, test_password: str) -> None:
+    """Real API refresh plus explicitly bounded CSRF/forbidden fault injection."""
+    print("== 4.2 会话恢复:真实 refresh 与受控故障 ==")
+    context = page.context
+    before = {cookie["name"]: cookie for cookie in context.cookies()}
+    context.clear_cookies(name="star_isle_access")
+    with allow_expected_error_responses(("GET", "/api/v1/auth/me", 401)):
+        with page.expect_response(lambda response: response.url.endswith("/api/v1/auth/refresh") and response.status == 200):
+            page.reload(wait_until="networkidle")
+    expect(page.locator(".tear-portal-link")).to_be_visible()
+    after = {cookie["name"]: cookie for cookie in context.cookies()}
+    check(bool(after.get("star_isle_access", {}).get("httpOnly")), "refresh_restores_http_only_access")
+    check(
+        before["star_isle_refresh"]["value"] != after["star_isle_refresh"]["value"],
+        "refresh_rotates_real_refresh_cookie",
+    )
+    check(page.request.get(base + "/api/v1/auth/me").status == 200, "refresh_real_api_me_is_authenticated")
+
+    csrf_pattern = "**/api/v1/auth/csrf"
+    handshakes = {"count": 0}
+
+    def stale_handshake(route) -> None:
+        handshakes["count"] += 1
+        if handshakes["count"] == 1:
+            route.fulfill(status=200, content_type="application/json", body=json.dumps({
+                "csrfToken": "fixture-server-rejected-csrf", "expiresAt": "2099-01-01T00:00:00Z",
+            }))
+        else:
+            route.continue_()
+
+    context.clear_cookies(name="star_isle_access")
+    page.route(csrf_pattern, stale_handshake)
+    try:
+        with allow_expected_error_responses(
+            ("GET", "/api/v1/auth/me", 401), ("POST", "/api/v1/auth/refresh", 403),
+        ):
+            refreshes_before = response_count("POST", "/api/v1/auth/refresh")
+            with page.expect_response(lambda response: response.url.endswith("/api/v1/auth/refresh") and response.status == 403):
+                page.reload(wait_until="networkidle")
+            expect(page.get_by_role("heading", name="会话校验失败", exact=True)).to_be_visible()
+            check(urlparse(page.url).path.rstrip("/") == "/console", "csrf_failure_preserves_current_page")
+            check(response_count("POST", "/api/v1/auth/refresh") == refreshes_before + 1, "csrf_failure_does_not_auto_replay_refresh")
+            with page.expect_response(lambda response: response.url.endswith("/api/v1/auth/refresh") and response.status == 200):
+                page.get_by_role("button", name="重试", exact=True).click()
+            expect(page.locator(".tear-portal-link")).to_be_visible()
+            check(handshakes["count"] == 2, "csrf_retry_performs_fresh_real_handshake")
+            check(page.request.get(base + "/api/v1/auth/me").status == 200, "csrf_retry_restores_real_authenticated_api")
+    finally:
+        page.unroute(csrf_pattern, stale_handshake)
+
+    me_pattern = "**/api/v1/auth/me"
+
+    def forbidden_me(route) -> None:
+        route.fulfill(status=403, content_type="application/json", body=json.dumps({
+            "error": {"code": "FORBIDDEN", "message": "受控无权访问", "requestId": "fixture-forbidden"},
+        }))
+
+    page.route(me_pattern, forbidden_me)
+    try:
+        with allow_expected_error_responses(("GET", "/api/v1/auth/me", 403)):
+            page.goto(base + "/console/files?view=recent", wait_until="networkidle")
+            expect(page.get_by_role("button", name="重新登录", exact=True)).to_be_visible()
+    finally:
+        page.unroute(me_pattern, forbidden_me)
+    page.get_by_role("button", name="重新登录", exact=True).click()
+    page.wait_for_url(re.compile(re.escape(base) + r"/login\?redirect="))
+    check(parse_qs(urlparse(page.url).query).get("redirect") == ["/console/files?view=recent"], "relogin_preserves_path_and_query")
+    page.wait_for_load_state("networkidle")
+    page.get_by_label("密码", exact=True).fill(test_password)
+    with page.expect_response(lambda response: response.url.endswith("/api/v1/auth/login") and response.status == 200):
+        page.get_by_role("button", name="登录", exact=True).click()
+    page.wait_for_url(base + "/console/files?view=recent")
+    expect(page.locator(".tear-portal-link")).to_be_visible()
+    expect(page.locator("input[type=file]").first).to_be_attached()
+    check(True, "relogin_returns_to_requested_real_private_page")
+    page.goto(base + "/console", wait_until="networkidle")
+
+
 def _run_isolated_local_e2e(args) -> int:
     """启动临时 API/worker/Web，再由子进程执行现有浏览器步骤。"""
     test_password = secrets.token_urlsafe(32)
@@ -1644,7 +1722,21 @@ def _browser_flow(args, sample_txt: Path, sample_png: Path, receipt_file: Path) 
             "response",
             lambda r: csrf_seen.update(ok=True) if r.url.endswith("/api/v1/auth/csrf") and r.status == 200 else None,
         )
-        page.get_by_label("密码", exact=True).fill(args.test_password)
+        password_input = page.get_by_label("密码", exact=True)
+        expect(password_input).to_be_enabled()
+        page.get_by_role("button", name="登录", exact=True).click()
+        expect(page.get_by_role("alert")).to_have_text("请输入密码。")
+        check(password_input.get_attribute("aria-describedby") == "login-password-error", "login_password_error_is_associated")
+        password_input.fill(args.test_password)
+        password_input.press("Tab")
+        expect(page.get_by_role("button", name="显示密码", exact=True)).to_be_focused()
+        page.get_by_role("button", name="显示密码", exact=True).press("Enter")
+        expect(password_input).to_have_attribute("type", "text")
+        check(password_input.input_value() == args.test_password, "password_toggle_preserves_value")
+        expect(page.get_by_role("button", name="隐藏密码", exact=True)).to_have_attribute("aria-pressed", "true")
+        page.get_by_role("button", name="隐藏密码", exact=True).press("Space")
+        expect(password_input).to_have_attribute("type", "password")
+        check(True, "password_toggle_real_keyboard_reveals_and_hides")
         with page.expect_response(
             lambda r: r.url.endswith("/api/v1/auth/login") and r.request.method == "POST" and r.status == 200
         ):
@@ -1668,6 +1760,8 @@ def _browser_flow(args, sample_txt: Path, sample_png: Path, receipt_file: Path) 
         console_tear_interaction_checks(page, args.base)
         _screenshot(page, "console_overview.png")
         page.wait_for_timeout(800)
+
+        auth_recovery_interaction_checks(page, args.base, args.test_password)
 
         print("== 4.5 本地邮件候选闭环 ==")
         try:

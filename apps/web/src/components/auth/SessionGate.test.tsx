@@ -175,4 +175,16 @@ describe("SessionGate failure classification", () => {
     const retryUpdate = reactHarness.stateSetters[1].mock.calls[0]?.[0] as (current: number) => number;
     expect(retryUpdate(2)).toBe(3);
   });
+
+  it("offers a working login action from a forbidden view and preserves its destination", () => {
+    const testWindow = { location: { pathname: "/console/files/", search: "?page=2", href: "" } };
+    vi.stubGlobal("window", testWindow);
+    const tree = renderGate("forbidden");
+    const button = findHostElement(tree, "button");
+    expect(button?.props?.children).toBe("重新登录");
+    (button?.props?.onClick as () => void)();
+    expect(sessionMocks.setAnonymous).toHaveBeenCalledOnce();
+    expect(sessionMocks.setCsrf).toHaveBeenCalledWith(null, null);
+    expect(testWindow.location.href).toBe("/login?redirect=%2Fconsole%2Ffiles%2F%3Fpage%3D2");
+  });
 });

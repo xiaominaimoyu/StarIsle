@@ -21,6 +21,10 @@ export default function FloatInput({
   className = "",
   id: propId,
   required = false,
+  type,
+  onBlur,
+  placeholder = " ",
+  "aria-describedby": describedBy,
   ...rest
 }: FloatInputProps) {
   const autoId = useId();
@@ -30,13 +34,13 @@ export default function FloatInput({
   const [touched, setTouched] = useState(false);
 
   const showError = invalid && touched && !!errorText;
-  const inputType = password ? (showPassword ? "text" : "password") : (rest.type ?? "text");
+  const inputType = password ? (showPassword ? "text" : "password") : (type ?? "text");
 
   return (
     <div className={`flex flex-col gap-1 ${className}`}>
       <label
         htmlFor={id}
-        className={`relative block h-11 rounded-sm border bg-surface/40 transition-colors duration-200 ${
+        className={`relative block h-14 rounded-sm border bg-surface/40 transition-colors duration-200 ${
           showError
             ? "border-danger"
             : invalid
@@ -45,22 +49,23 @@ export default function FloatInput({
         }`}
       >
         <input
+          {...rest}
           id={id}
           type={inputType}
+          placeholder={placeholder}
           required={required}
           aria-label={label}
-          className={`peer h-full w-full rounded-sm border-none bg-transparent px-2.5 pb-2 pt-3 text-base text-text outline-none ${password ? "pr-11" : ""}`}
-          aria-describedby={showError ? errorId : undefined}
+          className={`peer h-full w-full rounded-sm border-none bg-transparent px-2.5 pb-5 pt-1 text-base text-text outline-none ${password ? "pr-11" : ""}`}
+          aria-describedby={[describedBy, showError ? errorId : undefined].filter(Boolean).join(" ") || undefined}
           aria-invalid={invalid || undefined}
           onBlur={(e) => {
             setTouched(true);
-            rest.onBlur?.(e);
+            onBlur?.(e);
           }}
-          {...rest}
         />
         <span
           aria-hidden="true"
-          className={`pointer-events-none absolute left-2.5 top-3 text-sm text-text-dim transition-all duration-200 ease-out
+          className={`pointer-events-none absolute left-2.5 top-4 text-sm text-text-dim transition-all duration-200 ease-out
             peer-focus:bottom-1 peer-focus:top-auto peer-focus:text-xs peer-focus:font-semibold
             peer-focus:text-accent
             peer-[:not(:placeholder-shown)]:bottom-1 peer-[:not(:placeholder-shown)]:top-auto
@@ -74,7 +79,10 @@ export default function FloatInput({
           <button
             type="button"
             aria-label={showPassword ? "隐藏密码" : "显示密码"}
-            className="absolute right-1 top-1 inline-flex h-9 items-center rounded px-2 text-xs text-text-dim hover:text-text focus-ring"
+            aria-pressed={showPassword}
+            aria-controls={id}
+            disabled={rest.disabled}
+            className="absolute right-0 top-0 inline-flex h-full w-11 items-center justify-center rounded text-xs text-text-dim hover:text-text focus-ring disabled:cursor-not-allowed disabled:opacity-60"
             onClick={() => setShowPassword((v) => !v)}
           >
             {showPassword ? "隐藏" : "显示"}

@@ -67,6 +67,7 @@ export async function loginWithCsrf(password: string) {
  * 状态:401 通用失败文案;429 冷却倒计时;CSRF 失败可重试;成功跳回 redirect(仅站内相对路径)。
  */
 export default function LoginForm() {
+  const [ready, setReady] = useState(false);
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<{ code: string; message: string } | null>(null);
@@ -74,6 +75,7 @@ export default function LoginForm() {
   const timerRef = useRef<number | null>(null);
 
   useEffect(() => {
+    setReady(true);
     return () => {
       if (timerRef.current) window.clearInterval(timerRef.current);
     };
@@ -91,7 +93,7 @@ export default function LoginForm() {
 
   const handleSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (submitting || cooldown > 0) return;
+    if (!ready || submitting || cooldown > 0) return;
     if (!password) {
       setError({ code: "empty", message: "请输入密码。" });
       return;
@@ -115,11 +117,12 @@ export default function LoginForm() {
   const hasPasswordError = error?.code === "empty" || error?.code === "401";
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-3">
+    <form onSubmit={handleSubmit} noValidate aria-busy={!ready || submitting} className="flex flex-col gap-3">
       <FloatInput
         label="密码"
         type="password"
         password
+        disabled={!ready || submitting}
         autoComplete="current-password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
@@ -127,8 +130,8 @@ export default function LoginForm() {
         invalid={hasPasswordError}
         aria-describedby={error ? PASSWORD_ERROR_ID : undefined}
       />
-      <Button type="submit" size="lg" loading={submitting} disabled={cooldown > 0} className="w-full">
-        {cooldown > 0 ? `请 ${cooldown}s 后重试` : "登录"}
+      <Button type="submit" size="lg" loading={submitting} disabled={!ready || cooldown > 0} className="w-full">
+        {!ready ? "准备登录…" : cooldown > 0 ? `请 ${cooldown}s 后重试` : "登录"}
       </Button>
       <div aria-live="polite">
         {error ? (
