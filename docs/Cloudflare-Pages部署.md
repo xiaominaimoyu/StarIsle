@@ -1,6 +1,12 @@
 # Cloudflare Pages 公开站部署
 
-更新：2026-11-01。生产地址：[starisle-6bt.pages.dev](https://starisle-6bt.pages.dev/)。项目 `starisle`，生产分支标记 `main`，使用免费静态托管及平台分配的子域名，没有购买服务器、域名或启用付费后端资源。
+更新：2026-11-04。生产地址：[starisle-6bt.pages.dev](https://starisle-6bt.pages.dev/)。项目 `starisle`，生产分支标记 `main`，使用免费静态托管及平台分配的子域名，没有购买服务器、域名或启用付费后端资源。
+
+## 11-04 更新
+
+北京时间 08:36 已部署 `1cb49d51-d92d-4a07-930c-dae197b0be57`，Cloudflare MCP 确认 canonical production / deploy / success。本次同步公开内容、移动导航跨断点关闭和背景异步选择修复；音乐首发隐藏，云端私人提示保持关闭。完整 Pages 构建为 11 页，发布门禁 FULL 通过：55 文件 fingerprint 为 `aec063eeb7b2dfcaf34045001986d39b57b6439f268810cf15e072bebd106e40`，5 个固定输入 inventory 为 `acc416cc50d8eadfe8e6f0577774beb093973e9cf9cc32350b607ffc5adcdda3`，后者不代表完整源码树。
+
+来源标记为 `9ce44bf5490968717833481caff37f4f8cc2e9d6` / `commit_dirty=true`，部署不等于本轮源码已经提交。线上复验及本机功能证据集中见 [网站交付与本地恢复验收](./2026-11-03_网站交付与本地恢复验收.md)。下方 11-01 部署、分数、失败尝试保留为历史记录，不作为新版 Lighthouse 复测结果。
 
 ## 当前覆盖范围
 
@@ -35,7 +41,7 @@ npx --yes wrangler@4.156.0 login --scopes account:read user:read pages:write
 
 首次创建时，Wrangler 4.156.0 默认将新 Pages 项目委托到 Workers；从 monorepo 根目录触发应用检测错误。已按 CLI 明示的方式用 `pages project create starisle --production-branch main --force` 直接创建 Pages，实际分配 `starisle-6bt.pages.dev`。项目已存在，后续部署不得再传该首次创建选项，也无需重复创建。
 
-## 当前部署与验证
+## 11-01 部署与验证（历史）
 
 | 项目 | 结果 |
 | --- | --- |

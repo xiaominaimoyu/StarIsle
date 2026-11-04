@@ -110,6 +110,20 @@ const presets = [
     const presets = Array.from(controller.querySelectorAll<HTMLButtonElement>("[data-background-preset]"));
     let previousFocus: HTMLElement | null = null;
     let settings = loadSettings();
+    let selectionRevision = 0;
+    let storageQueue = Promise.resolve();
+
+    function queueStorage(action: () => Promise<void>): Promise<void> {
+      const operation = storageQueue.then(action);
+      storageQueue = operation.catch(() => {});
+      return operation;
+    }
+
+    function cancelUpload(): void {
+      selectionRevision += 1;
+      fileTrigger?.removeAttribute("disabled");
+      if (fileInput) fileInput.value = "";
+    }
 
     function loadSettings(): PublicBackgroundSettings {
       try {
@@ -220,6 +234,7 @@ const presets = [
       preset.addEventListener("click", () => {
         const url = preset.dataset.backgroundPreset;
         if (!url) return;
+        cancelUpload();
         clearMessage();
         publish({ ...settings, url, custom: false });
       });
@@ -236,33 +251,51 @@ const presets = [
     fileInput?.addEventListener("change", async () => {
       const file = fileInput.files?.[0];
       if (!file) return;
+      const revision = ++selectionRevision;
       fileTrigger?.setAttribute("disabled", "");
       clearMessage();
       try {
         const result = await compressImage(file);
+        if (revision !== selectionRevision) return;
         if (!result.ok) {
           showMessage("error", result.reason);
           return;
         }
         try {
-          await savePublicBackgroundBlob(result.blob);
+          await queueStorage(async () => {
+            if (revision === selectionRevision) await savePublicBackgroundBlob(result.blob);
+          });
         } catch {
+          if (revision !== selectionRevision) return;
           const fallback = presets[0]?.dataset.backgroundPreset;
           if (fallback) publish({ ...settings, url: fallback, custom: false });
           showMessage("info", "当前浏览器不支持本地保存背景，本次访问将使用预设背景。");
           return;
         }
+        if (revision !== selectionRevision) return;
         publish({ ...settings, url: null, custom: true }, result.blob);
+      } catch {
+        if (revision === selectionRevision) {
+          showMessage("error", "图片处理失败，请换一张或选择更小的图片。");
+        }
       } finally {
-        fileTrigger?.removeAttribute("disabled");
-        fileInput.value = "";
+        if (revision === selectionRevision) {
+          fileTrigger?.removeAttribute("disabled");
+          fileInput.value = "";
+        }
       }
     });
 
     controller.querySelector<HTMLElement>("[data-background-reset]")?.addEventListener("click", () => {
+      cancelUpload();
+      const revision = selectionRevision;
       publish({ ...settings, url: null, custom: false });
-      void clearPublicBackgroundBlob();
       clearMessage();
+      void queueStorage(clearPublicBackgroundBlob).catch(() => {
+        if (revision === selectionRevision) {
+          showMessage("info", "已恢复默认背景，但未能清除本地图片，请稍后重试。");
+        }
+      });
     });
 
     syncControls();

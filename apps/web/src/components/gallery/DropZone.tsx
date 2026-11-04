@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, type DragEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type DragEvent } from "react";
 
 export interface UploadItem {
   id: string;
@@ -36,8 +36,19 @@ export default function DropZone({
   const activeCount = useRef(0);
   const nextItemId = useRef(0);
   const pumpRef = useRef<() => void>(() => {});
+  const mountedRef = useRef(false);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      // 已在途的上传可能仍在服务器执行；离开页面只丢弃未开始的队列。
+      pendingIds.current = [];
+    };
+  }, []);
 
   const updateItem = useCallback((id: string, patch: Partial<UploadItem>) => {
+    if (!mountedRef.current) return;
     const next = itemsRef.current.map((item) => (
       item.id === id ? { ...item, ...patch, id: item.id } : item
     ));
@@ -66,7 +77,7 @@ export default function DropZone({
   // pendingIds 是唯一待处理队列；同步认领后才启动异步上传，最大并发始终限制为 3。
   const pump = useCallback(() => {
     const concurrency = Math.min(Math.max(maxConcurrency, 1), 3);
-    while (activeCount.current < concurrency) {
+    while (mountedRef.current && activeCount.current < concurrency) {
       const id = pendingIds.current.shift();
       if (!id) return;
 
@@ -83,6 +94,7 @@ export default function DropZone({
   pumpRef.current = pump;
 
   const addFiles = (files: FileList | File[]) => {
+    if (!mountedRef.current) return;
     const list = Array.from(files);
     const next: UploadItem[] = list.map((file) => {
       const id = `upload-${nextItemId.current++}`;

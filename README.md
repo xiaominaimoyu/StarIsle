@@ -4,13 +4,15 @@
 
 本仓库的四份规划文档仍是计划基线；本 README 说明本机开发、验证、恢复和公开站 Pages 部署。完整私有栈与外部服务仍按各自验收证据判断。
 
-## 当前进度（2026-11-03）
+## 当前进度（2026-11-04）
 
-当前实施先读 [PROGRESS.md](./PROGRESS.md) 与 [开发进度](./docs/开发进度.md) 最新 §61。11-03 已完善密码显示、浮动标签/错误关联、准备/无脚本状态、失效 CSRF 人工重试及重新登录入口；Web 163 项、Astro 107 files 零诊断，两种模式各 11 页构建，完整隔离浏览器 12 主组与三宽度/无脚本检查通过。详情见 [本轮报告](./docs/2026-11-03_登录交互与会话恢复.md)，本轮修改未提交或部署。
+用户已确认本次交付范围为“公开站上线＋私有功能本地可用”。当前先读 [PROGRESS.md](./PROGRESS.md)、[开发进度](./docs/开发进度.md) 最新 §62 与 [本轮交付报告](./docs/2026-11-03_网站交付与本地恢复验收.md)。本轮完善文件分页与异步状态、照片键盘删除及上传队列、公开导航断点和背景存储竞态；最终 Web 186 项、Astro 112 files 零诊断、完整隔离浏览器 12 主组/0 失败，API 608、contracts 8、Email Worker 14 项通过。
+
+新公开候选已于北京时间 11-04 08:36 发布为 `1cb49d51`，Cloudflare 已确认 production success；线上 37 项首轮通过、1 项修正验收文本后补验通过，包含 19 项 HTTP、5 页 HTML 对应及桌面/移动/无脚本交互。私有完整浏览器已实际通过；此前 Caddy refresh、上传拒绝与 Linux 独立恢复/恢复根启用也已通过。当前 Docker 引擎因宿主 socket 问题无法启动，补充的实际切回原根演练尚未执行，不能称回滚已通过；操作步骤见 [本地运行与恢复指南](./docs/本地运行与恢复指南.md)。本轮源码基于 `9ce44bf`，23 文件精确清单已获用户确认，按此归档；提交编号与实际远端结果以 Git 历史和本次发布回执为准。
 
 开工前复核见 [项目现状与恢复开发清单](./docs/2026-11-01_项目现状与恢复开发清单.md)，剩余依赖、验收与容量见 [后续开发计划](./docs/2026-11-01_后续开发计划.md)。四份原规划文档及下方 11-01 记录保留其历史证据。
 
-当前源码已具备公开门户、书桌信封入口、私有控制台、文件/照片、邮件接收、知识库/RAG 及运维脚本。11-01 首批修正了公开内容和信封入口的可访问性，并恢复浏览器回归；随后完成 Cloudflare Pages 发布及当前移动 Lighthouse，修复仓库来源筛选器误匹配列表项的可访问性/交互问题。本轮 Web 156、harness 安全 31 项通过；Astro 105 files 诊断零错误/警告/提示，静态构建 11 页；完整隔离浏览器 E2E 为 12 组、0 失败。内容同步的重复 ID 提示已定位为当前依赖的缓存重载诊断，仍有保留项。API 608、contracts 8、Email Worker 14 为同日此前的检查，本轮未重跑；完整私有栈生产部署与模型评测仍未验收，M1/M2/M3 保持未全部完成。
+以下三段为 11-01 至 11-03 前轮历史，数量和“未提交/未部署”等状态只对应当时批次；本轮最新结果以上文和 §62 为准。当前源码已具备公开门户、书桌信封入口、私有控制台、文件/照片、邮件接收、知识库/RAG 及运维脚本。11-01 首批修正公开内容和入口可访问性，随后发布 Pages 并完成当时移动 Lighthouse；仓库来源筛选器误匹配列表项的问题已修复。当时 Web 156、harness 安全 31 项、Astro 105 files 零诊断、静态构建 11 页及隔离浏览器 12 组/0 失败。真实收信、真实模型和私有云仍未验收，不属于本次确认的完成前提；原 M1/M2/M3 生产验收保留各自证据边界。
 
 用户逐文件确认后，21 个文件已提交推送为 561ef4e，随后 18 个文件也已提交推送为 `main@c1cbe73`。11-03 开始时本地与实际远端一致，本轮网页修改尚未提交。姓名/教育背景、6 个 GitHub 仓库快照、项目源码链接和公开邮箱已落实，平台子域名已可用。首发保持音乐隐藏，授权曲目验收后置。
 
@@ -22,9 +24,9 @@
 
 公开站已发布至 [starisle-6bt.pages.dev](https://starisle-6bt.pages.dev/)，仅托管公开静态页面。私人入口显示暂未开放，控制台路径转至该提示页；API、SQLite、文件、邮件和 RAG 服务继续在本地开发。现有本地登录和控制台功能保留。
 
-生产构建使用 `PUBLIC_SITE_URL=https://starisle-6bt.pages.dev` 和 `pnpm build:pages`，上传目录为 `apps/web/dist`。脚本关闭公开候选的登录表单，生成 Pages 重定向及响应头，并运行原发布门禁。当前部署为 a67f7bdb，19 项线上 HTTP、5 页 HTML 哈希以及桌面/移动/无脚本交互检查通过。
+生产构建使用 `PUBLIC_SITE_URL=https://starisle-6bt.pages.dev` 和 `pnpm build:pages`，上传目录为 `apps/web/dist`。脚本关闭公开候选的登录表单，生成 Pages 重定向及响应头，并运行原发布门禁。当前生产部署为 `1cb49d51-d92d-4a07-930c-dae197b0be57`，北京时间 2026-11-04 08:36 发布成功；11 页构建与完整门禁通过，55 文件 fingerprint 为 `aec063eeb7b2dfcaf34045001986d39b57b6439f268810cf15e072bebd106e40`。部署基于未提交工作区，`commit_dirty=true`；线上复验结果以本轮交付报告最终记录为准。
 
-当前移动 Lighthouse 四项（性能/无障碍/最佳实践/SEO）：开封后主页 96/100/100/100、项目和简历均 100/100/100/100；首次 `/` 实际进入 noindex 信封页，为 98/100/100/66，保留重定向警告，不能混为首页首访 SEO 已通过。原始报告和边界见 [Lighthouse 与筛选修复](./docs/2026-11-01_公开站Lighthouse与筛选修复.md)；发布、更新和回滚见 [Cloudflare Pages 部署](./docs/Cloudflare-Pages部署.md)。
+11-01 旧部署的移动 Lighthouse 四项（性能/无障碍/最佳实践/SEO）为：开封后主页 96/100/100/100、项目和简历均 100/100/100/100；首次 `/` 实际进入 noindex 信封页，为 98/100/100/66，保留重定向警告，不能混为首页首访 SEO 已通过。这些是历史实验室样本，本轮未重新采集；原始报告和边界见 [Lighthouse 与筛选修复](./docs/2026-11-01_公开站Lighthouse与筛选修复.md)。发布、更新和回滚见 [Cloudflare Pages 部署](./docs/Cloudflare-Pages部署.md)。
 
 ## 本机快速开始
 
@@ -57,30 +59,35 @@ pnpm build:release
 
 该门禁只检查静态制品，不能证明 DNS、TLS、Caddy、CDN、真实部署、Lighthouse、SBOM、SCA、签名、漏洞可达性，或真实内容的授权状态。
 
-在一个终端启动 API：
+开发模式需要 API、worker、Web 三个终端。先在 `apps/api` 按 `.env.example` 配置随机密钥、管理员 Argon2id 哈希，以及你明确选择的绝对 `DATA_ROOT`；API 与 worker 必须在相同目录、使用相同配置启动。已有虚拟环境无需重复创建，已有配置文件不要覆盖。
 
-```bash
-cd apps/api
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-copy .env.example .env
-# 设置随机 AUTH_JWT_SIGNING_KEY、MAIL_HMAC_KEY，
-# 并以 Argon2id 写入 ADMIN_BOOTSTRAP_PASSWORD_HASH（不要填写明文密码）。
-python -m uvicorn app.main:app --port 8000 --reload --no-access-log
+```powershell
+# 终端 1：从仓库根目录进入 API，配置准备好后运行。
+Set-Location .\apps\api
+& .\.venv\Scripts\python.exe -B -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload --no-access-log
 ```
+
+```powershell
+# 终端 2：同样从仓库根目录进入 apps/api，读取与 API 相同的本机配置。
+Set-Location .\apps\api
+& .\.venv\Scripts\python.exe -B -m app.worker_runner
+```
+
+如果只启动 API 和 Web，知识文档会停在排队状态，后台索引和维护任务不会执行。`ADMIN_BOOTSTRAP_PASSWORD_HASH` 仅在首次创建管理员时使用，修改它不会替换已有管理员密码。
 
 JWT 轮换时同时更新 `AUTH_JWT_ACTIVE_KID` 与 `AUTH_JWT_SIGNING_KEY`，并把上一组 `{kid: secret}` 暂存于 API 专用的 `AUTH_JWT_PREVIOUS_KEYS_JSON`；超过最长 access TTL 后移除。首次从无 kid 的旧实现升级时，既有 access token 会失效，但仍有效的 refresh session 可换取新 token。
 
 邮件 HMAC 轮换顺序：先部署兼容新旧协议的 API，再给 Email Worker 配置安全的 `MAIL_HMAC_ACTIVE_KID`，确认旧 Worker 与 legacy 重试排空后，才轮换 `MAIL_HMAC_KEY`/active kid，并把上一把 key 暂存 API 专用的 `MAIL_HMAC_PREVIOUS_KEYS_JSON`；旧协议永远不尝试旧 key。
 
-在另一个终端启动前端：
+在第三个终端、仓库根目录启动前端：
 
-```bash
+```powershell
 pnpm dev
 ```
 
 访问 `http://localhost:4321`。Astro 开发服务器会把 `/api/*` 服务端代理到 `http://127.0.0.1:8000`；浏览器侧始终保持同源 `/api/v1`。如 API 不在默认地址，可仅在启动前端时设置非公开环境变量 `API_DEV_PROXY_TARGET`，例如 `http://127.0.0.1:9000`。
+
+虚拟环境创建、外置数据根、Compose 单入口启动及备份后切换/回滚见 [本地运行与恢复指南](./docs/本地运行与恢复指南.md)。该指南是操作步骤，实际通过项以当前进度链接的验收报告为准。
 
 ## 验证
 
@@ -194,19 +201,20 @@ docker compose -f infra/compose/compose.yml -f infra/compose/compose.prod.yml up
 
 备份会先以 source SQLite 的 `BEGIN IMMEDIATE` 协调锁阻断协作型写者（默认最多等待 15 秒），再用独立只读连接执行 SQLite online backup，并在锁持有期间按 destination snapshot 的 asset / `mail_raw` 引用复制对象。新备份不会包含 `-wal`、`-shm` 或 journal sidecar。若 output 中仍有内部 incomplete marker，`verify` 和 `restore` 会拒绝它；失败的 partial 会保留 marker 和已有文件，必须由运维显式检查/处理，不能复用或覆盖。
 
-```bash
-# 输出目录必须不存在或为空，且不能放进 DATA_ROOT。
-python scripts/backup_restore.py backup --data-root data --output D:\star-isle-backup --verify --lock-timeout-seconds 15
-
-# 恢复目标必须不存在或为空；默认拒绝覆盖非空目录。
-python scripts/backup_restore.py restore --backup D:\star-isle-backup --target D:\star-isle-restore-test
-python scripts/backup_restore.py verify --backup D:\star-isle-backup --data-root D:\star-isle-restore-test
-
-# 可选机器可读结果：stdout 恰一行 JSON，不输出路径、对象键、哈希或失败原文。
-python scripts/backup_restore.py verify --backup D:\star-isle-backup --data-root D:\star-isle-restore-test --json
+```powershell
+# 在仓库根目录运行。输入实际运行根，不使用仓库相对 data。
+$runtimeRoot = (Resolve-Path -LiteralPath (Read-Host '当前实际 DATA_ROOT / DATA_HOST_ROOT 的绝对路径')).Path
+$backupRoot = Read-Host '数据根之外、新建备份目录的绝对路径'
+$restoredRoot = Read-Host '数据根和备份之外、新建恢复目标的绝对路径'
+& .\apps\api\.venv\Scripts\python.exe -B .\scripts\backup_restore.py backup --data-root $runtimeRoot --output $backupRoot --verify --lock-timeout-seconds 15 --json
+if ($LASTEXITCODE -ne 0) { throw '备份失败，先检查保留的失败状态' }
+& .\apps\api\.venv\Scripts\python.exe -B .\scripts\backup_restore.py restore --backup $backupRoot --target $restoredRoot --json
+if ($LASTEXITCODE -ne 0) { throw '恢复失败，不要启用该目标' }
+& .\apps\api\.venv\Scripts\python.exe -B .\scripts\backup_restore.py verify --backup $backupRoot --data-root $restoredRoot --json
+if ($LASTEXITCODE -ne 0) { throw '恢复校验失败，不要启用该目标' }
 ```
 
-也提供 `scripts/backup.bat`、`restore.bat`、`verify-restore.bat` 与对应 `.sh` 薄包装，参数与上面子命令相同。
+上述为宿主机已有 API 虚拟环境时的路径。输出与恢复目标必须由你明确选择、彼此独立，不得包含或落入实际数据根。也提供 `scripts/backup.bat`、`restore.bat`、`verify-restore.bat` 与对应 `.sh` 薄包装，它们使用当前 `python`/`python3`，须先确认运行环境。仅有 Docker 的用户按 [容器操作步骤](./docs/本地运行与恢复指南.md#在-linux-容器中备份和隔离恢复) 显式挂载脚本；API 镜像默认不包含 `scripts/`。
 
 `backup`、`restore`、`verify` 默认保留原有人类可读 stdout/错误行为。加 `--json` 后，领域成功或可预期失败只输出一行脱敏 JSON：成功包含 tool、command、status 与已严格验证的 format/schema/file/object 计数；失败只包含固定的 command-specific errorCode，退出码仍为 0/1。argparse 用法错误不属于该 JSON 保证。
 
@@ -232,6 +240,8 @@ $report = 'D:\recovery-reports\star-isle-drill.json'
 在 report path claim 成功后，runner 会原子创建 `<report>.star-isle-recovery-drill-incomplete` marker 并发布 `running` report；成功时才原子写入 `passed` 并最后删除 marker。此后的失败、异常或 marker 删除失败会保留 marker 与已创建的 target/report partial，禁止复用或覆盖。运维人员必须先检查这些**精确的隔离路径**，确认 backup、target、report 都不与默认 `data/` 或 `DATA_ROOT` 重叠，再显式删除 target、report、marker 和可能的 `<report>.star-isle-recovery-drill.tmp`；runner 从不替代该人工清理决定。stdout 仅输出一行脱敏 JSON，report 也不包含查询、对象键、路径、邮件正文或模型/密钥细节。
 
 该门禁只能协调遵守 SQLite 写锁和对象写入顺序的本服务写者。手工或其他非协作进程仍可能在复制期间直接修改文件；长于 API 默认 15 秒的备份也可能令写请求超时。隔离候选演练不等于真实生产恢复演练，也不表示 M2 已完成。
+
+生成恢复目标后还需启动同一版本的 API/worker，并核对登录、文件下载、原图/缩略图和知识检索，才能判断该目标是否可用。切换与失败回滚使用新的 `DATA_HOST_ROOT`，保留原运行目录；完整命令见 [恢复后切换和回滚](./docs/本地运行与恢复指南.md#恢复后切换和回滚)。本轮实际验收另见 [网站交付与本地恢复验收](./docs/2026-11-03_网站交付与本地恢复验收.md)。
 
 ## 当前外部边界
 

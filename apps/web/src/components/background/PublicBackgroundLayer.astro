@@ -15,6 +15,7 @@
   const image = layer?.querySelector<HTMLElement>("[data-public-background-image]");
   const scrim = layer?.querySelector<HTMLElement>("[data-public-background-scrim]");
   let activeObjectUrl: string | null = null;
+  let updateGeneration = 0;
 
   function readSettings(): PublicBackgroundSettings {
     try {
@@ -51,30 +52,34 @@
     scrim.style.opacity = String(settings.scrimOpacity);
   }
 
-  async function restoreCustomBackground(settings: PublicBackgroundSettings): Promise<void> {
+  async function restoreCustomBackground(settings: PublicBackgroundSettings, generation: number): Promise<void> {
     try {
-      render(settings, await loadPublicBackgroundBlob());
+      const blob = await loadPublicBackgroundBlob();
+      if (generation === updateGeneration) render(settings, blob);
     } catch {
-      render({ ...settings, custom: false, url: null });
+      if (generation === updateGeneration) render({ ...settings, custom: false, url: null });
     }
   }
 
-  const initial = readSettings();
-  if (initial.custom) {
-    void restoreCustomBackground(initial);
-  } else {
-    render(initial);
+  function update(settings: PublicBackgroundSettings, blob?: Blob): void {
+    const generation = ++updateGeneration;
+    if (settings.custom && !blob) {
+      void restoreCustomBackground(settings, generation);
+    } else {
+      render(settings, blob);
+    }
   }
+
+  update(readSettings());
 
   window.addEventListener("star-isle:background-change", (event) => {
     const detail = (event as CustomEvent<{ settings?: PublicBackgroundSettings; blob?: Blob }>).detail;
     if (!detail?.settings) return;
-    if (detail.settings.custom && !detail.blob) {
-      void restoreCustomBackground(detail.settings);
-      return;
-    }
-    render(detail.settings, detail.blob);
+    update(detail.settings, detail.blob);
   });
 
-  window.addEventListener("pagehide", clearObjectUrl, { once: true });
+  window.addEventListener("pagehide", () => {
+    updateGeneration += 1;
+    clearObjectUrl();
+  }, { once: true });
 </script>

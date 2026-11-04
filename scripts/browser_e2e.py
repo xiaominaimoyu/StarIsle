@@ -655,6 +655,13 @@ def public_native_interaction_checks(page, base: str) -> None:
         "移动导航关闭后恢复触发器焦点",
     )
 
+    page.get_by_role("button", name="打开导航菜单").click()
+    page.set_viewport_size({"width": 1440, "height": 900})
+    expect(nav_dialog).to_be_hidden()
+    check(not page.locator("body").evaluate("body => body.classList.contains('public-modal-open')"), "mobile_nav_resize_releases_scroll_lock")
+    check(page.locator("[data-public-desktop-nav]").evaluate("nav => nav.contains(document.activeElement)"), "mobile_nav_resize_restores_visible_focus")
+    page.set_viewport_size({"width": 390, "height": 844})
+
     background_button = page.get_by_role("button", name="背景设置")
     background_button.click()
     background_dialog = page.get_by_role("dialog", name="自定义背景")
@@ -1804,6 +1811,18 @@ def _browser_flow(args, sample_txt: Path, sample_png: Path, receipt_file: Path) 
         photo_thumbnails_delta = photo_thumbnails.count() - photo_thumbnails_before
         check(photo_posts_delta == 1, "照片选择仅产生一次 POST /api/v1/photos")
         check(photo_thumbnails_delta == 1, "照片缩略图仅新增一张")
+        delete_photo = page.get_by_role("button", name="删除这张照片", exact=True).first
+        expect(delete_photo).to_be_visible()
+        upload_zone = page.get_by_role("button", name="拖放照片到此处,或点击选择(支持多选)", exact=True)
+        upload_zone.focus()
+        page.keyboard.press("Tab")
+        expect(delete_photo).to_be_focused()
+        page.keyboard.press("Enter")
+        photo_dialog = page.get_by_role("dialog", name="删除照片", exact=True)
+        expect(photo_dialog).to_be_visible()
+        photo_dialog.get_by_role("button", name="取消", exact=True).press("Enter")
+        expect(photo_dialog).to_be_hidden()
+        check(True, "photo_delete_is_visible_and_keyboard_accessible_without_hover")
         check(page.get_by_text("e2e-sample.png", exact=True).count() > 0, "照片出现在时间线")
         if args.isolated_fixture_db:
             _seed_photo_capture_group(Path(args.isolated_fixture_db))

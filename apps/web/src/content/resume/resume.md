@@ -12,9 +12,9 @@ summary: "全栈与 AI 工程方向实践者。已实现个人门户、私有数
 
 独立设计并实现个人全栈门户,按公开展示、私有服务和知识库三个阶段持续推进:
 
-- **公开门户**:Astro + Tailwind 展示页、构建期仓库快照、IndexedDB 自定义背景和 HTML5 播放器代码已实现;当前展示 GitHub 仓库快照,授权曲目与当前版本发布验收待补齐
-- **私有服务**:实现 FastAPI + SQLite 单用户 Cookie 鉴权(Argon2id、CSRF/Origin)、文件与照片存储(魔数校验、随机对象 ID),以及 Cloudflare Email Worker → FastAPI HMAC 邮件接收参考实现;真实邮件与部署环境仍待验收
-- **RAG 知识库**:实现文档索引、`sqlite-vec` 检索、带引用的流式问答和内部双 `llama-server` 对接接口;离线后端链路已验证,真实模型、语料质量与性能仍待评测
+- **公开门户**:Astro + Tailwind 展示页、构建期 GitHub 仓库快照和 IndexedDB 自定义背景已实现,公开展示站已发布至 Cloudflare Pages;首发暂时隐藏音乐功能,授权曲目到位后再开放
+- **私有服务**:实现 FastAPI + SQLite 单用户 Cookie 鉴权(Argon2id、CSRF/Origin)、文件与照片存储(魔数校验、随机对象 ID),以及 Cloudflare Email Worker → FastAPI HMAC 邮件接收参考实现;私有服务保留本地运行,真实邮件与云端私有部署仍待验收
+- **RAG 知识库**:实现文档索引、`sqlite-vec` 检索、带引用的流式问答和内部双 `llama-server` 对接接口;已验证离线检索与降级回答链路,真实模型、语料质量与性能仍待评测
 
 ## 技能
 

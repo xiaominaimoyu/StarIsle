@@ -13,7 +13,7 @@ const normalizedPath = Astro.url.pathname.replace(/\/+$/, "") || "/";
 const isCurrent = (href: string) => (href === "/" ? normalizedPath === "/" : normalizedPath === href);
 ---
 
-<nav aria-label="主导航" class="public-nav hidden md:flex">
+<nav data-public-desktop-nav aria-label="主导航" class="public-nav hidden md:flex">
   {links.map((link) => (
     <a href={link.href} aria-current={isCurrent(link.href) ? "page" : undefined} class="public-nav__link focus-ring rounded">
       {link.label}
@@ -55,6 +55,8 @@ const isCurrent = (href: string) => (href === "/" ? normalizedPath === "/" : nor
   const trigger = document.querySelector<HTMLButtonElement>("[data-public-nav-trigger]");
   const dialog = document.querySelector<HTMLElement>("[data-public-nav-dialog]");
   const panel = dialog?.querySelector<HTMLElement>("[data-public-nav-panel]");
+  const desktopNav = document.querySelector<HTMLElement>("[data-public-desktop-nav]");
+  const desktopViewport = window.matchMedia("(min-width: 48rem)");
   let previousFocus: HTMLElement | null = null;
 
   function updateBodyScrollLock(): void {
@@ -70,7 +72,7 @@ const isCurrent = (href: string) => (href === "/" ? normalizedPath === "/" : nor
   }
 
   function openDialog(): void {
-    if (!dialog || !trigger) return;
+    if (!dialog || !trigger || desktopViewport.matches) return;
     previousFocus = trigger;
     dialog.hidden = false;
     trigger.setAttribute("aria-expanded", "true");
@@ -83,11 +85,17 @@ const isCurrent = (href: string) => (href === "/" ? normalizedPath === "/" : nor
     dialog.hidden = true;
     trigger?.setAttribute("aria-expanded", "false");
     updateBodyScrollLock();
-    previousFocus?.focus();
+    const focusTarget = desktopViewport.matches
+      ? desktopNav?.querySelector<HTMLElement>("[aria-current='page']") ?? desktopNav?.querySelector<HTMLElement>("a[href]")
+      : previousFocus;
+    focusTarget?.focus();
     previousFocus = null;
   }
 
   trigger?.addEventListener("click", openDialog);
+  desktopViewport.addEventListener("change", () => {
+    if (desktopViewport.matches) closeDialog();
+  });
   dialog?.querySelectorAll<HTMLElement>("[data-public-nav-close], a[href]").forEach((element) => {
     element.addEventListener("click", closeDialog);
   });

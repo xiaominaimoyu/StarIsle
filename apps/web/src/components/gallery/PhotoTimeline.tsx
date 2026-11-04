@@ -172,7 +172,7 @@ export default function PhotoTimeline() {
                     <button
                       type="button"
                       aria-label="删除这张照片"
-                      className="absolute right-1 top-1 hidden size-11 items-center justify-center rounded-sm border border-border bg-black/70 text-xs text-white hover:bg-danger focus-ring group-focus-within:flex group-hover:flex"
+                      className="absolute right-1 top-1 flex size-11 items-center justify-center rounded-sm border border-border bg-black/70 text-xs text-white hover:bg-danger focus-ring"
                       onClick={() => {
                         setDeleteError(null);
                         setPendingDelete(p);
