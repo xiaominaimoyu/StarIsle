@@ -540,6 +540,184 @@ def document_pagination_fixture_context(page):
         page.unroute(route_pattern, handle)
 
 
+def mail_recovery_browser_checks(page, base: str) -> None:
+    """Client-only recovery fixture after real mail ingestion/read checks succeed."""
+    pattern = "**/api/v1/mail**"
+    calls: Counter[str] = Counter()
+
+    def mail(index):
+        return {"id": f"fixture-recovery-mail-{index}", "from": "fixture@example.com",
+                "subject": f"恢复邮件 {index}", "receivedAt": "2026-11-04T00:00:00Z", "read": True}
+
+    def handle(route):
+        request = route.request
+        parsed = urlparse(request.url)
+        if request.method == "GET" and parsed.path == "/api/v1/mail":
+            cursor = parse_qs(parsed.query).get("cursor", [None])[0]
+            if cursor == "fixture-mail-next":
+                calls["append"] += 1
+                if calls["append"] == 1:
+                    route.fulfill(status=503, json={"error": {"code": "INTERNAL", "message": "fixture page failure"}})
+                    return
+                payload = {"items": [mail(2), mail(1)], "nextCursor": None}
+            elif cursor is None:
+                calls["head"] += 1
+                if calls["head"] == 2:
+                    route.fulfill(status=503, json={"error": {"code": "INTERNAL", "message": "fixture refresh failure"}})
+                    return
+                payload = {"items": [mail(3), mail(2)], "nextCursor": "fixture-mail-next"}
+            else:
+                route.continue_()
+                return
+            route.fulfill(status=200, json=payload)
+        elif parsed.path.startswith("/api/v1/mail/fixture-recovery-mail-"):
+            if request.method != "GET" or parsed.path.endswith("/read"):
+                calls["unexpected_write"] += 1
+                route.fulfill(status=500, json={"error": {"code": "INTERNAL", "message": "fixture write blocked"}})
+            elif parsed.path.endswith("-3"):
+                calls["detail_error"] += 1
+                route.fulfill(status=503, json={"error": {"code": "INTERNAL", "message": "fixture detail failure"}})
+            else:
+                calls["detail_ok"] += 1
+                route.fulfill(status=200, json={**mail(1), "to": "owner@example.com",
+                    "textBody": "fixture-readable-mail-body", "htmlSummary": None, "attachments": []})
+        else:
+            route.continue_()
+
+    page.route(pattern, handle)
+    try:
+        page.set_viewport_size({"width": 390, "height": 844})
+        page.goto(base + "/console/mail", wait_until="networkidle")
+        items = page.get_by_test_id("mail-item")
+        expect(items).to_have_count(2)
+        with allow_expected_error_responses(("GET", "/api/v1/mail", 503)):
+            page.get_by_role("button", name="加载更多", exact=True).click()
+            expect(page.get_by_role("button", name="重试加载更多", exact=True)).to_be_visible()
+            check(items.count() == 2, "fixture_mail_page_failure_keeps_existing_rows")
+        page.get_by_role("button", name="重试加载更多", exact=True).click()
+        expect(items).to_have_count(3)
+        check(calls["append"] == 2, "fixture_mail_page_retry_uses_same_cursor_without_duplicates")
+        with allow_expected_error_responses(("GET", "/api/v1/mail", 503)):
+            page.get_by_role("button", name="刷新", exact=True).click()
+            expect(page.get_by_role("button", name="重试刷新", exact=True)).to_be_visible()
+            check(items.count() == 3, "fixture_mail_refresh_failure_keeps_existing_rows")
+        with allow_expected_error_responses(("GET", "/api/v1/mail/fixture-recovery-mail-3", 503)):
+            items.filter(has_text="恢复邮件 3").click()
+            expect(page.get_by_text("邮件内容加载失败,请重试。", exact=True)).to_be_visible()
+            back = page.get_by_role("button", name="← 返回列表", exact=True)
+            expect(back).to_be_visible()
+            back.press("Enter")
+            expect(items.filter(has_text="恢复邮件 3")).to_be_visible()
+            check(True, "fixture_mobile_mail_detail_failure_returns_to_existing_list")
+        items.filter(has_text="恢复邮件 1").click()
+        expect(page.get_by_text("fixture-readable-mail-body", exact=True)).to_be_visible()
+        check(True, "fixture_mobile_mail_can_read_another_message_after_failure")
+        page.get_by_role("button", name="← 返回列表", exact=True).click()
+        page.get_by_role("button", name="重试刷新", exact=True).click()
+        expect(page.get_by_role("button", name="刷新", exact=True)).to_be_enabled()
+        check(items.count() == 3 and page.get_by_role("button", name="加载更多", exact=True).count() == 0,
+              "fixture_mail_refresh_retry_preserves_rows_and_exhausted_cursor")
+        check(calls["unexpected_write"] == 0 and calls["detail_ok"] == 1 and calls["detail_error"] == 1,
+              "fixture_mail_requests_are_read_only_and_expected")
+    finally:
+        page.unroute(pattern, handle)
+
+
+def photo_recovery_browser_checks(page, base: str, sample_png: Path) -> None:
+    """Synthetic list/mutations exercise UI only; original upload/worker paths stay real."""
+    payload = page.request.get(base + "/api/v1/photos").json()
+    thumbnail_url = payload["items"][0]["thumbnailUrl"]
+    pattern = "**/api/v1/photos**"
+    calls: Counter[str] = Counter()
+
+    def photo(index):
+        return {"id": f"fixture-recovery-photo-{index}", "thumbnailUrl": thumbnail_url,
+                "captureAt": f"2026-11-0{index + 1}T12:00:00", "width": 1, "height": 1}
+
+    def handle(route):
+        request = route.request
+        parsed = urlparse(request.url)
+        if parsed.path == "/api/v1/photos" and request.method == "POST":
+            calls["upload"] += 1
+            route.fulfill(status=201, json={"id": "fixture-recovery-photo-4", "status": "ready", "thumbnailState": "ready"})
+        elif parsed.path == "/api/v1/photos" and request.method == "GET":
+            cursor = parse_qs(parsed.query).get("cursor", [None])[0]
+            if cursor == "fixture-photo-next":
+                calls["append"] += 1
+                response = {"items": [photo(2), photo(1)], "nextCursor": "fixture-photo-final"}
+            elif cursor == "fixture-photo-final":
+                calls["final"] += 1
+                response = {"items": [photo(0)], "nextCursor": None}
+            elif cursor is None:
+                calls["head"] += 1
+                if calls["delete"] and calls["head"] == 3:
+                    route.fulfill(status=503, json={"error": {"code": "INTERNAL", "message": "fixture refresh failure"}})
+                    return
+                response = {"items": [photo(4), photo(3), photo(2)] if calls["upload"] else [photo(3), photo(2)],
+                            "nextCursor": "fixture-photo-next"}
+            else:
+                route.continue_()
+                return
+            route.fulfill(status=200, json=response)
+        elif parsed.path.startswith("/api/v1/photos/fixture-recovery-photo-"):
+            if request.method == "DELETE" and parsed.path.endswith("-2"):
+                calls["delete"] += 1
+                route.fulfill(status=204)
+            else:
+                calls["unexpected_mutation"] += 1
+                route.fulfill(status=500, json={"error": {"code": "INTERNAL", "message": "fixture mutation blocked"}})
+        else:
+            route.continue_()
+
+    page.route(pattern, handle)
+    try:
+        page.goto(base + "/console/gallery", wait_until="networkidle")
+        images = page.locator("img[alt^='照片 ']")
+        expect(images).to_have_count(2)
+        page.get_by_role("button", name="加载更多", exact=True).click()
+        expect(images).to_have_count(3)
+        page.locator("input[type=file]").first.set_input_files(str(sample_png))
+        expect(images).to_have_count(4)
+        expect(page.get_by_role("img", name="照片 2026/11/02", exact=True)).to_be_visible()
+        check(True, "fixture_photo_upload_refresh_preserves_browsed_tail_without_duplicates")
+        # Uploads can enter an already-browsed EXIF range, so rescan the server's
+        # current head cursor while keeping the rendered tail and de-duplicating.
+        with page.expect_response(
+            lambda response: (
+                response.request.method == "GET"
+                and urlparse(response.url).path == "/api/v1/photos"
+                and parse_qs(urlparse(response.url).query).get("cursor") == ["fixture-photo-next"]
+                and response.status == 200
+            )
+        ):
+            page.get_by_role("button", name="加载更多", exact=True).click()
+        expect(page.get_by_role("button", name="加载更多", exact=True)).to_be_enabled()
+        expect(images).to_have_count(4)
+        check(calls["append"] == 2, "fixture_photo_upload_cursor_rescan_deduplicates_existing_rows")
+        target = page.get_by_role("img", name="照片 2026/11/03", exact=True).locator("..").get_by_role("button", name="删除这张照片", exact=True)
+        target.click()
+        with allow_expected_error_responses(("GET", "/api/v1/photos", 503)):
+            page.get_by_role("button", name="确认删除", exact=True).click()
+            expect(page.get_by_role("button", name="重试刷新", exact=True)).to_be_visible()
+            expect(images).to_have_count(3)
+            check(True, "fixture_photo_delete_refresh_failure_keeps_survivors_visible")
+        page.get_by_role("button", name="重试刷新", exact=True).click()
+        expect(page.get_by_role("button", name="重试刷新", exact=True)).to_have_count(0)
+        expect(images).to_have_count(3)
+        check(page.get_by_role("img", name="照片 2026/11/03", exact=True).count() == 0,
+              "fixture_photo_refresh_retry_does_not_resurrect_deleted_photo")
+        page.get_by_role("button", name="加载更多", exact=True).click()
+        expect(images).to_have_count(4)
+        expect(page.get_by_role("button", name="加载更多", exact=True)).to_have_count(0)
+        check(calls["append"] == 2 and calls["final"] == 1,
+              "fixture_photo_refresh_preserves_advanced_cursor_and_exhaustion")
+        check(calls["upload"] == 1 and calls["delete"] == 1 and calls["unexpected_mutation"] == 0,
+              "fixture_photo_mutations_are_fully_intercepted_once")
+        page.wait_for_load_state("networkidle")
+    finally:
+        page.unroute(pattern, handle)
+
+
 def record_console_error(msg) -> None:
     # HTTP 状态失败由 response 监听器按 URL/方法/状态精确判断；这里仅保留实际 JS console error。
     if msg.type == "error" and not msg.text.startswith("Failed to load resource: the server responded with a status of"):
@@ -2049,6 +2227,15 @@ def _browser_flow(args, sample_txt: Path, sample_png: Path, receipt_file: Path) 
             except PlaywrightTimeoutError:
                 check(False, "本地候选邮件可见、默认图片阻止与已读成功")
         _screenshot(page, "mail_inbox.png")
+
+        print("== 9.1 邮件与相册失败恢复（仅前端 fixture） ==")
+        previous_viewport = page.viewport_size
+        try:
+            mail_recovery_browser_checks(page, args.base)
+            photo_recovery_browser_checks(page, args.base, sample_png)
+        finally:
+            if previous_viewport is not None:
+                page.set_viewport_size(previous_viewport)
 
         # 真实上传、worker ready、真实 RAG citation 和本地邮件闭环均已完成后，才允许
         # 以页面内 Response/ReadableStream 覆盖精确 fixture 请求；前面所有路径保持真实。

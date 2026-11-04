@@ -22,44 +22,59 @@ export default function PhotoTimeline() {
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<PhotoSummary | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const mountedRef = useRef(false);
   const loadRevisionRef = useRef(0);
+  const needsCursorRescanRef = useRef(false);
+  const deletedIdsRef = useRef(new Set<string>());
+  const deletingRef = useRef(false);
   const refreshTimersRef = useRef(new Set<number>());
 
-  const load = useCallback(async (cursor?: string) => {
+  const load = useCallback(async (cursor?: string, refresh = false) => {
     if (!mountedRef.current) return;
     const revision = ++loadRevisionRef.current;
     const isLoadMore = cursor !== undefined;
-    if (isLoadMore) {
-      setLoadingMore(true);
-      setLoadMoreError(null);
-    } else {
-      setLoading(true);
-      setLoadingMore(false);
-      setLoadError(null);
-      setLoadMoreError(null);
-    }
+    setLoading(!isLoadMore && !refresh);
+    setLoadingMore(isLoadMore);
+    setRefreshing(refresh);
+    setLoadError(null);
+    setLoadMoreError(null);
+    setRefreshError(null);
+    const current = () => mountedRef.current && revision === loadRevisionRef.current;
     try {
       const res: PhotoListResponse = await listPhotos(cursor);
-      if (!mountedRef.current || revision !== loadRevisionRef.current) return;
+      if (!current()) return;
+      const rescanCursor = refresh && needsCursorRescanRef.current;
       setPhotos((prev) => {
-        if (!mountedRef.current || revision !== loadRevisionRef.current) return prev;
-        return isLoadMore ? appendUniquePhotos(prev, res.items) : res.items;
+        if (!current()) return prev;
+        const incoming = appendUniquePhotos([], res.items);
+        const merged = isLoadMore
+          ? appendUniquePhotos(prev, incoming)
+          : refresh ? appendUniquePhotos(incoming, prev) : incoming;
+        return merged.filter((photo) => !deletedIdsRef.current.has(photo.id));
       });
-      setNextCursor(res.nextCursor);
+      setNextCursor((previousCursor) => {
+        if (!current()) return previousCursor;
+        // 上传可落在已浏览区间，需从新 head 重扫；其他刷新保留非空边界。
+        return refresh && !rescanCursor && previousCursor !== null ? previousCursor : res.nextCursor;
+      });
+      if (rescanCursor) needsCursorRescanRef.current = false;
     } catch {
-      if (!mountedRef.current || revision !== loadRevisionRef.current) return;
+      if (!current()) return;
       if (isLoadMore) setLoadMoreError("更多照片加载失败,请重试。");
+      else if (refresh) setRefreshError("相册刷新失败，已保留当前照片，请重试。");
       else setLoadError("相册加载失败,请重试。");
     } finally {
-      if (mountedRef.current && revision === loadRevisionRef.current) {
-        if (isLoadMore) setLoadingMore(false);
-        else setLoading(false);
+      if (current()) {
+        setLoading(false);
+        setLoadingMore(false);
+        setRefreshing(false);
       }
     }
   }, []);
@@ -81,14 +96,15 @@ export default function PhotoTimeline() {
     if (!mountedRef.current) return;
     const timer = window.setTimeout(() => {
       refreshTimersRef.current.delete(timer);
-      if (mountedRef.current) void load();
+      if (mountedRef.current) void load(undefined, true);
     }, 3000);
     refreshTimersRef.current.add(timer);
   }, [load]);
 
   const confirmDelete = async () => {
-    if (!pendingDelete) return;
+    if (!mountedRef.current || !pendingDelete || deletingRef.current) return;
     const photo = pendingDelete;
+    deletingRef.current = true;
     setDeleteBusy(true);
     setDeleteError(null);
     try {
@@ -97,18 +113,16 @@ export default function PhotoTimeline() {
       await deletePhoto(photo.id, token);
       loadRevisionRef.current += 1;
       if (!mountedRef.current) return;
-      setLoading(false);
-      setLoadingMore(false);
-      setLoadError(null);
-      setLoadMoreError(null);
+      deletedIdsRef.current.add(photo.id);
       setPhotos((prev) => prev.filter((item) => item.id !== photo.id));
       setPendingDelete(null);
-      void load();
+      void load(undefined, true);
     } catch (err) {
       if (mountedRef.current) {
         setDeleteError(err instanceof Error ? err.message : "删除失败,请重试。");
       }
     } finally {
+      deletingRef.current = false;
       if (mountedRef.current) setDeleteBusy(false);
     }
   };
@@ -124,13 +138,16 @@ export default function PhotoTimeline() {
         maxBytes={20 * 1024 * 1024}
         label="拖放照片到此处,或点击选择(支持多选)"
         onUpload={async (file, _item, update) => {
+          if (!mountedRef.current) return;
           const token = getCsrf();
           if (!token) throw new Error("安全验证不可用,请刷新页面后重试。");
           update({ progress: 20 });
           const res = await uploadPhoto(file, token, crypto.randomUUID());
+          if (!mountedRef.current) return;
+          needsCursorRescanRef.current = true;
           update({ progress: res.thumbnailState === "ready" ? 100 : 80 });
           if (res.status === "ready") {
-            await load();
+            await load(undefined, true);
           } else {
             // 缩略图异步处理:稍后刷新
             scheduleRefresh();
@@ -138,18 +155,25 @@ export default function PhotoTimeline() {
         }}
       />
 
-      {loading ? (
+      {loadError ? (
+        <StatusBanner tone="error" action={<button type="button" onClick={() => void load()}>重试</button>}>
+          {loadError}
+        </StatusBanner>
+      ) : null}
+      {refreshError ? (
+        <StatusBanner tone="error" action={<button type="button" onClick={() => void load(undefined, true)}>重试刷新</button>}>
+          {refreshError}
+        </StatusBanner>
+      ) : null}
+      {refreshing ? <p role="status" className="text-sm text-text-dim">正在刷新相册…</p> : null}
+      {loading && photos.length === 0 ? (
         <div className="grid grid-cols-3 gap-3 md:grid-cols-4 lg:grid-cols-6" aria-busy="true">
           {Array.from({ length: 12 }).map((_, i) => (
             <div key={i} className="skeleton aspect-square rounded-sm" />
           ))}
         </div>
-      ) : loadError ? (
-        <StatusBanner tone="error" action={<button type="button" onClick={() => load()}>重试</button>}>
-          {loadError}
-        </StatusBanner>
       ) : photos.length === 0 ? (
-        <EmptyState
+        loadError || refreshError || refreshing ? null : <EmptyState
           title="还没有照片"
           description="拖放或点击上传,开始你的时间轴。"
         />
@@ -193,7 +217,7 @@ export default function PhotoTimeline() {
               ) : null}
               <button
                 type="button"
-                disabled={loadingMore}
+                disabled={loading || loadingMore || refreshing}
                 aria-busy={loadingMore}
                 className="mx-auto inline-flex h-11 items-center rounded-sm border border-border bg-surface/70 px-4 text-sm hover:border-accent-warm/70 focus-ring disabled:cursor-not-allowed disabled:opacity-60"
                 onClick={() => void load(nextCursor)}

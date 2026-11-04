@@ -88,6 +88,8 @@ export default function MailInbox() {
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<MailDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -96,12 +98,16 @@ export default function MailInbox() {
   const [loadImages, setLoadImages] = useState(false);
   const [htmlView, setHtmlView] = useState(false);
   const [view, setView] = useState<"list" | "reader">("list");
+  const selectedIdRef = useRef<string | null>(null);
+  const selectedItemRef = useRef<HTMLButtonElement | null>(null);
+  const focusAfterReturnRef = useRef(false);
   const timerRef = useRef<number | null>(null);
   const mountedRef = useRef(false);
   const lifecycleRef = useRef(0);
   const refreshGenerationRef = useRef(0);
   const paginationGenerationRef = useRef(0);
   const activeListRequestsRef = useRef(0);
+  const paginationInFlightRef = useRef(false);
   const detailGenerationRef = useRef(0);
   const readStateRevisionRef = useRef(0);
   const readStateRevisionByMailRef = useRef(new Map<string, number>());
@@ -117,6 +123,7 @@ export default function MailInbox() {
   const load = useCallback(async (cursor?: string) => {
     if (!mountedRef.current) return;
     const mode: MailListMergeMode = cursor === undefined ? "refresh" : "append";
+    if (mode === "append" && paginationInFlightRef.current) return;
     const requestLifecycle = lifecycleRef.current;
     const requestRefreshGeneration = mode === "refresh"
       ? refreshGenerationRef.current + 1
@@ -133,14 +140,21 @@ export default function MailInbox() {
       refreshGenerationRef.current,
     );
 
-    activeListRequestsRef.current += 1;
-    setLoading(true);
-    setLoadError(null);
+    if (mode === "append") {
+      paginationInFlightRef.current = true;
+      // 从发起追加时就保护游标，失败后的重试也不能被首屏刷新改写。
+      paginationGenerationRef.current += 1;
+      setLoadingMore(true);
+      setLoadMoreError(null);
+    } else {
+      activeListRequestsRef.current += 1;
+      setLoading(true);
+      setLoadError(null);
+    }
     try {
       const res: MailListResponse = await listMail(cursor);
       if (!isCurrentRequest()) return;
       if (mode === "append") {
-        paginationGenerationRef.current += 1;
         setNextCursor(res.nextCursor);
       } else if (
         paginationGenerationAtStart === 0
@@ -174,12 +188,18 @@ export default function MailInbox() {
       ));
     } catch {
       if (isCurrentRequest()) {
-        setLoadError("邮件列表加载失败,请重试。");
+        if (mode === "append") setLoadMoreError("更多邮件加载失败，请重试。");
+        else setLoadError("邮件列表加载失败,请重试。");
       }
     } finally {
       if (mountedRef.current && requestLifecycle === lifecycleRef.current) {
-        activeListRequestsRef.current = Math.max(0, activeListRequestsRef.current - 1);
-        setLoading(activeListRequestsRef.current > 0);
+        if (mode === "append") {
+          paginationInFlightRef.current = false;
+          setLoadingMore(false);
+        } else {
+          activeListRequestsRef.current = Math.max(0, activeListRequestsRef.current - 1);
+          setLoading(activeListRequestsRef.current > 0);
+        }
       }
     }
   }, []);
@@ -191,6 +211,7 @@ export default function MailInbox() {
     refreshGenerationRef.current = 0;
     paginationGenerationRef.current = 0;
     activeListRequestsRef.current = 0;
+    paginationInFlightRef.current = false;
     detailGenerationRef.current = 0;
     readStateRevisionRef.current = 0;
     readStateRevisionByMailRef.current.clear();
@@ -203,10 +224,17 @@ export default function MailInbox() {
       mountedRef.current = false;
       lifecycleRef.current += 1;
       activeListRequestsRef.current = 0;
+      paginationInFlightRef.current = false;
       if (timerRef.current !== null) window.clearInterval(timerRef.current);
       timerRef.current = null;
     };
   }, [load]);
+
+  useEffect(() => {
+    if (view !== "list" || !focusAfterReturnRef.current) return;
+    focusAfterReturnRef.current = false;
+    if (selectedItemRef.current?.isConnected) selectedItemRef.current.focus();
+  }, [view]);
 
   const markAsRead = useCallback(async (mailId: string) => {
     if (!mountedRef.current) return;
@@ -241,7 +269,9 @@ export default function MailInbox() {
       ) {
         advanceReadStateRevision(mailId);
         setMails((prev) => prev.map((m) => (m.id === mailId ? { ...m, read: false } : m)));
-        setReadError({ id: mailId, message: "标记已读失败，未读状态已恢复。" });
+        if (selectedIdRef.current === mailId) {
+          setReadError({ id: mailId, message: "标记已读失败，未读状态已恢复。" });
+        }
       }
     } finally {
       if (pendingReadMutationRef.current.get(mailId) === requestGeneration) {
@@ -271,7 +301,8 @@ export default function MailInbox() {
       setDetail(d);
       if (!mail.read) {
         // 乐观更新未读状态；失败时由 markAsRead 回滚并暴露明确重试动作。
-        await markAsRead(mail.id);
+        // 已获取的正文不需要等待独立的已读写入完成。
+        void markAsRead(mail.id);
       }
     } catch {
       if (isCurrentRequest()) {
@@ -284,7 +315,9 @@ export default function MailInbox() {
     }
   }, [markAsRead]);
 
-  const openMail = (mail: MailSummary) => {
+  const openMail = (mail: MailSummary, source: HTMLButtonElement) => {
+    selectedIdRef.current = mail.id;
+    selectedItemRef.current = source;
     setSelectedId(mail.id);
     setView("reader");
     setDetail(null);
@@ -292,6 +325,19 @@ export default function MailInbox() {
     setHtmlView(false);
     // loadDetail 自己处理所有失败路径，事件处理器不会留下未处理的 Promise。
     void loadDetail(mail);
+  };
+
+  const returnToList = () => {
+    // 已离开的阅读器结果不能再渲染正文或发起已读写入。
+    detailGenerationRef.current += 1;
+    selectedIdRef.current = null;
+    focusAfterReturnRef.current = true;
+    setView("list");
+    setSelectedId(null);
+    setDetail(null);
+    setDetailLoading(false);
+    setDetailError(null);
+    setReadError(null);
   };
 
   const sanitize = (html: string, allowImages: boolean) =>
@@ -327,30 +373,33 @@ export default function MailInbox() {
       <div className={`flex min-h-0 flex-1 flex-col ${view === "reader" ? "hidden lg:flex lg:w-72 lg:flex-none" : ""}`}>
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-text-dim">邮件列表</h2>
-          <button type="button" className="rounded px-2 text-xs text-accent hover:underline focus-ring" onClick={() => load()}>
-            刷新
+          <button type="button" disabled={loading} aria-busy={loading} className="rounded px-2 text-xs text-accent hover:underline focus-ring disabled:opacity-60" onClick={() => void load()}>
+            {loading && mails.length > 0 ? "刷新中…" : "刷新"}
           </button>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">
-          {loading ? (
+          {loadError ? (
+            <div className="mb-2">
+              <StatusBanner tone="error" action={<button type="button" onClick={() => void load()}>{mails.length > 0 ? "重试刷新" : "重试"}</button>}>
+                {loadError}
+              </StatusBanner>
+            </div>
+          ) : null}
+          {loading && mails.length === 0 ? (
             <div className="flex flex-col gap-2" aria-busy="true">
               {Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} className="skeleton h-16 rounded-sm" />
               ))}
             </div>
-          ) : loadError ? (
-            <StatusBanner tone="error" action={<button type="button" onClick={() => load()}>重试</button>}>
-              {loadError}
-            </StatusBanner>
           ) : mails.length === 0 ? (
-            <EmptyState title="暂无邮件" description="新邮件到达后会在一分钟内出现在这里。" />
+            loadError ? null : <EmptyState title="暂无邮件" description="新邮件到达后会在一分钟内出现在这里。" />
           ) : (
             <ul className="flex flex-col gap-1">
               {mails.map((m) => (
                 <li key={m.id}>
                   <button
                     type="button"
-                    onClick={() => openMail(m)}
+                    onClick={(event) => openMail(m, event.currentTarget)}
                     data-testid="mail-item"
                     aria-current={selectedId === m.id ? "true" : undefined}
                     className={`w-full rounded-sm border border-l-2 px-3 py-2 text-left focus-ring ${
@@ -369,9 +418,12 @@ export default function MailInbox() {
                 </li>
               ))}
               {nextCursor ? (
-                <button type="button" className="mx-auto mt-2 rounded-sm border border-border bg-surface/70 px-3 py-1.5 text-xs hover:border-accent-warm/70 focus-ring" onClick={() => load(nextCursor)}>
-                  加载更多
-                </button>
+                <li className="flex flex-col items-center gap-2">
+                  {loadMoreError ? <p role="status" className="text-sm text-danger">{loadMoreError}</p> : null}
+                  <button type="button" disabled={loadingMore} aria-busy={loadingMore} className="mx-auto mt-2 min-h-11 rounded-sm border border-border bg-surface/70 px-3 py-1.5 text-xs hover:border-accent-warm/70 focus-ring disabled:opacity-60" onClick={() => void load(nextCursor)}>
+                    {loadingMore ? "加载中…" : loadMoreError ? "重试加载更多" : "加载更多"}
+                  </button>
+                </li>
               ) : null}
             </ul>
           )}
@@ -380,6 +432,9 @@ export default function MailInbox() {
 
       {/* 阅读器 */}
       <div className={`min-h-0 flex-1 ${view === "list" ? "hidden lg:flex lg:flex-col" : "flex flex-col"}`}>
+        <button type="button" className="mb-2 inline-flex min-h-11 shrink-0 items-center self-start rounded-sm px-2 text-sm text-accent hover:underline focus-ring lg:hidden" onClick={returnToList}>
+          ← 返回列表
+        </button>
         {detailLoading ? (
           <div className="skeleton h-full rounded-sm" aria-busy="true" />
         ) : detailError ? (
@@ -389,9 +444,6 @@ export default function MailInbox() {
         ) : detail ? (
           <article className="card flex min-h-0 flex-1 flex-col overflow-hidden rounded-sm border-t-2 border-t-accent-warm/60">
             <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
-              <button type="button" className="rounded px-2 text-xs text-accent hover:underline focus-ring lg:hidden" onClick={() => setView("list")}>
-                ← 返回列表
-              </button>
               <h2 className="truncate text-base font-semibold text-text">{detail.subject || "(无主题)"}</h2>
             </div>
             <div className="border-b border-border/50 px-4 py-2 text-xs text-text-dim">
