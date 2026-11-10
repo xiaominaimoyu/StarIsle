@@ -16,7 +16,8 @@ if (await ensureSession()) {
     if (item.enabled && item.href) {
       const link = document.createElement("a");
       link.href = item.href;
-      link.textContent = item.id === "album" ? "打开相册" : "打开来信";
+      const openLabel = { album: "打开相册", messages: "打开来信", notes: "打开手记" };
+      link.textContent = openLabel[item.id] || "打开";
       note.append(link);
     } else {
       note.textContent = "稍后开放";

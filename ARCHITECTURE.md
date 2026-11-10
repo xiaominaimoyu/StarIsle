@@ -29,7 +29,7 @@
 
 ## 本机私人书桌
 
-2026-11-10 起，主人每天使用的书桌不走 Astro 公开构建。页面、样式和脚本放在 `apps/api/app/private_desk/`，由 `python -m app.private_server` 和 `/api/v1` 一起绑在 `127.0.0.1:8787`。公开 `pnpm build:pages` 不读取这个目录。账号由 `python -m app.owner_setup` 写入数据目录，没有注册路由。没有终端时该命令直接退出；Windows 启动脚本不重定向原生 stderr，日志由进程自己写成 UTF-8。登录自动启动是可选的。相册复用现有照片接口；开机备份用 SQLite backup API 把快照写到单独的备份目录，并增量复制照片。来信从公开站的 Pages Function 取回：Turnstile 和频率限制在云端，拉取密钥只能收取并确认删除。手记、问屿和总览仍只占位。旧的邮件 Worker 继续把邮件 HMAC 转发到本机，不承接这条留言。
+2026-11-10 起，主人每天使用的书桌不走 Astro 公开构建。页面、样式和脚本放在 `apps/api/app/private_desk/`，由 `python -m app.private_server` 和 `/api/v1` 一起绑在 `127.0.0.1:8787`。公开 `pnpm build:pages` 不读取这个目录。账号由 `python -m app.owner_setup` 写入数据目录，没有注册路由。没有终端时该命令直接退出；Windows 启动脚本不重定向原生 stderr，日志由进程自己写成 UTF-8。登录自动启动是可选的。相册复用现有照片接口；开机备份用 SQLite backup API 把快照写到单独的备份目录，并增量复制照片。来信从公开站的 Pages Function 取回：Turnstile 和频率限制在云端，拉取密钥只能收取并确认删除。手记和日记写在同一份 SQLite 里，不另开库，也不提升 schema 版本；一篇日记对应一个日期。全文检索把正文切成二字和三字后再交给 FTS5。照片只引用相册里的编号，预览里的图片地址仍是要登录的 `/api/v1/photos/{id}/original`。`updated_at` 和 `content_hash` 留给下一阶段按篇增量索引。问屿和总览仍只占位。旧的邮件 Worker 继续把邮件 HMAC 转发到本机，不承接留言或手记。
 
 ## Cloudflare 公开部署
 

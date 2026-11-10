@@ -4,18 +4,22 @@ import test from "node:test";
 import {
   PRIVATE_NAV,
   deletionRequest,
+  diaryCells,
   mergePhotos,
+  noteSaveLabel,
   originalUrl,
+  parseTags,
+  photoEmbed,
   photoFileIssue,
   photoLabel,
   removePhoto,
   safeNext,
 } from "./private-state.mjs";
 
-test("album and letters are open while later rooms have no link", () => {
+test("album, letters and notes are open while later rooms have no link", () => {
   const open = PRIVATE_NAV.filter((item) => item.enabled);
-  assert.deepEqual(open.map((item) => item.id), ["album", "messages"]);
-  assert.equal(open[1].href, "/private/messages");
+  assert.deepEqual(open.map((item) => item.id), ["album", "messages", "notes"]);
+  assert.equal(open[2].href, "/private/notes");
   for (const item of PRIVATE_NAV.filter((entry) => !entry.enabled)) {
     assert.equal(item.href, undefined);
     assert.equal(typeof item.later, "string");
@@ -30,6 +34,7 @@ test("next path stays inside the private desk", () => {
   assert.equal(safeNext("/private/album"), "/private/album");
   assert.equal(safeNext("/private/"), "/private/");
   assert.equal(safeNext("/private/messages"), "/private/messages");
+  assert.equal(safeNext("/private/notes"), "/private/notes");
   assert.equal(safeNext("https://example.test"), "/private/album");
   assert.equal(safeNext("//example.test"), "/private/album");
   assert.equal(safeNext("/console"), "/private/album");
@@ -53,4 +58,19 @@ test("client checks reject the wrong type or an oversized file before upload", (
   assert.equal(photoLabel({ captureAt: "2026-11-10T08:00:00" }), "照片 2026-11-10");
   assert.equal(photoLabel({ captureAt: null }), "照片");
   assert.equal(originalUrl("photo 1"), "/api/v1/photos/photo%201/original");
+});
+
+test("notes keep a visible save state and only embed album photo ids", () => {
+  assert.equal(noteSaveLabel("dirty"), "未保存");
+  assert.equal(noteSaveLabel("saving"), "正在保存");
+  assert.equal(noteSaveLabel("saved"), "已保存");
+  assert.equal(noteSaveLabel("error"), "保存失败");
+  assert.equal(photoEmbed("photo_abc"), "![](photo:photo_abc)");
+  assert.equal(photoEmbed("../secret"), "");
+  assert.deepEqual(parseTags("星屿, 日记 日记"), ["星屿", "日记"]);
+  const cells = diaryCells(2026, 11);
+  assert.equal(cells.filter(Boolean).length, 30);
+  assert.equal(cells.includes("2026-11-10"), true);
+  assert.equal(cells.at(-1), "2026-11-30");
+  assert.equal(diaryCells(2026, 13).length, 0);
 });
