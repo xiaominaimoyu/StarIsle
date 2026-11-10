@@ -11,7 +11,8 @@
   },
   "scripts": {
     "lint": "pnpm -r lint",
-    "test": "pnpm test:email-worker && pnpm -r test",
+    "test": "pnpm test:email-worker && pnpm test:private-desk && pnpm -r test",
+    "test:private-desk": "node --test apps/api/app/private_desk/static/private-state.test.mjs",
     "test:contracts": "pnpm --filter @star-isle/contracts test",
     "test:email-worker": "node --test scripts/email-worker.test.mjs",
     "build": "pnpm --filter @star-isle/contracts build && pnpm --filter @star-isle/web build",

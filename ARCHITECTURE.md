@@ -27,6 +27,10 @@
 
 已核对 Astro 5.18.2 的 glob-loader：同一文件 digest 变化时，重新解析前 store 已含该 ID，会触发重复提示；当前三个集合的源文件与缓存条目为 1/1/2，没有重复条目或内容丢失。本批保留内容加载配置与依赖，单独记录该诊断行为。验证与证据回写到 [PROGRESS.md](./PROGRESS.md) 和开发进度。
 
+## 本机私人书桌
+
+2026-11-10 起，主人每天使用的书桌不走 Astro 公开构建。页面、样式和脚本放在 `apps/api/app/private_desk/`，由 `python -m app.private_server` 和 `/api/v1` 一起绑在 `127.0.0.1:8787`。公开 `pnpm build:pages` 不读取这个目录。账号由 `python -m app.owner_setup` 写入数据目录，没有注册路由。没有终端时该命令直接退出；Windows 启动脚本不重定向原生 stderr，日志由进程自己写成 UTF-8。登录自动启动是可选的。相册复用现有照片接口；开机备份用 SQLite backup API 把快照写到单独的备份目录，并增量复制照片。来信、手记、问屿和总览只在导航里占位。
+
 ## Cloudflare 公开部署
 
 `pnpm build:pages` → PUBLIC_SITE_URL 配置门禁 → 以 PUBLIC_PRIVATE_AREA_ENABLED=false 构建 → 写入 `_redirects` / `_headers` → 原静态发布门禁 → Wrangler Direct Upload → Cloudflare Pages。只有该构建关闭登录表单；默认构建不改变认证行为。控制台路径由 Pages 302 转至 `/login/` 提示页，API 没有云端代理。

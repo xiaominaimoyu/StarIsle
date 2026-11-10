@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -13,6 +14,8 @@ from .config import API_ROOT, settings
 from .db import audit, init_db
 from .deps import get_request_id
 from .observability import emit_api_request, route_template, safe_request_id
+from .private_desk.routes import router as private_desk_router
+from .private_runtime import client_is_loopback
 from .request_body_limit import (
     PAYLOAD_TOO_LARGE_DETAIL,
     RequestBodyLimitMiddleware,
@@ -82,6 +85,27 @@ def apply_security_headers(response):
 async def security_headers(request: Request, call_next):
     response = await call_next(request)
     return apply_security_headers(response)
+
+
+@app.middleware("http")
+async def private_desk_loopback_guard(request: Request, call_next):
+    """启动脚本打开此开关后，非回环来源连健康检查也不放行。"""
+
+    if os.environ.get("STAR_ISLE_PRIVATE_DESK_LOOPBACK_ONLY") == "1":
+        host = request.client.host if request.client else None
+        if not client_is_loopback(host):
+            response = JSONResponse(
+                status_code=403,
+                content={
+                    "error": {
+                        "code": "BIND_REFUSED",
+                        "message": "私人书桌只接受本机连接。",
+                        "requestId": getattr(request.state, "request_id", ""),
+                    }
+                },
+            )
+            return apply_security_headers(response)
+    return await call_next(request)
 
 
 @app.middleware("http")
@@ -207,6 +231,7 @@ def include_routers(prefix: str = API_ROOT) -> None:
     app.include_router(knowledge.router, prefix=prefix)
     app.include_router(misc.router, prefix=prefix)
     app.include_router(rag.router, prefix=prefix)
+    app.include_router(private_desk_router)
 
 
 include_routers()

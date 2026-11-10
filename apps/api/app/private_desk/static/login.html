@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>登录 · 星屿私人书桌</title>
+  <link rel="stylesheet" href="/private/assets/desk.css">
+</head>
+<body>
+  <a class="skip" href="#main">跳到内容</a>
+  <header class="desk-top" style="width:min(1080px,calc(100% - 2rem));margin:0 auto;padding-top:1rem;">
+    <a class="brand" href="/private/login">
+      <span class="seal" aria-hidden="true">星</span>
+      <span class="brand-text"><strong>星屿</strong><small>STARISLE</small></span>
+    </a>
+  </header>
+  <main class="login-stage" id="main">
+    <section class="login-card" aria-labelledby="login-title">
+      <p class="eyebrow">PRIVATE DESK</p>
+      <h1 id="login-title">进入私人书桌</h1>
+      <p class="lede">只在这台电脑上开着。没有注册入口，账号在安装时写好。</p>
+      <form id="login-form">
+        <label for="password">主人密码</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required>
+        <p id="login-error" class="alert" role="alert" hidden></p>
+        <button class="primary" type="submit">进入屿</button>
+      </form>
+      <noscript><p class="alert">需要启用 JavaScript 才能登录。</p></noscript>
+    </section>
+  </main>
+  <script type="module" src="/private/assets/login.js"></script>
+</body>
+</html>

@@ -19,6 +19,8 @@ data/
 .env
 .env.*
 !.env.example
+runtime.env
+runtime.env.partial
 *.pem
 *.key
 *.p12

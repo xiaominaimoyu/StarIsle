@@ -28,6 +28,14 @@
 
 11-01 旧部署的移动 Lighthouse 四项（性能/无障碍/最佳实践/SEO）为：开封后主页 96/100/100/100、项目和简历均 100/100/100/100；首次 `/` 实际进入 noindex 信封页，为 98/100/100/66，保留重定向警告，不能混为首页首访 SEO 已通过。这些是历史实验室样本，本轮未重新采集；原始报告和边界见 [Lighthouse 与筛选修复](./docs/2026-11-01_公开站Lighthouse与筛选修复.md)。发布、更新和回滚见 [Cloudflare Pages 部署](./docs/Cloudflare-Pages部署.md)。
 
+## 本机私人书桌
+
+公开站仍然只由 `pnpm build:pages` 生成。私人书桌不进 Astro 页面，而由本机 API 在 `http://127.0.0.1:8787` 直接提供。这样 `apps/web/dist` 里不会出现 `/private` 路由、私人数据或新的 API 地址。登录仍用现有的 HttpOnly Cookie 和 CSRF，相册仍走现有的 `/api/v1/photos`。没有注册接口。
+
+数据默认在 `D:\StarIsleData`，备份默认在 `D:\ASUS\OneDrive\StarIsleBackup`。数据库用 SQLite 在线备份写成快照，保留最近 7 份；照片按内容增量复制。正在使用的数据库不会被复制进 OneDrive，也不会在 OneDrive 里打开。端口固定避开 8000 和 8001，留给以后的本机模型。
+
+主人电脑上的命令见 [本地运行与恢复指南](./docs/本地运行与恢复指南.md) 的「私人书桌」一节。启动是手动的；登录时自动启动可以不注册。脚本输出是 ASCII，日志是 UTF-8。
+
 ## 本机快速开始
 
 前置条件：Node.js 20+、pnpm 9、Python 3.12+。当前源码树包含已跟踪的静态仓库快照与空播放列表，在依赖已经安装时可直接构建。`pnpm fetch:repos` 只在需要更新 GitHub/Gitee 构建期快照时才运行。2026-11-01 已验证项目 `apps/api/.venv` 的 Python 3.14.7 可运行；不要依据早期记录重复重建环境。

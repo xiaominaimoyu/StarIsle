@@ -392,6 +392,32 @@ def photo_thumbnail(photo_id: str, payload: dict = Depends(require_auth)):
     )
 
 
+@router.get("/photos/{photo_id}/original")
+def photo_original(photo_id: str, payload: dict = Depends(require_auth)):
+    """大图只从原件对象读取，并且必须已经通过照片上传校验。"""
+
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT a.object_key, a.mime_type, a.original_name, a.storage_class "
+            "FROM photo p JOIN asset a ON a.id=p.asset_id WHERE p.id=?",
+            (photo_id,),
+        ).fetchone()
+    if row is None or row["storage_class"] != "photo-original":
+        raise HTTPException(404, detail={"code": "NOT_FOUND", "message": "照片不存在"})
+    data = storage.open("originals", row["object_key"])
+    media = row["mime_type"] if row["mime_type"] in IMAGE_TYPES else "application/octet-stream"
+    filename = quote(safe_display_name(row["original_name"], "photo"), safe="")
+    return Response(
+        content=data,
+        media_type=media,
+        headers={
+            "Content-Disposition": f"inline; filename*=UTF-8''{filename}",
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "private, no-store",
+        },
+    )
+
+
 @router.delete("/photos/{photo_id}", status_code=204)
 def delete_photo(
     photo_id: str,
