@@ -223,7 +223,7 @@ def test_future_schema_version_is_rejected_for_backup_and_public_verify(tmp_path
 
     connection = sqlite3.connect(source / "db" / "star-isle.db")
     try:
-        connection.execute("UPDATE schema_version SET version=6 WHERE id=1")
+        connection.execute("UPDATE schema_version SET version=7 WHERE id=1")
         connection.commit()
     finally:
         connection.close()
@@ -237,7 +237,7 @@ def test_future_schema_version_is_rejected_for_backup_and_public_verify(tmp_path
     backup_restore.backup(verified_output, generated_backup, verify_after=True)
     manifest_path = generated_backup / "manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    manifest["schemaVersion"] = 6
+    manifest["schemaVersion"] = 7
     manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     with pytest.raises(backup_restore.BackupError, match="schema"):
         backup_restore.verify(generated_backup)

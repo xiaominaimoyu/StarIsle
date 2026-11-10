@@ -62,7 +62,7 @@ OBJECT_SUBDIRECTORIES = ("originals", "thumbnails", "mail-attachments", "mail-ra
 # _object_subdirectories_for_format 集中管理。
 MANIFEST_OBJECT_SUBDIRECTORIES = frozenset(OBJECT_SUBDIRECTORIES)
 LEGACY_MANIFEST_OBJECT_SUBDIRECTORIES = frozenset((*OBJECT_SUBDIRECTORIES, "health"))
-SUPPORTED_SCHEMA_VERSIONS = frozenset(range(1, 6))
+SUPPORTED_SCHEMA_VERSIONS = frozenset(range(1, 7))
 INCOMPLETE_MARKER_NAME = ".star-isle-backup-incomplete"
 MANIFEST_TEMP_NAME = ".star-isle-manifest.tmp"
 DEFAULT_LOCK_TIMEOUT_SECONDS = 15.0

@@ -123,8 +123,8 @@ def test_conversation_list_keyset_pages_default_and_clamp(conversation_client: T
     assert len(seen) == len(set(seen)) == len(records)
 
     with get_conn() as conn:
-        assert conn.execute("SELECT version FROM schema_version WHERE id=1").fetchone()[0] == 5
-    assert SCHEMA_VERSION == 5
+        assert conn.execute("SELECT version FROM schema_version WHERE id=1").fetchone()[0] == SCHEMA_VERSION
+    assert SCHEMA_VERSION == 6
 
 
 def test_message_pages_start_latest_and_prepend_to_full_history(conversation_client: TestClient):
@@ -232,8 +232,8 @@ def test_message_detail_default_and_clamp(conversation_client: TestClient):
     assert upper_clamped.json()["nextCursor"] is not None
 
     with get_conn() as conn:
-        assert conn.execute("SELECT version FROM schema_version WHERE id=1").fetchone()[0] == 5
-    assert SCHEMA_VERSION == 5
+        assert conn.execute("SELECT version FROM schema_version WHERE id=1").fetchone()[0] == SCHEMA_VERSION
+    assert SCHEMA_VERSION == 6
 
 
 def test_conversation_cursor_rejections_auth_and_not_found(conversation_client: TestClient):

@@ -55,7 +55,7 @@ def _page(name: str) -> FileResponse:
 
 
 def _redirect(next_path: str) -> RedirectResponse:
-    safe = next_path if next_path in _ALLOWED_NEXT else "/private/album"
+    safe = next_path if next_path in _ALLOWED_NEXT else "/private/"
     return RedirectResponse(url=f"/private/login?next={quote(safe, safe='/')}", status_code=302)
 
 

@@ -184,7 +184,7 @@ def test_note_crud_search_diary_and_photo_reference(tmp_path):
     with get_conn() as conn:
         version = conn.execute("SELECT version FROM schema_version WHERE id=1").fetchone()[0]
         stored = conn.execute("SELECT content_hash, updated_at, deleted_at FROM desk_note").fetchall()
-    assert version == SCHEMA_VERSION == 5
+    assert version == SCHEMA_VERSION == 6
     assert stored
 
     snapshot = snapshot_database(settings.db_path, tmp_path / "backup")

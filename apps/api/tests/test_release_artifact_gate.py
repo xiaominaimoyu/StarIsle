@@ -643,6 +643,13 @@ def test_missing_visitor_function_fails_the_gate(release_fixture: tuple[ModuleTy
     assert "VISITOR_FUNCTION_MISSING" in _result(gate).error_codes
 
 
+def test_public_dist_cannot_carry_the_private_dashboard(release_fixture: tuple[ModuleType, Path, Path]):
+    gate, dist_root, _ = release_fixture
+    _write(dist_root / "leak.js", "fetch('/api/v1/desk-todos');\n")
+
+    assert "PRIVATE_DESK_LEAK" in _result(gate).error_codes
+
+
 def test_public_dist_cannot_carry_visitor_secrets(release_fixture: tuple[ModuleType, Path, Path]):
     gate, dist_root, _ = release_fixture
     _write(dist_root / "leak.js", "const key = 'VISITOR_PULL_KEY';\n")
