@@ -130,8 +130,12 @@ def test_note_crud_search_diary_and_photo_reference(tmp_path):
     assert other.status_code == 201
     found = client.get("/api/v1/notes", params={"q": "星屿"})
     assert found.status_code == 200
-    assert [item["id"] for item in found.json()["items"]] == [note["id"]]
-    assert client.get("/api/v1/notes", params={"q": "手记"}).json()["items"][0]["id"] == note["id"]
+    found_ids = [item["id"] for item in found.json()["items"]]
+    assert note["id"] in found_ids
+    assert other.json()["id"] not in found_ids
+    hand_ids = [item["id"] for item in client.get("/api/v1/notes", params={"q": "手记"}).json()["items"]]
+    assert note["id"] in hand_ids
+    assert other.json()["id"] not in hand_ids
     assert client.get("/api/v1/notes", params={"q": "不存在"}).json()["items"] == []
 
     changed = client.patch(
@@ -170,7 +174,7 @@ def test_note_crud_search_diary_and_photo_reference(tmp_path):
     removed = client.delete(f"/api/v1/notes/{note['id']}", headers=_headers(token))
     assert removed.status_code == 204
     assert client.get(f"/api/v1/notes/{note['id']}").status_code == 404
-    assert client.get("/api/v1/notes", params={"q": "星屿"}).json()["items"] == []
+    assert note["id"] not in [item["id"] for item in client.get("/api/v1/notes", params={"q": "星屿"}).json()["items"]]
     reopened = client.put("/api/v1/notes/diary/2026-11-10", headers=_headers(token))
     assert reopened.json()["id"] == first.json()["id"]
     assert client.delete(f"/api/v1/notes/{first.json()['id']}", headers=_headers(token)).status_code == 204

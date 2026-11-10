@@ -20,6 +20,7 @@ _PAGES = {
     "album.html": "text/html; charset=utf-8",
     "messages.html": "text/html; charset=utf-8",
     "notes.html": "text/html; charset=utf-8",
+    "ask.html": "text/html; charset=utf-8",
 }
 _ASSETS = {
     "desk.css": "text/css; charset=utf-8",
@@ -29,9 +30,10 @@ _ASSETS = {
     "album.js": "text/javascript; charset=utf-8",
     "messages.js": "text/javascript; charset=utf-8",
     "notes.js": "text/javascript; charset=utf-8",
+    "ask.js": "text/javascript; charset=utf-8",
     "private-state.mjs": "text/javascript; charset=utf-8",
 }
-_ALLOWED_NEXT = {"/private", "/private/", "/private/album", "/private/messages", "/private/notes"}
+_ALLOWED_NEXT = {"/private", "/private/", "/private/album", "/private/messages", "/private/notes", "/private/ask"}
 _PAGE_HEADERS = {
     "Content-Security-Policy": (
         "default-src 'self'; img-src 'self'; style-src 'self'; script-src 'self'; "
@@ -90,6 +92,13 @@ def private_notes(request: Request):
     if not _signed_in(request):
         return _redirect("/private/notes")
     return _page("notes.html")
+
+
+@router.get("/private/ask")
+def private_ask(request: Request):
+    if not _signed_in(request):
+        return _redirect("/private/ask")
+    return _page("ask.html")
 
 
 @router.get("/private/album")

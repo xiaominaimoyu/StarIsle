@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>问屿 · 星屿私人书桌</title>
+  <link rel="stylesheet" href="/private/assets/desk.css">
+</head>
+<body>
+  <a class="skip" href="#main">跳到内容</a>
+  <div class="shell">
+    <aside class="sidebar">
+      <a class="brand sidebar-brand" href="/private/">
+        <span class="seal" aria-hidden="true">星</span>
+        <span class="brand-text"><strong>星屿</strong><small>DESK</small></span>
+      </a>
+      <nav class="nav-list" data-nav aria-label="私人书桌">
+        <a class="nav-link" href="/private/album">相册</a>
+        <a class="nav-link" href="/private/messages">来信</a>
+        <a class="nav-link" href="/private/notes">手记</a>
+        <a class="nav-link" href="/private/ask" aria-current="page">问屿</a>
+        <button class="nav-link is-disabled" type="button" aria-disabled="true">总览</button>
+      </nav>
+    </aside>
+    <div class="shell-main">
+      <header class="shell-header">
+        <div>
+          <p class="eyebrow">ASK THE DESK</p>
+          <h1>问屿</h1>
+        </div>
+        <button class="ghost" type="button" data-logout>退出</button>
+      </header>
+      <main id="main" class="ask-layout">
+        <section class="panel" aria-label="模型和服务">
+          <p data-embed role="status">正在查看嵌入服务。</p>
+          <p data-chat role="status">正在查看生成服务。</p>
+          <p data-index class="quiet"></p>
+          <div class="header-actions">
+            <button class="primary" type="button" data-continue>继续索引</button>
+            <button class="ghost" type="button" data-rebuild>重建索引</button>
+          </div>
+        </section>
+        <form id="ask-form">
+          <label class="field">
+            <span>问题</span>
+            <textarea data-query rows="3" maxlength="8000" required></textarea>
+          </label>
+          <button class="primary" type="submit">提问</button>
+        </form>
+        <article class="note-preview" data-answer aria-live="polite"></article>
+        <div class="letter-list" data-citations></div>
+      </main>
+    </div>
+  </div>
+  <script type="module" src="/private/assets/ask.js"></script>
+</body>
+</html>

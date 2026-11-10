@@ -16,10 +16,10 @@ import {
   safeNext,
 } from "./private-state.mjs";
 
-test("album, letters and notes are open while later rooms have no link", () => {
+test("album, letters, notes and ask are open while later rooms have no link", () => {
   const open = PRIVATE_NAV.filter((item) => item.enabled);
-  assert.deepEqual(open.map((item) => item.id), ["album", "messages", "notes"]);
-  assert.equal(open[2].href, "/private/notes");
+  assert.deepEqual(open.map((item) => item.id), ["album", "messages", "notes", "ask"]);
+  assert.equal(open[3].href, "/private/ask");
   for (const item of PRIVATE_NAV.filter((entry) => !entry.enabled)) {
     assert.equal(item.href, undefined);
     assert.equal(typeof item.later, "string");
@@ -35,6 +35,7 @@ test("next path stays inside the private desk", () => {
   assert.equal(safeNext("/private/"), "/private/");
   assert.equal(safeNext("/private/messages"), "/private/messages");
   assert.equal(safeNext("/private/notes"), "/private/notes");
+  assert.equal(safeNext("/private/ask"), "/private/ask");
   assert.equal(safeNext("https://example.test"), "/private/album");
   assert.equal(safeNext("//example.test"), "/private/album");
   assert.equal(safeNext("/console"), "/private/album");
