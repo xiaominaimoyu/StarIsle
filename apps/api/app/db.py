@@ -9,7 +9,7 @@ from typing import Iterator
 from .config import settings
 
 
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 
 # 旧版基础 schema 保持为单独常量，便于真实执行 v1 -> v2 迁移，而不是在
 # 启动时把新表静默塞进一个标记为 v1 的数据库。
@@ -221,6 +221,20 @@ MIGRATION_V5 = (
     "ON asset(status, object_purged_at, gc_next_run_at, id)",
 )
 
+MIGRATION_V6 = (
+    """
+    CREATE TABLE IF NOT EXISTS desk_todo (
+      id TEXT PRIMARY KEY,
+      text TEXT NOT NULL,
+      due_on TEXT,
+      done_at TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )
+    """,
+    "CREATE INDEX IF NOT EXISTS idx_desk_todo_open ON desk_todo(done_at, due_on, created_at, id)",
+)
+
 # 完整 schema 供测试/离线 fixture 重复建库使用。它直接创建带 v3 字段的表，避免
 # 对同一数据库重复执行 ALTER TABLE 而触发 duplicate column。
 SCHEMA_V3 = SCHEMA_V1.replace(
@@ -255,7 +269,7 @@ SCHEMA_V5 = SCHEMA_V4.replace(
 # 测试、离线 fixture 和备份工具可以用完整 v5 schema 建库；运行时仍通过上面的
 # 显式迁移路径到达它。
 SCHEMA = SCHEMA_V5 + "\n" + ";\n".join(
-    MIGRATION_V2 + MIGRATION_V3[1:] + MIGRATION_V4[1:] + MIGRATION_V5[5:]
+    MIGRATION_V2 + MIGRATION_V3[1:] + MIGRATION_V4[1:] + MIGRATION_V5[5:] + MIGRATION_V6
 ) + ";\n"
 
 
@@ -705,6 +719,8 @@ def init_db() -> None:
                 conn.execute(statement)
             for statement in MIGRATION_V5:
                 conn.execute(statement)
+            for statement in MIGRATION_V6:
+                conn.execute(statement)
             conn.execute(
                 "CREATE TABLE schema_version (id INTEGER PRIMARY KEY, version INTEGER NOT NULL, applied_at TEXT NOT NULL)"
             )
@@ -728,6 +744,9 @@ def init_db() -> None:
             elif current == 4:
                 _apply_v5_migration(conn)
                 current = 5
+            elif current == 5:
+                _apply_v6_migration(conn)
+                current = 6
             else:  # pragma: no cover - SCHEMA_VERSION 变化时的保护栏
                 raise SchemaVersionError("缺少已知的 schema 前向迁移")
         _ensure_visitor_letter_table(conn)
@@ -735,6 +754,26 @@ def init_db() -> None:
         _ensure_desk_index_tables(conn)
         conn.commit()
         _assert_v5_layout(conn)
+
+
+def _apply_v6_migration(conn: sqlite3.Connection) -> None:
+    """在已有 v5 库上补待办表。重复执行不会再改版本或拆掉已有待办。"""
+
+    _assert_v5_layout(conn)
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        for statement in MIGRATION_V6:
+            conn.execute(statement)
+        if not _table_exists(conn, "desk_todo"):
+            raise SchemaVersionError("schema v6 缺少待办表，已拒绝启动")
+        conn.execute(
+            "UPDATE schema_version SET version=?, applied_at=? WHERE id=1",
+            (6, _now()),
+        )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
 
 
 def _ensure_visitor_letter_table(conn: sqlite3.Connection) -> None:

@@ -12,7 +12,7 @@
 | --- | --- |
 | apps/web | Astro 5 静态页面、React 19 islands、Tailwind 4；公开内容、信封入口与私有控制台 |
 | packages/contracts | 前后端共享 TypeScript 契约 |
-| apps/api | FastAPI 同源 /api/v1、Cookie/CSRF、SQLite schema v5 与本地对象存储 |
+| apps/api | FastAPI 同源 /api/v1、Cookie/CSRF、SQLite schema v6 与本地对象存储 |
 | apps/api/app/worker_runner.py | durable job、文档索引与维护任务 |
 | infra | Caddy 和 Compose base/local/prod/cpu 覆盖层 |
 | scripts | 浏览器/后端验收、邮件 Worker、发布预检、备份恢复和 RAG 评测 |

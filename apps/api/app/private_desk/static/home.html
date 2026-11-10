@@ -20,21 +20,49 @@
         <a class="nav-link" href="/private/messages">来信</a>
         <a class="nav-link" href="/private/notes">手记</a>
         <a class="nav-link" href="/private/ask">问屿</a>
-        <button class="nav-link is-disabled" type="button" aria-disabled="true">总览</button>
+        <a class="nav-link" href="/private/" aria-current="page">总览</a>
       </nav>
     </aside>
     <div class="shell-main">
       <header class="shell-header">
         <div>
           <p class="eyebrow">ON THIS COMPUTER</p>
-          <h1>私人书桌</h1>
+          <h1>总览</h1>
         </div>
         <button class="ghost" type="button" data-logout>退出</button>
       </header>
-      <main id="main">
-        <p class="lede">相册、来信、手记和问屿已经可以用。总览留着位置，后面再接上。</p>
-        <ul class="room-list" data-rooms></ul>
+      <main id="main" class="board">
+        <section class="count-row" aria-label="一眼看完">
+          <a class="count-card" href="/private/album"><strong data-count="photos">0</strong><span>照片</span></a>
+          <a class="count-card" href="/private/messages"><strong data-count="unread">0</strong><span>未读来信</span></a>
+          <a class="count-card" href="/private/notes"><strong data-count="notes">0</strong><span>手记</span></a>
+          <a class="count-card" href="#todos"><strong data-count="todos">0</strong><span>未完成</span></a>
+        </section>
+        <p class="quiet" data-index>问屿索引还在读取。</p>
+        <section id="todos" aria-label="待办">
+          <h2>待办</h2>
+          <form data-todo-form class="todo-form">
+            <input data-todo-text type="text" maxlength="200" required placeholder="写一件要做的事">
+            <input data-todo-due type="date" aria-label="截止日期">
+            <button class="primary" type="submit">添加</button>
+          </form>
+          <p class="empty" data-todo-empty hidden>还没有待办。</p>
+          <div class="letter-list" data-todos></div>
+        </section>
+        <section aria-label="最近">
+          <h2>最近</h2>
+          <p class="empty" data-activity-empty hidden>最近还没有新的照片、来信或手记。</p>
+          <div class="letter-list" data-activity></div>
+        </section>
       </main>
+      <dialog id="confirm-delete">
+        <h2>确认删除</h2>
+        <p>这件待办会从书桌上拿掉。</p>
+        <div class="dialog-actions">
+          <button id="confirm-cancel" class="ghost" type="button">取消</button>
+          <button id="confirm-ok" class="danger" type="button">确认删除</button>
+        </div>
+      </dialog>
     </div>
   </div>
   <script type="module" src="/private/assets/home.js"></script>

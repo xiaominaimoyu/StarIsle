@@ -697,6 +697,27 @@ def _check_visitor_functions(errors: set[str]) -> None:
             errors.add("SECRET_INDICATOR")
 
 
+_PRIVATE_DESK_MARKERS = (
+    "/private/",
+    "/api/v1/desk-todos",
+    "/api/v1/desk-home",
+    "desk-todo",
+)
+
+
+def _check_private_desk_absent(artifacts: list[tuple[str, Path]], errors: set[str]) -> None:
+    """公开制品不能带上书桌总览、待办或私人路由。"""
+
+    for _relative_name, path in artifacts:
+        if path.suffix.casefold() not in SCANNED_TEXT_EXTENSIONS:
+            continue
+        text = _read_text(path, errors)
+        if text is None:
+            continue
+        if any(marker in text for marker in _PRIVATE_DESK_MARKERS):
+            errors.add("PRIVATE_DESK_LEAK")
+
+
 def _check_visitor_secret_leak(artifacts: list[tuple[str, Path]], errors: set[str]) -> None:
     for _relative_name, path in artifacts:
         if path.suffix.casefold() not in SCANNED_TEXT_EXTENSIONS:
@@ -759,6 +780,7 @@ def evaluate_gate(raw_site_url: str | None, *, config_only: bool = False) -> Gat
 
     _check_visitor_functions(errors)
     _check_visitor_secret_leak(artifacts, errors)
+    _check_private_desk_absent(artifacts, errors)
 
     if errors:
         return GateResult(frozenset(errors))

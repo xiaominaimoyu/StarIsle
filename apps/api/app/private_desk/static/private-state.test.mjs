@@ -16,14 +16,11 @@ import {
   safeNext,
 } from "./private-state.mjs";
 
-test("album, letters, notes and ask are open while later rooms have no link", () => {
+test("every private room is open and the desk lands on the overview", () => {
   const open = PRIVATE_NAV.filter((item) => item.enabled);
-  assert.deepEqual(open.map((item) => item.id), ["album", "messages", "notes", "ask"]);
-  assert.equal(open[3].href, "/private/ask");
-  for (const item of PRIVATE_NAV.filter((entry) => !entry.enabled)) {
-    assert.equal(item.href, undefined);
-    assert.equal(typeof item.later, "string");
-  }
+  assert.deepEqual(open.map((item) => item.id), ["album", "messages", "notes", "ask", "overview"]);
+  assert.equal(open[4].href, "/private/");
+  assert.equal(PRIVATE_NAV.filter((entry) => !entry.enabled).length, 0);
   assert.deepEqual(
     PRIVATE_NAV.map((item) => item.id),
     ["album", "messages", "notes", "ask", "overview"],
@@ -36,10 +33,10 @@ test("next path stays inside the private desk", () => {
   assert.equal(safeNext("/private/messages"), "/private/messages");
   assert.equal(safeNext("/private/notes"), "/private/notes");
   assert.equal(safeNext("/private/ask"), "/private/ask");
-  assert.equal(safeNext("https://example.test"), "/private/album");
-  assert.equal(safeNext("//example.test"), "/private/album");
-  assert.equal(safeNext("/console"), "/private/album");
-  assert.equal(safeNext(null), "/private/album");
+  assert.equal(safeNext("https://example.test"), "/private/");
+  assert.equal(safeNext("//example.test"), "/private/");
+  assert.equal(safeNext("/console"), "/private/");
+  assert.equal(safeNext(null), "/private/");
 });
 
 test("photo pages merge without duplicates and deletion needs confirmation", () => {

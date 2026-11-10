@@ -111,6 +111,8 @@ def build_request_body_limit_policy(
             ("PUT", "/api/v1/notes/diary/{day}"): 4 * 1024,
             ("POST", "/api/v1/desk-ask/query"): 128 * 1024,
             ("POST", "/api/v1/desk-ask/index"): 4 * 1024,
+            ("POST", "/api/v1/desk-todos"): 16 * 1024,
+            ("PATCH", "/api/v1/desk-todos/{todo_id}"): 16 * 1024,
         }
     )
 

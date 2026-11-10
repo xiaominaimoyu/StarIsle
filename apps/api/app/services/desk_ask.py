@@ -473,7 +473,12 @@ async def _stream_model(messages: list[dict]) -> AsyncIterator[str]:
             async with client.stream(
                 "POST",
                 f"{base.rstrip('/')}/v1/chat/completions",
-                json={"model": _model_id("chat"), "messages": messages, "stream": True},
+                json={
+                    "model": _model_id("chat"),
+                    "messages": messages,
+                    "stream": True,
+                    "chat_template_kwargs": {"enable_thinking": False},
+                },
             ) as response:
                 if response.status_code != 200:
                     raise DeskAskError("CHAT_OFFLINE", CHAT_OFFLINE)

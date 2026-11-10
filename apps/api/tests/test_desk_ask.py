@@ -23,6 +23,7 @@ class _ModelState:
         self.texts: list[str] = []
         self.fail_embed = False
         self.chat_calls = 0
+        self.chat_body: dict | None = None
 
 
 def _vector(text: str, dim: int = 384) -> list[float]:
@@ -71,6 +72,7 @@ def _handler(state: _ModelState):
                 return
             if self.path.startswith("/v1/chat/completions"):
                 state.chat_calls += 1
+                state.chat_body = body if isinstance(body, dict) else None
                 raw = (
                     'data: {"choices":[{"delta":{"reasoning_content":"秘密推理"}}]}\n\n'
                     'data: {"choices":[{"delta":{"content":"<think>内部</think>在手记里。"}}]}\n\n'
@@ -194,6 +196,8 @@ def test_incremental_index_citations_and_offline_models(models: _ModelState):
     assert note_id in answer
     assert "/private/notes?note=" in answer
     assert models.chat_calls == 1
+    assert models.chat_body is not None
+    assert models.chat_body.get("chat_template_kwargs") == {"enable_thinking": False}
 
     changed = client.patch(
         f"/api/v1/notes/{note_id}",
@@ -245,7 +249,7 @@ def test_incremental_index_citations_and_offline_models(models: _ModelState):
             "SELECT COUNT(*) FROM desk_index_item WHERE source_id IN (?, ?, ?, 'letter-ask')",
             (note_id, extra_id, photo_id),
         ).fetchone()[0]
-    assert version == SCHEMA_VERSION == 5
+    assert version == SCHEMA_VERSION == 6
     assert leftover == 0
 
 

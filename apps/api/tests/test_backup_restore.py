@@ -37,7 +37,7 @@ def _fixture_data_root(root: Path) -> None:
         conn.execute(
             "CREATE TABLE schema_version (id INTEGER PRIMARY KEY, version INTEGER NOT NULL, applied_at TEXT NOT NULL)"
         )
-        conn.execute("INSERT INTO schema_version VALUES (1, 5, '2026-08-27T00:00:00+00:00')")
+        conn.execute("INSERT INTO schema_version VALUES (1, 6, '2026-08-27T00:00:00+00:00')")
         assets = [
             (
                 "asset-photo",
@@ -1054,7 +1054,7 @@ def test_cli_json_results_are_single_line_sanitized_and_keep_default_output(
         "command": "backup",
         "status": "ok",
         "formatVersion": backup_restore.FORMAT_VERSION,
-        "schemaVersion": 5,
+        "schemaVersion": 6,
         "fileCount": 6,
         "objectCount": 5,
     }

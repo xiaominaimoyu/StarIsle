@@ -21,6 +21,7 @@ from app.db import (  # noqa: E402
     SCHEMA_V1,
     SCHEMA_V3,
     SCHEMA_V4,
+    SCHEMA_VERSION,
     SchemaVersionError,
     get_conn,
     init_db,
@@ -157,7 +158,7 @@ def test_known_schema_versions_migrate_to_v5(gc_env, monkeypatch: pytest.MonkeyP
 
     init_db()
     with get_conn() as migrated:
-        assert migrated.execute("SELECT version FROM schema_version WHERE id=1").fetchone()[0] == 5
+        assert migrated.execute("SELECT version FROM schema_version WHERE id=1").fetchone()[0] == SCHEMA_VERSION
         columns = {row["name"] for row in migrated.execute("PRAGMA table_info(asset)")}
     assert {"storage_class", "object_purged_at", "gc_next_run_at", "gc_attempts", "gc_error_code"} <= columns
 
@@ -165,7 +166,7 @@ def test_known_schema_versions_migrate_to_v5(gc_env, monkeypatch: pytest.MonkeyP
 def test_fresh_v5_enforces_gc_columns_and_rejects_future_version(gc_env):
     del gc_env
     with get_conn() as conn:
-        assert conn.execute("SELECT version FROM schema_version WHERE id=1").fetchone()[0] == 5
+        assert conn.execute("SELECT version FROM schema_version WHERE id=1").fetchone()[0] == SCHEMA_VERSION
         with pytest.raises(sqlite3.IntegrityError):
             conn.execute(
                 "INSERT INTO asset (id, original_name, mime_type, size, object_key, sha256, storage_class, created_at) "
@@ -178,7 +179,7 @@ def test_fresh_v5_enforces_gc_columns_and_rejects_future_version(gc_env):
                 "VALUES ('bad-attempts', 'x', 'text/plain', 0, 'x', ?, 'file', -1, ?)",
                 ("a" * 64, iso(NOW)),
             )
-        conn.execute("UPDATE schema_version SET version=6 WHERE id=1")
+        conn.execute("UPDATE schema_version SET version=7 WHERE id=1")
     with pytest.raises(SchemaVersionError, match="高于当前程序"):
         init_db()
 

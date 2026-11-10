@@ -5,7 +5,7 @@ export const PRIVATE_NAV = [
   { id: "messages", label: "来信", href: "/private/messages", enabled: true },
   { id: "notes", label: "手记", href: "/private/notes", enabled: true },
   { id: "ask", label: "问屿", href: "/private/ask", enabled: true },
-  { id: "overview", label: "总览", enabled: false, later: "PR5" },
+  { id: "overview", label: "总览", href: "/private/", enabled: true },
 ];
 
 export const PHOTO_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
@@ -13,7 +13,7 @@ export const PHOTO_MAX_BYTES = 20 * 1024 * 1024;
 export const ALLOWED_NEXT = new Set(["/private", "/private/", "/private/album", "/private/messages", "/private/notes", "/private/ask"]);
 
 export function safeNext(value) {
-  return typeof value === "string" && ALLOWED_NEXT.has(value) ? value : "/private/album";
+  return typeof value === "string" && ALLOWED_NEXT.has(value) ? value : "/private/";
 }
 
 export function photoFileIssue(file) {

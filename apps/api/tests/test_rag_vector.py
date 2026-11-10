@@ -16,6 +16,7 @@ from app.db import (
     MIGRATION_V3,
     SCHEMA_V1,
     SCHEMA_V3,
+    SCHEMA_VERSION,
     SchemaVersionError,
     get_conn,
     init_db,
@@ -72,7 +73,7 @@ def test_v1_forward_migration_and_future_version_rejection(isolated_db: Path):
 
     init_db()
     with get_conn() as conn:
-        assert conn.execute("SELECT version FROM schema_version WHERE id=1").fetchone()[0] == 5
+        assert conn.execute("SELECT version FROM schema_version WHERE id=1").fetchone()[0] == SCHEMA_VERSION
         assert conn.execute(
             "SELECT 1 FROM sqlite_master WHERE type='table' AND name='chunk_embedding'"
         ).fetchone()
@@ -105,7 +106,7 @@ def test_v1_forward_migration_and_future_version_rejection(isolated_db: Path):
         assert conn.execute(
             "SELECT 1 FROM sqlite_master WHERE type='index' AND name='idx_asset_gc_due'"
         ).fetchone()
-        conn.execute("UPDATE schema_version SET version=6 WHERE id=1")
+        conn.execute("UPDATE schema_version SET version=7 WHERE id=1")
 
     with pytest.raises(SchemaVersionError):
         init_db()
@@ -129,7 +130,7 @@ def test_v2_v3_forward_migration_and_fresh_schema_are_v5(isolated_db: Path):
     init_db()
     init_db()
     with get_conn() as conn:
-        assert conn.execute("SELECT version FROM schema_version WHERE id=1").fetchone()[0] == 5
+        assert conn.execute("SELECT version FROM schema_version WHERE id=1").fetchone()[0] == SCHEMA_VERSION
         assert conn.execute(
             "SELECT 1 FROM pragma_table_info('mail_message') WHERE name='retention_queued_at'"
         ).fetchone()
@@ -148,7 +149,7 @@ def test_v2_v3_forward_migration_and_fresh_schema_are_v5(isolated_db: Path):
     init_db()
     init_db()
     with get_conn() as conn:
-        assert conn.execute("SELECT version FROM schema_version WHERE id=1").fetchone()[0] == 5
+        assert conn.execute("SELECT version FROM schema_version WHERE id=1").fetchone()[0] == SCHEMA_VERSION
         assert conn.execute(
             "SELECT 1 FROM pragma_table_info('mail_message') WHERE name='retention_queued_at'"
         ).fetchone()
@@ -184,7 +185,7 @@ def test_v2_v3_forward_migration_and_fresh_schema_are_v5(isolated_db: Path):
 
     init_db()
     with get_conn() as conn:
-        assert conn.execute("SELECT version FROM schema_version WHERE id=1").fetchone()[0] == 5
+        assert conn.execute("SELECT version FROM schema_version WHERE id=1").fetchone()[0] == SCHEMA_VERSION
         legacy = conn.execute(
             "SELECT raw_state FROM mail_message WHERE id='legacy-mail'"
         ).fetchone()
