@@ -427,7 +427,9 @@ def open_diary(day: str) -> dict:
     return create_note(title=day, body="", tags=["日记"], diary_on=day)
 
 
-def update_note(note_id: str, *, title: str, body: str, tags: list[str]) -> dict:
+def update_note(note_id: str, *, title: str, body: str, tags: list[str], base_hash: str) -> dict:
+    if len(base_hash) != 64 or any(ch not in "0123456789abcdef" for ch in base_hash):
+        raise DeskNoteError("UNPROCESSABLE", "缺少内容版本。")
     photo_ids = photo_ids_in(body)
     moment = iso(now_utc())
     digest = content_hash(title, body, tags)
@@ -436,14 +438,18 @@ def update_note(note_id: str, *, title: str, body: str, tags: list[str]) -> dict
         if current is None:
             raise DeskNoteError("NOT_FOUND", "手记不存在。", 404)
         _require_photos(conn, photo_ids)
-        conn.execute(
+        updated = conn.execute(
             """
             UPDATE desk_note
             SET title=?, body_md=?, content_hash=?, updated_at=?
-            WHERE id=? AND deleted_at IS NULL
+            WHERE id=? AND deleted_at IS NULL AND content_hash=?
             """,
-            (title, body, digest, moment, note_id),
+            (title, body, digest, moment, note_id, base_hash),
         )
+        if updated.rowcount != 1:
+            if _load(conn, note_id) is None:
+                raise DeskNoteError("NOT_FOUND", "手记不存在。", 404)
+            raise DeskNoteError("STALE_NOTE", "这篇手记刚刚更新过，没有覆盖。", 409)
         _write_links(conn, note_id, tags, photo_ids)
         _replace_fts(conn, note_id, title, body)
         row = _load(conn, note_id)

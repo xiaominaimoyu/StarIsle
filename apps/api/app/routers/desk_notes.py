@@ -165,13 +165,15 @@ async def notes_update(
 ):
     require_csrf(request, x_csrf_token)
     incoming = await _json(request)
-    current = None
     try:
         current = read_note(note_id)
         title = parse_title(incoming.get("title"), default=current["title"]) if "title" in incoming else current["title"]
         body = parse_body(incoming.get("body")) if "body" in incoming else current["body"]
         tags = parse_tags(incoming.get("tags")) if "tags" in incoming else current["tags"]
-        note = update_note(note_id, title=title, body=body, tags=tags)
+        base_hash = incoming.get("baseHash")
+        if not isinstance(base_hash, str):
+            raise DeskNoteError("UNPROCESSABLE", "缺少内容版本。")
+        note = update_note(note_id, title=title, body=body, tags=tags, base_hash=base_hash)
     except DeskNoteError as error:
         _raise(error)
     audit(

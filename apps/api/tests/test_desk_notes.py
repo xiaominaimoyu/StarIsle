@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 import sqlite3
+from contextlib import closing
 
 from app.config import settings
 from app.daily_backup import snapshot_database
@@ -135,12 +136,26 @@ def test_note_crud_search_diary_and_photo_reference(tmp_path):
 
     changed = client.patch(
         f"/api/v1/notes/{note['id']}",
-        json={"body": body + "\n又写了一句"},
+        json={"body": body + "\n又写了一句", "baseHash": note["contentHash"]},
         headers=_headers(token),
     )
     assert changed.status_code == 200
     assert changed.json()["contentHash"] != note["contentHash"]
     assert changed.json()["updatedAt"] >= note["updatedAt"]
+    stale = client.patch(
+        f"/api/v1/notes/{note['id']}",
+        json={"body": "旧稿覆盖", "baseHash": note["contentHash"]},
+        headers=_headers(token),
+    )
+    assert stale.status_code == 409
+    assert stale.json()["error"]["code"] == "STALE_NOTE"
+    assert client.get(f"/api/v1/notes/{note['id']}").json()["body"] == body + "\n又写了一句"
+    missing_version = client.patch(
+        f"/api/v1/notes/{note['id']}",
+        json={"body": "没有版本"},
+        headers=_headers(token),
+    )
+    assert missing_version.status_code == 422
 
     first = client.put("/api/v1/notes/diary/2026-11-10", headers=_headers(token))
     again = client.put("/api/v1/notes/diary/2026-11-10", headers=_headers(token))
@@ -169,8 +184,7 @@ def test_note_crud_search_diary_and_photo_reference(tmp_path):
     assert stored
 
     snapshot = snapshot_database(settings.db_path, tmp_path / "backup")
-    copied = sqlite3.connect(snapshot)
-    copied.row_factory = sqlite3.Row
-    assert copied.execute("SELECT COUNT(*) FROM desk_note").fetchone()[0] >= 1
-    assert copied.execute("SELECT name FROM sqlite_master WHERE name='desk_note_fts'").fetchone()
-    copied.close()
+    with closing(sqlite3.connect(snapshot)) as copied:
+        copied.row_factory = sqlite3.Row
+        assert copied.execute("SELECT COUNT(*) FROM desk_note").fetchone()[0] >= 1
+        assert copied.execute("SELECT name FROM sqlite_master WHERE name='desk_note_fts'").fetchone()

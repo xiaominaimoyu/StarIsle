@@ -8,7 +8,9 @@
 
 这些表放在数据目录的同一份 SQLite 里，schema 仍是 v5，在线备份会一起带走。每篇记下 `updated_at` 和 `content_hash`，下一阶段可以只索引改过的篇。问屿和总览还没做。
 
-`pnpm build:pages` FULL 门禁通过，12 页、57 个文件。制品里没有 `/private/notes`。API pytest 643 passed、2 skipped。私人书桌前端状态 5 项通过。Web 仍是 31 files / 206 项。详见 [开发进度 §68](./docs/开发进度.md)。
+切换、新建、打开日记或离开页面前，会先把当前这篇保存完。保存请求绑定编辑当时的篇目和正文，不会把上一篇写到下一篇。旧的内容版本对不上时返回 409，不覆盖新稿。
+
+`pnpm build:pages` FULL 门禁通过，12 页、57 个文件。制品里没有 `/private/notes`。Python 3.14 与 3.12 的 API pytest 都是 645 passed、2 skipped，并打开了 `ResourceWarning` 错误。私人书桌前端状态 5 项通过。Web 仍是 31 files / 206 项。详见 [开发进度 §68](./docs/开发进度.md)。
 
 ## 访客留言（PR2，已合并）
 

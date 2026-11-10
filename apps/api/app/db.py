@@ -275,26 +275,27 @@ def get_conn(*, immediate: bool = False) -> Iterator[sqlite3.Connection]:
 
     settings.ensure_dirs()
     conn = sqlite3.connect(settings.db_path, check_same_thread=False, timeout=15)
-    from .services.photo_time import normalize_photo_capture_at
-
-    conn.create_function(
-        "photo_capture_norm",
-        1,
-        normalize_photo_capture_at,
-        deterministic=True,
-    )
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA busy_timeout=15000")
-    conn.execute("PRAGMA foreign_keys=ON")
-    if immediate:
-        conn.execute("BEGIN IMMEDIATE")
     try:
-        yield conn
-        conn.commit()
-    except Exception:
-        conn.rollback()
-        raise
+        from .services.photo_time import normalize_photo_capture_at
+
+        conn.create_function(
+            "photo_capture_norm",
+            1,
+            normalize_photo_capture_at,
+            deterministic=True,
+        )
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA busy_timeout=15000")
+        conn.execute("PRAGMA foreign_keys=ON")
+        if immediate:
+            conn.execute("BEGIN IMMEDIATE")
+        try:
+            yield conn
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
     finally:
         conn.close()
 
