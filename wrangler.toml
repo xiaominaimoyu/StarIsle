@@ -8,4 +8,4 @@ pages_build_output_dir = "apps/web/dist"
 [[d1_databases]]
 binding = "VISITOR_DB"
 database_name = "starisle-visitors"
-database_id = "REPLACE_AFTER_D1_CREATE"
+database_id = "1788e9ed-0ab3-4163-a87e-5e137268ae1a"
