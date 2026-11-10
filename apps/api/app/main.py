@@ -23,7 +23,7 @@ from .request_body_limit import (
     is_request_body_limit_overflow,
     should_close_connection,
 )
-from .routers import auth, files, knowledge, mail, misc, rag, visitor_letters
+from .routers import auth, desk_notes, files, knowledge, mail, misc, rag, visitor_letters
 from .storage import StorageUnavailable
 
 
@@ -232,6 +232,7 @@ def include_routers(prefix: str = API_ROOT) -> None:
     app.include_router(misc.router, prefix=prefix)
     app.include_router(rag.router, prefix=prefix)
     app.include_router(visitor_letters.router, prefix=prefix)
+    app.include_router(desk_notes.router, prefix=prefix)
     app.include_router(private_desk_router)
 
 

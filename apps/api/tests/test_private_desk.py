@@ -8,6 +8,7 @@ import shutil
 import sqlite3
 import subprocess
 import sys
+from contextlib import closing
 from pathlib import Path
 
 import pytest
@@ -245,22 +246,21 @@ def test_snapshot_uses_backup_api_and_keeps_seven(monkeypatch, tmp_path: Path):
     data = tmp_path / "data"
     live = data / "db" / "star-isle.db"
     live.parent.mkdir(parents=True)
-    holder = sqlite3.connect(live)
-    holder.execute("CREATE TABLE marker (label TEXT)")
-    holder.execute("INSERT INTO marker VALUES ('kept')")
-    holder.commit()
-    backup = tmp_path / "backup"
-    snapshot = snapshot_database(live, backup)
-    holder.execute("INSERT INTO marker VALUES ('later')")
-    holder.commit()
-    copied = sqlite3.connect(snapshot)
-    labels = [row[0] for row in copied.execute("SELECT label FROM marker")]
-    copied.close()
-    holder.close()
-    assert labels == ["kept"]
-    assert snapshot.resolve() != live.resolve()
-    check = sqlite3.connect(snapshot).execute("PRAGMA integrity_check").fetchone()
-    assert check[0] == "ok"
+    with closing(sqlite3.connect(live)) as holder:
+        holder.execute("CREATE TABLE marker (label TEXT)")
+        holder.execute("INSERT INTO marker VALUES ('kept')")
+        holder.commit()
+        backup = tmp_path / "backup"
+        snapshot = snapshot_database(live, backup)
+        holder.execute("INSERT INTO marker VALUES ('later')")
+        holder.commit()
+        with closing(sqlite3.connect(snapshot)) as copied:
+            labels = [row[0] for row in copied.execute("SELECT label FROM marker")]
+        assert labels == ["kept"]
+        assert snapshot.resolve() != live.resolve()
+        with closing(sqlite3.connect(snapshot)) as check_conn:
+            check = check_conn.execute("PRAGMA integrity_check").fetchone()
+        assert check[0] == "ok"
 
     folder = backup / "db-snapshots"
     for index in range(1, 10):
@@ -283,19 +283,18 @@ def test_daily_backup_retention_and_incremental_photos(tmp_path: Path):
     backup = tmp_path / "backup"
     live = data / "db" / "star-isle.db"
     live.parent.mkdir(parents=True)
-    connection = sqlite3.connect(live)
-    connection.execute("CREATE TABLE asset (storage_class TEXT, object_key TEXT, status TEXT)")
-    connection.executemany(
-        "INSERT INTO asset VALUES (?, ?, 'active')",
-        (
-            ("photo-original", "pic.jpg"),
-            ("photo-thumbnail", "pic.webp"),
-            ("file", "skip.bin"),
-            ("photo-original", "../evil.jpg"),
-        ),
-    )
-    connection.commit()
-    connection.close()
+    with closing(sqlite3.connect(live)) as connection:
+        connection.execute("CREATE TABLE asset (storage_class TEXT, object_key TEXT, status TEXT)")
+        connection.executemany(
+            "INSERT INTO asset VALUES (?, ?, 'active')",
+            (
+                ("photo-original", "pic.jpg"),
+                ("photo-thumbnail", "pic.webp"),
+                ("file", "skip.bin"),
+                ("photo-original", "../evil.jpg"),
+            ),
+        )
+        connection.commit()
     originals = data / "objects" / "originals"
     thumbs = data / "objects" / "thumbnails"
     originals.mkdir(parents=True)
@@ -306,10 +305,9 @@ def test_daily_backup_retention_and_incremental_photos(tmp_path: Path):
     outside = tmp_path / "outside.bin"
     outside.write_bytes(b"outside")
     (originals / "link.jpg").symlink_to(outside)
-    connection = sqlite3.connect(live)
-    connection.execute("INSERT INTO asset VALUES ('photo-original', 'link.jpg', 'active')")
-    connection.commit()
-    connection.close()
+    with closing(sqlite3.connect(live)) as connection:
+        connection.execute("INSERT INTO asset VALUES ('photo-original', 'link.jpg', 'active')")
+        connection.commit()
 
     with pytest.raises(PrivateRuntimeError) as overlap:
         run_daily_backup(backup / "nested", backup)
@@ -389,9 +387,8 @@ def test_owner_setup_creates_one_account_outside_the_repo(tmp_path: Path):
     assert "STAR_ISLE_BIND_PORT=8787" in runtime
     assert f"STAR_ISLE_BACKUP_ROOT={backup}" in runtime
     assert "$argon2id$" in runtime
-    connection = sqlite3.connect(data / "db" / "star-isle.db")
-    row = connection.execute("SELECT id, password_hash FROM admin").fetchone()
-    connection.close()
+    with closing(sqlite3.connect(data / "db" / "star-isle.db")) as connection:
+        row = connection.execute("SELECT id, password_hash FROM admin").fetchone()
     assert row[0] == "admin"
     assert row[1].startswith("$argon2id$")
     assert password not in row[1]

@@ -11,6 +11,7 @@ import hashlib
 import os
 import re
 import sqlite3
+from contextlib import closing
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -98,26 +99,18 @@ def snapshot_database(live_db: Path, backup_root: Path, *, now: datetime | None 
     if partial.exists():
         partial.unlink()
 
-    source = sqlite3.connect(live, timeout=30)
-    target = sqlite3.connect(partial)
-    try:
-        source.backup(target)
-        check = target.execute("PRAGMA integrity_check").fetchone()
-        if check is None or check[0] != "ok":
-            raise DailyBackupError("BACKUP_INTEGRITY_FAILED")
-    except DailyBackupError:
-        target.close()
-        source.close()
-        partial.unlink(missing_ok=True)
-        raise
-    except Exception as exc:
-        target.close()
-        source.close()
-        partial.unlink(missing_ok=True)
-        raise DailyBackupError("BACKUP_FAILED") from exc
-    else:
-        target.close()
-        source.close()
+    with closing(sqlite3.connect(live, timeout=30)) as source, closing(sqlite3.connect(partial)) as target:
+        try:
+            source.backup(target)
+            check = target.execute("PRAGMA integrity_check").fetchone()
+            if check is None or check[0] != "ok":
+                raise DailyBackupError("BACKUP_INTEGRITY_FAILED")
+        except DailyBackupError:
+            partial.unlink(missing_ok=True)
+            raise
+        except Exception as exc:
+            partial.unlink(missing_ok=True)
+            raise DailyBackupError("BACKUP_FAILED") from exc
     os.replace(partial, destination)
     if _same_file(live, destination):
         destination.unlink(missing_ok=True)

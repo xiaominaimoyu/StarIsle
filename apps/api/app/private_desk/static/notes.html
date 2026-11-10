@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>手记 · 星屿私人书桌</title>
+  <link rel="stylesheet" href="/private/assets/desk.css">
+</head>
+<body>
+  <a class="skip" href="#main">跳到内容</a>
+  <div class="shell">
+    <aside class="sidebar">
+      <a class="brand sidebar-brand" href="/private/">
+        <span class="seal" aria-hidden="true">星</span>
+        <span class="brand-text"><strong>星屿</strong><small>DESK</small></span>
+      </a>
+      <nav class="nav-list" data-nav aria-label="私人书桌">
+        <a class="nav-link" href="/private/album">相册</a>
+        <a class="nav-link" href="/private/messages">来信</a>
+        <a class="nav-link" href="/private/notes" aria-current="page">手记</a>
+        <button class="nav-link is-disabled" type="button" aria-disabled="true">问屿</button>
+        <button class="nav-link is-disabled" type="button" aria-disabled="true">总览</button>
+      </nav>
+    </aside>
+    <div class="shell-main">
+      <header class="shell-header">
+        <div>
+          <p class="eyebrow">NOTES AND DIARY</p>
+          <h1>手记</h1>
+        </div>
+        <div class="header-actions">
+          <button class="primary" type="button" data-new>新手记</button>
+          <button class="ghost" type="button" data-logout>退出</button>
+        </div>
+      </header>
+      <main id="main" class="notes-layout">
+        <section class="notes-side" aria-label="查找和日期">
+          <label class="field">
+            <span>搜索</span>
+            <input data-search type="search" placeholder="至少两个字" autocomplete="off">
+          </label>
+          <div class="header-actions">
+            <button class="ghost" type="button" data-mode="list">全部</button>
+            <button class="ghost" type="button" data-mode="diary">日记</button>
+          </div>
+          <p class="month-bar" data-month-bar hidden>
+            <button class="ghost" type="button" data-month="-1">上个月</button>
+            <strong data-month-label></strong>
+            <button class="ghost" type="button" data-month="1">下个月</button>
+          </p>
+          <div class="calendar" data-calendar hidden></div>
+          <p class="empty" data-empty hidden>还没有手记。</p>
+          <div class="letter-list" data-list></div>
+        </section>
+        <section class="notes-editor" aria-label="编辑">
+          <p data-save role="status">已保存</p>
+          <label class="field">
+            <span>标题</span>
+            <input data-title type="text" maxlength="80">
+          </label>
+          <label class="field">
+            <span>标签</span>
+            <input data-tags type="text" placeholder="用空格或逗号分开">
+          </label>
+          <div class="header-actions">
+            <button class="ghost" type="button" data-photos>从相册插入</button>
+            <button class="danger" type="button" data-delete>删除</button>
+          </div>
+          <label class="field">
+            <span>正文</span>
+            <textarea data-body rows="12" maxlength="20000"></textarea>
+          </label>
+          <article class="note-preview" data-preview aria-label="预览"></article>
+        </section>
+      </main>
+    </div>
+  </div>
+  <dialog id="photo-picker">
+    <h2>从相册插入</h2>
+    <p class="quiet">图片只通过登录后的照片地址显示。</p>
+    <div class="photo-grid" data-picker></div>
+    <div class="dialog-actions">
+      <button id="picker-close" class="ghost" type="button">关闭</button>
+    </div>
+  </dialog>
+  <dialog id="confirm-delete">
+    <h2>确认删除</h2>
+    <p>这篇手记会从书桌上拿掉。当天的日记可以再写一篇。</p>
+    <div class="dialog-actions">
+      <button id="confirm-cancel" class="ghost" type="button">取消</button>
+      <button id="confirm-ok" class="danger" type="button">确认删除</button>
+    </div>
+  </dialog>
+  <script type="module" src="/private/assets/notes.js"></script>
+</body>
+</html>

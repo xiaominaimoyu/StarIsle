@@ -275,26 +275,27 @@ def get_conn(*, immediate: bool = False) -> Iterator[sqlite3.Connection]:
 
     settings.ensure_dirs()
     conn = sqlite3.connect(settings.db_path, check_same_thread=False, timeout=15)
-    from .services.photo_time import normalize_photo_capture_at
-
-    conn.create_function(
-        "photo_capture_norm",
-        1,
-        normalize_photo_capture_at,
-        deterministic=True,
-    )
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA busy_timeout=15000")
-    conn.execute("PRAGMA foreign_keys=ON")
-    if immediate:
-        conn.execute("BEGIN IMMEDIATE")
     try:
-        yield conn
-        conn.commit()
-    except Exception:
-        conn.rollback()
-        raise
+        from .services.photo_time import normalize_photo_capture_at
+
+        conn.create_function(
+            "photo_capture_norm",
+            1,
+            normalize_photo_capture_at,
+            deterministic=True,
+        )
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA busy_timeout=15000")
+        conn.execute("PRAGMA foreign_keys=ON")
+        if immediate:
+            conn.execute("BEGIN IMMEDIATE")
+        try:
+            yield conn
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
     finally:
         conn.close()
 
@@ -730,6 +731,7 @@ def init_db() -> None:
             else:  # pragma: no cover - SCHEMA_VERSION 变化时的保护栏
                 raise SchemaVersionError("缺少已知的 schema 前向迁移")
         _ensure_visitor_letter_table(conn)
+        _ensure_desk_note_tables(conn)
         conn.commit()
         _assert_v5_layout(conn)
 
@@ -754,6 +756,67 @@ def _ensure_visitor_letter_table(conn: sqlite3.Connection) -> None:
           archived_at TEXT,
           deleted_at TEXT,
           cloud_ack_at TEXT
+        )
+        """
+    )
+
+
+def _ensure_desk_note_tables(conn: sqlite3.Connection) -> None:
+    """手记和日记附在同一份库文件里，但不提升 schema 版本。
+
+    整库在线备份会带上这些表。``updated_at`` 和 ``content_hash`` 留给下一阶段按篇增量索引。
+    全文检索不用 FTS5 trigram：那个分词器至少要三个字，两个字的中文会落空。这里把正文切成
+    连续的二字和三字，再交给 FTS5 的 unicode61 索引。
+    """
+
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS desk_note (
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          body_md TEXT NOT NULL,
+          content_hash TEXT NOT NULL,
+          diary_on TEXT,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          deleted_at TEXT
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_desk_note_diary
+        ON desk_note(diary_on)
+        WHERE diary_on IS NOT NULL AND deleted_at IS NULL
+        """
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_desk_note_updated ON desk_note(updated_at, id)"
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS desk_note_tag (
+          note_id TEXT NOT NULL,
+          tag TEXT NOT NULL,
+          PRIMARY KEY (note_id, tag)
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS desk_note_photo (
+          note_id TEXT NOT NULL,
+          photo_id TEXT NOT NULL,
+          PRIMARY KEY (note_id, photo_id)
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE VIRTUAL TABLE IF NOT EXISTS desk_note_fts USING fts5(
+          note_id UNINDEXED,
+          grams,
+          tokenize = "unicode61 remove_diacritics 0"
         )
         """
     )
