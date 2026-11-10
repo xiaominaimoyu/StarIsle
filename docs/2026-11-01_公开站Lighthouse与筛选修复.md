@@ -88,7 +88,7 @@ Lighthouse 阶段检查时，Docker CLI / Compose 5.6.0 可用，Linux 引擎管
 CLI 报告使用以下命令模式生成，在仓库根目录运行；更换输出名以保留已有证据：
 
 ```powershell
-$env:CHROME_PATH = 'C:\Users\ASUS\AppData\Local\ms-playwright\chromium-1234\chrome-win64\chrome.exe'
+$env:CHROME_PATH = Join-Path $env:LOCALAPPDATA 'ms-playwright\chromium-1234\chrome-win64\chrome.exe'
 $env:npm_config_cache = Join-Path $env:TEMP 'starisle-lighthouse-npm-cache'
 npx --yes lighthouse@13.6.0 https://starisle-6bt.pages.dev/projects/ --chrome-flags='--headless=new' --only-categories=performance,accessibility,best-practices,seo --output=json --output=html --output-path=logs/web-perf-20261101-561ef4e/projects-recheck --save-assets --no-enable-error-reporting
 ```

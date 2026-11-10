@@ -12,7 +12,7 @@ from ..deps import get_request_id, require_auth
 from ..security import iso, now_utc, random_id, sha256_hex
 from ..services.jobs import enqueue_job
 from ..services.keyset_cursor import decode_keyset_cursor, encode_keyset_cursor
-from ..services.mime import ext_for, validate_upload
+from ..services.mime import ext_for, safe_display_name, upload_rejection, validate_upload
 from ..storage import StorageQuotaExceeded, storage
 
 router = APIRouter(tags=["knowledge"])
@@ -85,9 +85,12 @@ async def upload_document(
         raise HTTPException(415, detail={"code": "UNSUPPORTED_MEDIA_TYPE", "message": "仅支持 PDF / Markdown / TXT。"})
     ok, reason = validate_upload(data, declared, DOC_MAX_BYTES)
     if not ok:
-        raise HTTPException(415, detail={"code": "UNSUPPORTED_MEDIA_TYPE", "message": reason})
+        status, code = upload_rejection(reason)
+        raise HTTPException(status, detail={"code": code, "message": reason})
 
     from ..services.idempotency import with_idempotency
+
+    display_name = safe_display_name(file.filename, "document")
 
     def _produce():
         object_key: str | None = None
@@ -100,7 +103,7 @@ async def upload_document(
                     "storage_class, created_at) VALUES (?, ?, ?, ?, ?, ?, 'active', 'knowledge', ?)",
                     (
                         asset_id,
-                        file.filename or "document",
+                        display_name,
                         declared,
                         len(data),
                         object_key,
@@ -112,7 +115,7 @@ async def upload_document(
                 conn.execute(
                     "INSERT INTO knowledge_document (id, asset_id, title, document_type, version, hash, index_state, created_at) "
                     "VALUES (?, ?, ?, ?, 1, ?, 'queued', ?)",
-                    (doc_id, asset_id, (file.filename or "document")[:255], doc_type,
+                    (doc_id, asset_id, display_name, doc_type,
                      sha256_hex(data), iso(now_utc())),
                 )
                 job_id = enqueue_job(

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Annotated
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, UploadFile
 from fastapi.responses import Response
@@ -13,7 +14,7 @@ from ..deps import get_request_id, require_auth
 from ..security import iso, now_utc, random_id, sha256_hex
 from ..services.asset_gc import queue_deleted_asset
 from ..services.keyset_cursor import decode_keyset_cursor, encode_keyset_cursor
-from ..services.mime import ext_for, validate_upload
+from ..services.mime import ext_for, safe_display_name, upload_rejection, validate_upload
 from ..services.photo_time import normalize_photo_capture_at
 from ..storage import StorageQuotaExceeded, storage
 
@@ -41,11 +42,27 @@ async def _read_upload(file: UploadFile, max_bytes: int) -> tuple[bytes, str]:
     return data, file.content_type or "application/octet-stream"
 
 
+def _rejection_for_upload(reason: str | None) -> HTTPException:
+    """类型不符是 415；只有体积问题才使用 413。"""
+
+    status, code = upload_rejection(reason)
+    return HTTPException(status, detail={"code": code, "message": reason or "请求失败。"})
+
+
+def _attachment_headers(original_name: object, fallback: str) -> dict[str, str]:
+    filename = quote(safe_display_name(original_name, fallback), safe="")
+    return {
+        "Content-Disposition": f"attachment; filename*=UTF-8''{filename}",
+        "X-Content-Type-Options": "nosniff",
+    }
+
+
 def _register_asset(
     conn, data: bytes, mime: str, original_name: str, *, storage_class: str, status: str = "active"
 ) -> tuple[str, str]:
     asset_id = random_id("asset_")
     object_key: str | None = None
+    display_name = safe_display_name(original_name, "unnamed")
     try:
         object_key = storage.save(data, "originals", ext_for(mime))
         conn.execute(
@@ -53,7 +70,7 @@ def _register_asset(
             "storage_class, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 asset_id,
-                original_name[:255],
+                display_name,
                 mime,
                 len(data),
                 object_key,
@@ -136,9 +153,7 @@ async def upload_file(
     data, declared = await _read_upload(file, settings.file_max_bytes)
     ok, reason = validate_upload(data, declared, settings.file_max_bytes)
     if not ok:
-        raise HTTPException(415 if "类型" in (reason or "") else 413,
-                            detail={"code": "UNSUPPORTED_MEDIA_TYPE" if "类型" in (reason or "") else "PAYLOAD_TOO_LARGE",
-                                    "message": reason})
+        raise _rejection_for_upload(reason)
 
     # 幂等:同一 Idempotency-Key 返回首次资源
     from ..services.idempotency import with_idempotency
@@ -184,13 +199,10 @@ def download_file(file_id: str, payload: dict = Depends(require_auth)):
     if row is None:
         raise HTTPException(404, detail={"code": "NOT_FOUND", "message": "文件不存在"})
     data = storage.open("originals", row["object_key"])
-    from urllib.parse import quote
-
-    filename = quote(row["original_name"])
     return Response(
         content=data,
         media_type=row["mime_type"],
-        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{filename}"},
+        headers=_attachment_headers(row["original_name"], "download"),
     )
 
 
@@ -284,7 +296,7 @@ async def upload_photo(
         raise HTTPException(415, detail={"code": "UNSUPPORTED_MEDIA_TYPE", "message": "暂不支持该文件类型。"})
     ok, reason = validate_upload(data, declared, settings.image_max_bytes)
     if not ok:
-        raise HTTPException(413, detail={"code": "PAYLOAD_TOO_LARGE", "message": reason})
+        raise _rejection_for_upload(reason)
 
     # 解码资源校验:先依据 header 拒绝超大图，再完整解码验证内容。
     try:
@@ -304,6 +316,8 @@ async def upload_photo(
     except Exception:
         raise HTTPException(415, detail={"code": "UNSUPPORTED_MEDIA_TYPE", "message": "图片解码失败,暂不支持。"})
 
+    display_name = safe_display_name(file.filename, "photo.jpg")
+
     def _produce_photo():
         created: list[tuple[str, str]] = []
         try:
@@ -312,7 +326,7 @@ async def upload_photo(
                     conn,
                     data,
                     declared,
-                    file.filename or "photo.jpg",
+                    display_name,
                     storage_class="photo-original",
                 )
                 created.append(("originals", object_key))
@@ -326,7 +340,7 @@ async def upload_photo(
                     "storage_class, created_at) VALUES (?, ?, ?, ?, ?, ?, 'active', 'photo-thumbnail', ?)",
                     (
                         thumb_asset_id,
-                        f"thumb_{file.filename}",
+                        safe_display_name(f"thumb_{display_name}", "thumb.webp"),
                         "image/webp",
                         len(thumb),
                         thumb_key,
@@ -371,7 +385,11 @@ def photo_thumbnail(photo_id: str, payload: dict = Depends(require_auth)):
     if row is None:
         raise HTTPException(404, detail={"code": "NOT_FOUND", "message": "照片不存在"})
     data = storage.open("thumbnails", row["object_key"])
-    return Response(content=data, media_type=row["mime_type"])
+    return Response(
+        content=data,
+        media_type=row["mime_type"] if row["mime_type"] in IMAGE_TYPES or row["mime_type"] == "image/webp" else "application/octet-stream",
+        headers={"X-Content-Type-Options": "nosniff", "Content-Disposition": "inline"},
+    )
 
 
 @router.delete("/photos/{photo_id}", status_code=204)

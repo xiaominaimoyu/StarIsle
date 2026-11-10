@@ -66,7 +66,7 @@ npx --yes wrangler@4.156.0 login --scopes account:read user:read pages:write
 
 ## Agent 环境
 
-按用户指定的 [Cloudflare 官方 agent-setup](https://developers.cloudflare.com/agent-setup/prompt.md) 安装了全部 19 个官方技能，位置为用户 `C:\Users\ASUS\.agents\skills`。Cloudflare MCP 已加入用户 `C:\Users\ASUS\.codex\config.toml`，URL 为 https://mcp.cloudflare.com/mcp，OAuth 成功，当前会话已加载并实际调用 whoami / Pages 查询。配置前备份保存在本机临时目录，没有复制进仓库。
+按用户指定的 [Cloudflare 官方 agent-setup](https://developers.cloudflare.com/agent-setup/prompt.md) 安装了全部 19 个官方技能，位置为当前用户目录下的 `.agents/skills`。Cloudflare MCP 已加入当前用户目录下的 `.codex/config.toml`，URL 为 https://mcp.cloudflare.com/mcp，OAuth 成功，当前会话已加载并实际调用 whoami / Pages 查询。配置前备份保存在本机临时目录，没有复制进仓库。
 
 MCP 授权请求限制为账号/用户读取及 Pages 读取、写入、元数据读取；未沿用首次自动发现的全部产品权限。首次 OAuth 等待超时，重新发起并由用户完成后成功。当前已实际加载，无需为了本次发布中断会话；后续会话未显示工具时可重启 Codex。可选 beta `cf` CLI 未安装，本次使用官方 Wrangler Direct Upload。
 

@@ -59,6 +59,36 @@ def _refresh_ttl() -> timedelta:
     return timedelta(days=settings.auth_refresh_ttl_days)
 
 
+def _client_ip(request: Request) -> str:
+    return request.client.host if request.client else "unknown"
+
+
+def _recent_login_failures(conn, ip: str) -> int:
+    row = conn.execute(
+        "SELECT COUNT(*) AS c FROM audit_event WHERE action='login_fail' AND actor=? AND created_at > ?",
+        (f"ip:{ip}", iso(now_utc() - timedelta(minutes=5))),
+    ).fetchone()
+    return int(row["c"] if row else 0)
+
+
+def _reject_if_login_limited(ip: str, request: Request) -> None:
+    """提交限速审计后再抛出，避免异常回滚把 login_limited 记录抹掉。"""
+
+    limited = False
+    with get_conn(immediate=True) as conn:
+        if _recent_login_failures(conn, ip) >= 10:
+            audit(
+                "login_limited",
+                actor=f"ip:{ip}",
+                request_id=get_request_id(request),
+                result="429",
+                conn=conn,
+            )
+            limited = True
+    if limited:
+        raise AuthError("RATE_LIMITED", "尝试过于频繁,请稍候再试。", 429)
+
+
 def _new_refresh_session_values(admin_id: str, user_agent: str | None) -> tuple[str, str, str]:
     session_id = secrets.token_urlsafe(24)
     refresh_token = secrets.token_urlsafe(48)
@@ -104,31 +134,35 @@ def login(
 
     _rc(request, x_csrf_token)
 
-    # 登录限速:按来源 IP 滑动窗口,简单计数(每 5 分钟最多 10 次)
-    ip = request.client.host if request.client else "unknown"
-    with get_conn() as conn:
-        conn.execute(
-            "DELETE FROM audit_event WHERE action='login_fail' AND created_at < ?",
-            (iso(now_utc() - timedelta(minutes=5)),),
-        )
-        fails = conn.execute(
-            "SELECT COUNT(*) AS c FROM audit_event WHERE action='login_fail' AND actor=? AND created_at > ?",
-            (f"ip:{ip}", iso(now_utc() - timedelta(minutes=5))),
-        ).fetchone()
-        if fails and fails["c"] >= 10:
-            audit("login_limited", actor=f"ip:{ip}", request_id=get_request_id(request), result="429", conn=conn)
-            raise AuthError("RATE_LIMITED", "尝试过于频繁,请稍候再试。", 429)
+    # 登录限速:按来源 IP 的 5 分钟窗口计数。历史 login_fail 留给审计保留期，不在这里删除。
+    ip = _client_ip(request)
+    _reject_if_login_limited(ip, request)
 
     ensure_bootstrap()
     with get_conn() as conn:
         admin = conn.execute("SELECT * FROM admin LIMIT 1").fetchone()
 
     if admin is None or not verify_password(admin["password_hash"], body.password):
-        audit("login_fail", actor=f"ip:{ip}", request_id=get_request_id(request), result="401")
+        _reject_if_login_limited(ip, request)
+        with get_conn(immediate=True) as conn:
+            if _recent_login_failures(conn, ip) >= 10:
+                audit(
+                    "login_limited",
+                    actor=f"ip:{ip}",
+                    request_id=get_request_id(request),
+                    result="429",
+                    conn=conn,
+                )
+                limited = True
+            else:
+                audit("login_fail", actor=f"ip:{ip}", request_id=get_request_id(request), result="401", conn=conn)
+                limited = False
+        if limited:
+            raise AuthError("RATE_LIMITED", "尝试过于频繁,请稍候再试。", 429)
         raise AuthError("AUTH_REQUIRED", "无法登录,请检查密码后重试。", 401)
 
-    # 登录前 token 是匿名握手 token；在同一事务内把它迁移到新 refresh session。
-    with get_conn() as conn:
+    # 登录前 token 是匿名握手 token；在同一写事务内把它迁移到新 refresh session。
+    with get_conn(immediate=True) as conn:
         session_id, refresh_token, session_expires_at = _insert_refresh_session(
             conn, admin["id"], request.headers.get("user-agent")
         )
@@ -162,7 +196,7 @@ def refresh(
     if not refresh_token:
         raise AuthError("AUTH_REQUIRED", "需要有效会话")
     hash_value = sha256_hex(refresh_token.encode())
-    with get_conn() as conn:
+    with get_conn(immediate=True) as conn:
         row = conn.execute(
             "SELECT * FROM session WHERE refresh_hash=? AND revoked_at IS NULL AND expires_at > ?",
             (hash_value, iso(now_utc())),
@@ -202,8 +236,8 @@ def logout(
                 conn.execute("UPDATE session SET revoked_at=? WHERE id=?", (iso(now_utc()), row["id"]))
                 conn.execute("DELETE FROM csrf WHERE session_id=?", (row["id"],))
     # 必须在实际返回的同一个 Response 上清除 Cookie，保留 path/secure/samesite 匹配属性。
-    response.delete_cookie(ACCESS_COOKIE, path="/", secure=settings.cookie_secure, samesite="lax")
-    response.delete_cookie(REFRESH_COOKIE, path="/", secure=settings.cookie_secure, samesite="lax")
+    response.delete_cookie(ACCESS_COOKIE, path="/", secure=settings.cookie_secure, httponly=True, samesite="lax")
+    response.delete_cookie(REFRESH_COOKIE, path="/", secure=settings.cookie_secure, httponly=True, samesite="lax")
     response.status_code = 204
     audit("logout", actor="admin", request_id=get_request_id(request), result="ok")
     return response

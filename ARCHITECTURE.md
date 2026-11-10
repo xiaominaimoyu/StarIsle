@@ -1,6 +1,10 @@
 # 当前架构与变更边界
 
-更新：2026-11-03。详细基线见 [总体具体开发计划](./docs/星屿%20StarIsle%20-%20总体具体开发计划.md)。
+更新：2026-11-10。详细基线见 [总体具体开发计划](./docs/星屿%20StarIsle%20-%20总体具体开发计划.md)。
+
+## 2026-11-10 后端修复边界
+
+私有 API 仍只通过同源 `/api/v1` 与 HttpOnly Cookie 工作。直连 uvicorn 现在也返回 `nosniff`、`DENY`、`no-referrer` 和默认 `no-store`；已经自带 `Cache-Control` 的 SSE 不改写。生产环境关闭 `/api/docs`、`/api/openapi.json` 与 `/redoc`。照片内容与声明不符返回 415 `UNSUPPORTED_MEDIA_TYPE`；超过 8000 字的 RAG 问题仍是 422 `UNPROCESSABLE`，消息改为“问题过长，请缩短后重试。” schema 与依赖未改。
 
 ## 技术栈与目录
 

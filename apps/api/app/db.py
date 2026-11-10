@@ -270,7 +270,9 @@ def _now() -> str:
 
 
 @contextmanager
-def get_conn() -> Iterator[sqlite3.Connection]:
+def get_conn(*, immediate: bool = False) -> Iterator[sqlite3.Connection]:
+    """打开短连接。``immediate`` 在第一条业务语句前取得写锁，避免延迟事务的快照竞争。"""
+
     settings.ensure_dirs()
     conn = sqlite3.connect(settings.db_path, check_same_thread=False, timeout=15)
     from .services.photo_time import normalize_photo_capture_at
@@ -285,6 +287,8 @@ def get_conn() -> Iterator[sqlite3.Connection]:
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA busy_timeout=15000")
     conn.execute("PRAGMA foreign_keys=ON")
+    if immediate:
+        conn.execute("BEGIN IMMEDIATE")
     try:
         yield conn
         conn.commit()
