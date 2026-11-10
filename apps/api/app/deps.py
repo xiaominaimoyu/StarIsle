@@ -29,6 +29,44 @@ CSRF_MAX_TOKENS_PER_SCOPE = 100
 CSRF_RETAINED_TOKENS_BEFORE_ISSUE = CSRF_MAX_TOKENS_PER_SCOPE - 1
 
 
+def _forwarded_proto(value: str | None) -> str | None:
+    """Return the first http/https hop, or a sentinel when the header is present but invalid."""
+
+    if value is None:
+        return None
+    first = value.split(",", 1)[0].strip().lower()
+    if first in {"http", "https"}:
+        return first
+    return ""
+
+
+def origin_matches_request(origin: str | None, host: str | None, forwarded_proto: str | None) -> bool:
+    """Accept only a browser Origin whose host matches this request.
+
+    Scheme is checked against ``X-Forwarded-Proto`` when a proxy supplies it, so an
+    HTTP page cannot satisfy an HTTPS hop. Direct loopback requests without that
+    header keep the historical host comparison.
+    """
+
+    if not origin or not host:
+        return False
+    parsed = urlparse(origin.strip())
+    if parsed.scheme not in {"http", "https"}:
+        return False
+    if parsed.username is not None or parsed.password is not None:
+        return False
+    if parsed.query or parsed.fragment or parsed.path not in {"", "/"}:
+        return False
+    if not parsed.hostname or not parsed.netloc:
+        return False
+    if parsed.netloc.strip().lower() != host.strip().lower():
+        return False
+    proto = _forwarded_proto(forwarded_proto)
+    if proto is not None and proto != parsed.scheme:
+        return False
+    return True
+
+
 class AuthError(HTTPException):
     def __init__(self, code: str, message: str, http_status: int = 401) -> None:
         super().__init__(
@@ -79,8 +117,7 @@ def require_csrf(
     host = request.headers.get("host", "")
     if not origin:
         raise AuthError("CSRF_REQUIRED", "缺少 Origin", 403)
-    parsed = urlparse(origin)
-    if parsed.scheme not in {"http", "https"} or parsed.netloc != host:
+    if not origin_matches_request(origin, host, request.headers.get("x-forwarded-proto")):
         raise AuthError("CSRF_REQUIRED", "Origin 校验失败", 403)
     if not x_csrf_token:
         raise AuthError("CSRF_REQUIRED", "缺少 CSRF 令牌", 403)
