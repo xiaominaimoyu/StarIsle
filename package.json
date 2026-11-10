@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "version": "0.1.0",
+  "license": "MIT",
   "description": "星屿 StarIsle - 个人全栈门户(公开求职展示 + 私有数据入口 + RAG 知识库)",
   "packageManager": "pnpm@9.15.4",
   "engines": {
