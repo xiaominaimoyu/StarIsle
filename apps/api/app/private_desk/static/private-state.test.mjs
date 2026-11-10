@@ -1,0 +1,55 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import {
+  PRIVATE_NAV,
+  deletionRequest,
+  mergePhotos,
+  originalUrl,
+  photoFileIssue,
+  photoLabel,
+  removePhoto,
+  safeNext,
+} from "./private-state.mjs";
+
+test("only the album is open and later rooms have no link", () => {
+  const open = PRIVATE_NAV.filter((item) => item.enabled);
+  assert.deepEqual(open.map((item) => item.id), ["album"]);
+  assert.equal(open[0].href, "/private/album");
+  for (const item of PRIVATE_NAV.filter((entry) => !entry.enabled)) {
+    assert.equal(item.href, undefined);
+    assert.equal(typeof item.later, "string");
+  }
+  assert.deepEqual(
+    PRIVATE_NAV.map((item) => item.id),
+    ["album", "messages", "notes", "ask", "overview"],
+  );
+});
+
+test("next path stays inside the private desk", () => {
+  assert.equal(safeNext("/private/album"), "/private/album");
+  assert.equal(safeNext("/private/"), "/private/");
+  assert.equal(safeNext("https://example.test"), "/private/album");
+  assert.equal(safeNext("//example.test"), "/private/album");
+  assert.equal(safeNext("/console"), "/private/album");
+  assert.equal(safeNext(null), "/private/album");
+});
+
+test("photo pages merge without duplicates and deletion needs confirmation", () => {
+  const first = [{ id: "a" }, { id: "b" }];
+  const merged = mergePhotos(first, [{ id: "b" }, { id: "c" }, { id: "" }, null]);
+  assert.deepEqual(merged.map((photo) => photo.id), ["a", "b", "c"]);
+  assert.deepEqual(removePhoto(merged, "b").map((photo) => photo.id), ["a", "c"]);
+  assert.deepEqual(deletionRequest("a", false), { ok: false, reason: "confirm" });
+  assert.deepEqual(deletionRequest("", true), { ok: false, reason: "missing" });
+  assert.deepEqual(deletionRequest("a", true), { ok: true, photoId: "a" });
+});
+
+test("client checks reject the wrong type or an oversized file before upload", () => {
+  assert.equal(photoFileIssue({ type: "image/png", size: 12 }), null);
+  assert.equal(photoFileIssue({ type: "text/plain", size: 12 }), "type");
+  assert.equal(photoFileIssue({ type: "image/gif", size: 20 * 1024 * 1024 + 1 }), "size");
+  assert.equal(photoLabel({ captureAt: "2026-11-10T08:00:00" }), "照片 2026-11-10");
+  assert.equal(photoLabel({ captureAt: null }), "照片");
+  assert.equal(originalUrl("photo 1"), "/api/v1/photos/photo%201/original");
+});
