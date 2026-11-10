@@ -764,27 +764,41 @@ def _posix_group_alive(process_group: int) -> bool:
         return True
 
 
+def _signal_posix_process_group(process_group: int, sig: int) -> bool:
+    try:
+        os.killpg(process_group, sig)
+    except ProcessLookupError:
+        return True
+    except OSError:
+        return False
+    return True
+
+
+def _reap_leader(process: subprocess.Popen[Any], timeout_seconds: float) -> bool:
+    """Reap the owned leader. A zombie still answers ``killpg(..., 0)`` until this happens."""
+
+    try:
+        process.wait(timeout=timeout_seconds)
+    except subprocess.TimeoutExpired:
+        return False
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return process.poll() is not None
+
+
 def _stop_posix_process_group(process_group: int, timeout_seconds: float) -> bool:
     """Terminate the exact owned process group even after the leader exits."""
 
     if not _posix_group_alive(process_group):
         return True
-    try:
-        os.killpg(process_group, signal.SIGTERM)
-    except ProcessLookupError:
-        return True
-    except OSError:
+    if not _signal_posix_process_group(process_group, signal.SIGTERM):
         return False
     deadline = time.monotonic() + timeout_seconds
     while time.monotonic() < deadline:
         if not _posix_group_alive(process_group):
             return True
         time.sleep(0.05)
-    try:
-        os.killpg(process_group, signal.SIGKILL)
-    except ProcessLookupError:
-        return True
-    except OSError:
+    if not _signal_posix_process_group(process_group, signal.SIGKILL):
         return False
     deadline = time.monotonic() + timeout_seconds
     while time.monotonic() < deadline:
@@ -830,15 +844,25 @@ def stop_owned_process(owned: OwnedProcess | None, *, timeout_seconds: float = 1
                         handles_closed = False
                     owned.job = None
         elif owned.process_group is not None:
-            tree_stopped = _stop_posix_process_group(owned.process_group, timeout_seconds)
+            # Reap the leader before trusting killpg(0). An unreaped zombie keeps
+            # the process group visible and used to time out every Linux stop.
+            signaled = _signal_posix_process_group(owned.process_group, signal.SIGTERM)
+            leader_stopped = _reap_leader(owned.process, timeout_seconds)
+            if not leader_stopped:
+                _signal_posix_process_group(owned.process_group, signal.SIGKILL)
+                leader_stopped = _reap_leader(owned.process, timeout_seconds)
+            tree_stopped = signaled and leader_stopped and _stop_posix_process_group(
+                owned.process_group, timeout_seconds
+            )
         else:
             tree_stopped = False
 
-        try:
-            owned.process.wait(timeout=timeout_seconds)
-            leader_stopped = owned.process.poll() is not None
-        except (OSError, subprocess.SubprocessError):
-            leader_stopped = False
+        if not leader_stopped:
+            try:
+                owned.process.wait(timeout=timeout_seconds)
+                leader_stopped = owned.process.poll() is not None
+            except (OSError, subprocess.SubprocessError):
+                leader_stopped = False
     finally:
         pipes_closed = _close_popen_pipes(owned.process)
 

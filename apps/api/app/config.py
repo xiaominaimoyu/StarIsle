@@ -53,6 +53,21 @@ def _is_safe_jwt_kid(value: object) -> bool:
     return isinstance(value, str) and _JWT_KID.fullmatch(value) is not None
 
 
+def _positive_int_setting(name: str, default: str) -> int:
+    """Reject blank, non-integer, zero, and negative security/storage budgets at startup."""
+
+    raw = os.environ.get(name, default)
+    if not isinstance(raw, str):
+        raise ValueError(f"{name}:positive-integer")
+    try:
+        value = int(raw.strip())
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{name}:positive-integer") from exc
+    if value < 1:
+        raise ValueError(f"{name}:positive-integer")
+    return value
+
+
 def _parse_previous_jwt_keys(value: str, active_kid: str) -> dict[str, str]:
     """Parse only the bounded previous-key verification map without exposing values."""
 
@@ -116,8 +131,8 @@ class Settings:
             os.environ.get("AUTH_JWT_PREVIOUS_KEYS_JSON", "{}"), self.auth_jwt_active_kid
         )
         self.admin_bootstrap_password_hash: str = os.environ.get("ADMIN_BOOTSTRAP_PASSWORD_HASH", "")
-        self.auth_access_ttl_minutes: int = int(os.environ.get("AUTH_ACCESS_TTL_MINUTES", "15"))
-        self.auth_refresh_ttl_days: int = int(os.environ.get("AUTH_REFRESH_TTL_DAYS", "7"))
+        self.auth_access_ttl_minutes: int = _positive_int_setting("AUTH_ACCESS_TTL_MINUTES", "15")
+        self.auth_refresh_ttl_days: int = _positive_int_setting("AUTH_REFRESH_TTL_DAYS", "7")
         self.cookie_secure: bool = os.environ.get("COOKIE_SECURE", "false").lower() == "true"
 
         # 运行时数据。生产环境必须显式提供，避免回退到仓库相对路径。
@@ -127,11 +142,11 @@ class Settings:
         self.data_root: Path = Path(configured_data_root or "../data").resolve()
 
         # 上传
-        self.file_max_bytes: int = int(os.environ.get("FILE_MAX_BYTES", str(100 * 1024 * 1024)))
-        self.image_max_bytes: int = int(os.environ.get("IMAGE_MAX_BYTES", str(20 * 1024 * 1024)))
+        self.file_max_bytes: int = _positive_int_setting("FILE_MAX_BYTES", str(100 * 1024 * 1024))
+        self.image_max_bytes: int = _positive_int_setting("IMAGE_MAX_BYTES", str(20 * 1024 * 1024))
         # 所有对象写入前均检查配额。默认 10 GiB，部署可按实际磁盘容量下调。
-        self.storage_quota_bytes: int = int(
-            os.environ.get("STORAGE_QUOTA_BYTES", str(10 * 1024 * 1024 * 1024))
+        self.storage_quota_bytes: int = _positive_int_setting(
+            "STORAGE_QUOTA_BYTES", str(10 * 1024 * 1024 * 1024)
         )
         self.thumbnail_max_edge: int = 480
         self.thumbnail_quality: int = 80
@@ -146,7 +161,7 @@ class Settings:
             self.mail_hmac_active_kid,
             self.mail_hmac_key,
         )
-        self.mail_max_bytes: int = int(os.environ.get("MAIL_MAX_BYTES", str(5 * 1024 * 1024)))
+        self.mail_max_bytes: int = _positive_int_setting("MAIL_MAX_BYTES", str(5 * 1024 * 1024))
         self.mail_retention_days: int = int(os.environ.get("MAIL_RETENTION_DAYS", "30"))
         if self.mail_retention_days < 1:
             raise ValueError("MAIL_RETENTION_DAYS 必须大于或等于 1")
@@ -169,7 +184,7 @@ class Settings:
         self.llama_embed_base_url: str = os.environ.get("LLAMA_EMBED_BASE_URL", "").strip()
         self.chat_model_id: str = os.environ.get("CHAT_MODEL_ID", "").strip()
         self.embedding_model_id: str = os.environ.get("EMBEDDING_MODEL_ID", "").strip()
-        self.embedding_dim: int = int(os.environ.get("EMBEDDING_DIM", "384"))
+        self.embedding_dim: int = _positive_int_setting("EMBEDDING_DIM", "384")
 
         if self.star_isle_env == "production":
             self._validate_production_configuration()

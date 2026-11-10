@@ -38,8 +38,10 @@ async def rag_query(
 
     require_csrf(request, x_csrf_token)
     query = body.query.strip()
-    if not query or len(query) > 8000:
+    if not query:
         raise HTTPException(422, detail={"code": "UNPROCESSABLE", "message": "问题不能为空。"})
+    if len(query) > 8000:
+        raise HTTPException(422, detail={"code": "UNPROCESSABLE", "message": "问题过长，请缩短后重试。"})
 
     conversation_id = body.conversationId
     with get_conn() as conn:

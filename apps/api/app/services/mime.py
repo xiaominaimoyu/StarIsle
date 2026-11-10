@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import unicodedata
+
 MAGIC: dict[str, list[bytes]] = {
     "image/jpeg": [b"\xff\xd8\xff"],
     "image/png": [b"\x89PNG\r\n\x1a\n"],
@@ -46,6 +48,25 @@ def sniff_mime(data: bytes, declared: str) -> str:
 
 def ext_for(mime: str) -> str:
     return EXT_BY_TYPE.get(mime, ".bin")
+
+
+def safe_display_name(value: object, fallback: str) -> str:
+    """展示名只保留可打印字符，去掉路径分隔和控制符，并限制长度。"""
+
+    text = unicodedata.normalize("NFKC", "" if value is None else str(value))
+    text = "".join(char for char in text if not unicodedata.category(char).startswith("C"))
+    text = text.replace("/", "_").replace("\\", "_").strip(" .")
+    if not text:
+        return fallback
+    return text[:255]
+
+
+def upload_rejection(reason: str | None) -> tuple[int, str]:
+    """Map a validation reason to HTTP status and the shared error code."""
+
+    if reason and "类型" in reason:
+        return 415, "UNSUPPORTED_MEDIA_TYPE"
+    return 413, "PAYLOAD_TOO_LARGE"
 
 
 def validate_upload(data: bytes, declared: str, max_bytes: int) -> tuple[bool, str | None]:

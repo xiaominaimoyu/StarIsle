@@ -24,6 +24,17 @@ from .routers import auth, files, knowledge, mail, misc, rag
 from .storage import StorageUnavailable
 
 
+def expose_api_docs(env: str) -> tuple[str | None, str | None, str | None]:
+    """Interactive docs stay available in development and are hidden in production."""
+
+    if env == "production":
+        return None, None, None
+    return "/api/docs", "/api/openapi.json", "/redoc"
+
+
+_docs_url, _openapi_url, _redoc_url = expose_api_docs(settings.star_isle_env)
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     init_db()
@@ -34,8 +45,9 @@ async def lifespan(_: FastAPI):
 app = FastAPI(
     title="星屿 StarIsle API",
     version="0.1.0",
-    docs_url="/api/docs",
-    openapi_url="/api/openapi.json",
+    docs_url=_docs_url,
+    openapi_url=_openapi_url,
+    redoc_url=_redoc_url,
     lifespan=lifespan,
 )
 
@@ -52,6 +64,24 @@ app.add_middleware(
         mail_max_bytes=settings.mail_max_bytes,
     ),
 )
+
+
+def apply_security_headers(response):
+    """Baseline headers for the private API, including direct uvicorn without Caddy."""
+
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    if "cache-control" not in response.headers:
+        response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    return apply_security_headers(response)
 
 
 @app.middleware("http")
