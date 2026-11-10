@@ -60,6 +60,11 @@ def main(argv: list[str] | None = None) -> int:
             print("LOG_UNAVAILABLE")
             return 2
     print("PRIVATE_DESK_LISTENING", flush=True)
+    from app.db import init_db
+    from app.services.visitor_letters import pull_visitor_letters
+
+    init_db()
+    print(pull_visitor_letters().code, flush=True)
     import uvicorn
 
     from app.main import app

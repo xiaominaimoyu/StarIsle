@@ -18,6 +18,7 @@ _PAGES = {
     "login.html": "text/html; charset=utf-8",
     "home.html": "text/html; charset=utf-8",
     "album.html": "text/html; charset=utf-8",
+    "messages.html": "text/html; charset=utf-8",
 }
 _ASSETS = {
     "desk.css": "text/css; charset=utf-8",
@@ -25,9 +26,10 @@ _ASSETS = {
     "login.js": "text/javascript; charset=utf-8",
     "home.js": "text/javascript; charset=utf-8",
     "album.js": "text/javascript; charset=utf-8",
+    "messages.js": "text/javascript; charset=utf-8",
     "private-state.mjs": "text/javascript; charset=utf-8",
 }
-_ALLOWED_NEXT = {"/private", "/private/", "/private/album"}
+_ALLOWED_NEXT = {"/private", "/private/", "/private/album", "/private/messages"}
 _PAGE_HEADERS = {
     "Content-Security-Policy": (
         "default-src 'self'; img-src 'self'; style-src 'self'; script-src 'self'; "
@@ -72,6 +74,13 @@ def private_home(request: Request):
     if not _signed_in(request):
         return _redirect("/private/")
     return _page("home.html")
+
+
+@router.get("/private/messages")
+def private_messages(request: Request):
+    if not _signed_in(request):
+        return _redirect("/private/messages")
+    return _page("messages.html")
 
 
 @router.get("/private/album")

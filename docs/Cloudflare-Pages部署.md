@@ -12,7 +12,7 @@
 
 公开首页、信封入口、项目、简历、404、robots 和 sitemap 已上线。Pages 构建让 `/login/` 显示“私人空间暂未开放”，不渲染密码表单和登录 island；`/console` 与其子路径 302 转到该提示页。`/api/v1` 没有代理，未部署接口返回 404。
 
-FastAPI、SQLite schema v5、文件/照片存储、邮件、知识库、worker 和模型继续在本地开发。默认 `pnpm build` 不关闭登录功能，原 Caddy/Compose 配置保留。当前没有迁移至 D1、R2 或 Pages Functions。
+FastAPI、SQLite schema v5、文件/照片存储、邮件、知识库、worker 和模型继续在本地开发。默认 `pnpm build` 不关闭登录功能，原 Caddy/Compose 配置保留。访客留言是唯一的 Pages Function：它把通过校验的留言暂存在 D1，等书桌用专用密钥取走后删除。邮件 Worker 仍只做 HMAC 转发，不保存这批留言。
 
 ## 构建与发布
 
@@ -35,7 +35,59 @@ $env:npm_config_cache = Join-Path $env:TEMP 'starisle-cloudflare-npm-cache'
 npx --yes wrangler@4.156.0 login --scopes account:read user:read pages:write
 ```
 
-`build:pages` 先检查实际根 HTTPS URL，随后以 `PUBLIC_PRIVATE_AREA_ENABLED=false` 构建 11 页，生成 `_redirects` 与 `_headers`，检查提示页无登录表单，再运行原有完整发布门禁。普通本地构建不生成这两份 Pages 专用规则。发布前必须再次通过该脚本，不能将后续普通构建覆盖后的 dist 直接上传。
+`build:pages` 先检查实际根 HTTPS URL，随后以 `PUBLIC_PRIVATE_AREA_ENABLED=false` 构建公开页，生成 `_redirects` 与 `_headers`，检查提示页无登录表单，再运行原有完整发布门禁。门禁同时要求仓库根目录的 `functions/` 存在，并拒绝把收取密钥或 Turnstile 私钥打进 dist。普通本地构建不生成这两份 Pages 专用规则。发布前必须再次通过该脚本，不能将后续普通构建覆盖后的 dist 直接上传。
+
+## 留言的一次性准备
+
+这些命令在仓库根目录 `D:\project file\StarIsle` 执行。密钥只在提示里输入，不要写进命令参数，也不要提交。Wrangler 用临时缓存，不改锁文件。
+
+```powershell
+$env:npm_config_cache = Join-Path $env:TEMP 'starisle-cloudflare-npm-cache'
+$env:PYTHONUTF8 = "1"
+npx --yes wrangler@4.156.0 d1 create starisle-visitors
+npx --yes wrangler@4.156.0 d1 execute starisle-visitors --remote --file=functions/schema.sql
+```
+
+`d1 create` 会打印 `database_id`。把它填进仓库根目录 `wrangler.toml` 里那一段被注释的 D1 绑定，绑定名必须是 `VISITOR_DB`，然后保存。这个文件如果含有你的 database_id，不要提交。
+
+在 Cloudflare 控制台创建一个 Turnstile 小部件，主机名写 `starisle-6bt.pages.dev`。站点密钥是公开的，私钥只放进 Pages。
+
+```powershell
+$env:PUBLIC_SITE_URL = 'https://starisle-6bt.pages.dev'
+$env:PUBLIC_TURNSTILE_SITE_KEY = Read-Host 'Turnstile site key'
+pnpm build:pages
+if ($LASTEXITCODE -ne 0) { throw 'Pages build or release gate failed' }
+npx --yes wrangler@4.156.0 pages secret put TURNSTILE_SECRET_KEY --project-name starisle
+& ".\apps\api\.venv\Scripts\python.exe" -c "import secrets; print(secrets.token_urlsafe(32))"
+npx --yes wrangler@4.156.0 pages secret put VISITOR_PULL_KEY --project-name starisle
+npx --yes wrangler@4.156.0 pages deploy apps/web/dist --project-name starisle --branch main --commit-dirty=true
+```
+
+`pages secret put` 会提示输入。第一次贴 Turnstile 私钥，第二次贴上一行打印出来的收取密钥。不要把这两样加到命令参数里。部署命令在仓库根目录运行，Wrangler 会连同根目录的 `functions/` 一起上传，而不是把函数源码放进公开的 dist。
+
+把同一把收取密钥写进 `D:\StarIsleData\runtime.env`。如果文件里已经有空的 `VISITOR_PULL_KEY=`，改那一行，不要再追加一份：
+
+```powershell
+notepad D:\StarIsleData\runtime.env
+```
+
+需要写入的两行是：
+
+```text
+VISITOR_PULL_BASE_URL=https://starisle-6bt.pages.dev
+VISITOR_PULL_KEY=刚才打印的那一把
+```
+
+如果 `runtime.env` 里已经有这两行，改掉原来的空值，不要追加第二份。
+
+核对公开页和未授权的收取接口：
+
+```powershell
+Invoke-WebRequest -UseBasicParsing https://starisle-6bt.pages.dev/contact/
+Invoke-WebRequest -UseBasicParsing -Method POST https://starisle-6bt.pages.dev/api/visitor-messages/pull
+```
+
+第二句应当是 401。然后按本地指南启动书桌。日志里 `VISITOR_PULL_OK` 或 `VISITOR_PULL_OFFLINE` 都表示进程还在；来信页可以再按「收取来信」。
 
 响应头包括 nosniff、Referrer-Policy、X-Frame-Options，以及 `/login` / `/login/*` 的 X-Robots-Tag。当前页面本身仍保留 noindex 语义。规则与两种构建均见 [构建脚本](../scripts/build_cloudflare_pages.py) 和 [登录页](../apps/web/src/pages/login.astro)。
 

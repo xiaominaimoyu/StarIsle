@@ -170,6 +170,8 @@ def main(argv: list[str] | None = None) -> int:
             "STAR_ISLE_BIND_HOST": bind_host,
             "STAR_ISLE_BIND_PORT": str(port),
             "STAR_ISLE_BACKUP_ROOT": str(backup_root),
+            "VISITOR_PULL_BASE_URL": "https://starisle-6bt.pages.dev",
+            "VISITOR_PULL_KEY": "",
         }
         _write_runtime_env(runtime_env, values)
         with get_conn(immediate=True) as conn:

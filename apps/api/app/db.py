@@ -729,7 +729,34 @@ def init_db() -> None:
                 current = 5
             else:  # pragma: no cover - SCHEMA_VERSION 变化时的保护栏
                 raise SchemaVersionError("缺少已知的 schema 前向迁移")
+        _ensure_visitor_letter_table(conn)
+        conn.commit()
         _assert_v5_layout(conn)
+
+
+def _ensure_visitor_letter_table(conn: sqlite3.Connection) -> None:
+    """来信附在同一份库文件里，但不提升 schema 版本。
+
+    备份契约仍是 schema v5。整库在线快照会带上这张表；版本号保持不变，
+    避免把访客留言卷进资产、邮件和恢复演练的版本门。
+    """
+
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS visitor_letter (
+          id TEXT PRIMARY KEY,
+          received_at TEXT NOT NULL,
+          imported_at TEXT NOT NULL,
+          name TEXT NOT NULL,
+          contact TEXT NOT NULL,
+          body TEXT NOT NULL,
+          read_at TEXT,
+          archived_at TEXT,
+          deleted_at TEXT,
+          cloud_ack_at TEXT
+        )
+        """
+    )
 
 
 def audit(action: str, *, actor: str | None = None, resource_type: str | None = None,
