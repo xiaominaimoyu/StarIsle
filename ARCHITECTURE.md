@@ -29,7 +29,7 @@
 
 ## 本机私人书桌
 
-2026-11-10 起，主人每天使用的书桌不走 Astro 公开构建。页面、样式和脚本放在 `apps/api/app/private_desk/`，由 `python -m app.private_server` 和 `/api/v1` 一起绑在 `127.0.0.1:8787`。公开 `pnpm build:pages` 不读取这个目录。账号由 `python -m app.owner_setup` 写入数据目录，没有注册路由。相册复用现有照片接口；开机备份用 SQLite backup API 把快照写到单独的备份目录，并增量复制照片。来信、手记、问屿和总览只在导航里占位。
+2026-11-10 起，主人每天使用的书桌不走 Astro 公开构建。页面、样式和脚本放在 `apps/api/app/private_desk/`，由 `python -m app.private_server` 和 `/api/v1` 一起绑在 `127.0.0.1:8787`。公开 `pnpm build:pages` 不读取这个目录。账号由 `python -m app.owner_setup` 写入数据目录，没有注册路由。没有终端时该命令直接退出；Windows 启动脚本不重定向原生 stderr，日志由进程自己写成 UTF-8。登录自动启动是可选的。相册复用现有照片接口；开机备份用 SQLite backup API 把快照写到单独的备份目录，并增量复制照片。来信、手记、问屿和总览只在导航里占位。
 
 ## Cloudflare 公开部署
 

@@ -6,9 +6,9 @@
 
 私人书桌只在主人电脑的 `127.0.0.1:8787` 上打开。页面由 API 直接提供，不进入公开 Astro 构建。账号用 `python -m app.owner_setup` 写入，没有注册入口。相册复用现有上传、缩略图和删除，并补了登录后的大图。导航里的来信、手记、问屿、总览先留着，对应后面的 PR2 到 PR5。
 
-数据目录默认 `D:\StarIsleData`，备份目录默认 `D:\ASUS\OneDrive\StarIsleBackup`。每天开机用 SQLite 在线备份留一份数据库快照，只保留最近 7 份；照片按内容增量复制。Windows 登录时用当前用户的计划任务启动，不需要管理员。
+数据目录默认 `D:\StarIsleData`，备份目录默认 `D:\ASUS\OneDrive\StarIsleBackup`。每天开机用 SQLite 在线备份留一份数据库快照，只保留最近 7 份；照片按内容增量复制。Windows 上手动启动即可，登录自动启动是可选的。日志由 Python 写成 UTF-8，Windows PowerShell 5.1 不会因为 uvicorn 的提示把进程杀掉。
 
-API pytest 630 passed、2 skipped。私人书桌前端状态 4 项通过。Web 仍是 31 files / 206 项。`pnpm build:pages` FULL 门禁通过，55 个文件，制品中没有 `/private`。详见 [开发进度 §66](./docs/开发进度.md)。
+API pytest 633 passed、2 skipped。私人书桌前端状态 4 项通过。Web 仍是 31 files / 206 项。`pnpm build:pages` FULL 门禁通过，55 个文件，制品中没有 `/private`。详见 [开发进度 §66](./docs/开发进度.md)。
 
 ## 公开站视觉打磨（未合并、未部署）
 

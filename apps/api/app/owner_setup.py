@@ -47,17 +47,23 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def _read_secret(from_stdin: bool) -> tuple[str, str]:
-    if from_stdin:
-        first = sys.stdin.readline()
-        second = sys.stdin.readline()
-        first = first.removesuffix("\n")
-        first = first.removesuffix("\r")
-        second = second.removesuffix("\n")
-        second = second.removesuffix("\r")
-        return first, second
-    import getpass
+    """交互终端才询问。管道用 --password-stdin，否则只接受环境变量。"""
 
-    return getpass.getpass("Owner password: "), getpass.getpass("Repeat owner password: ")
+    if not from_stdin:
+        env_password = os.environ.get("STAR_ISLE_OWNER_PASSWORD")
+        if env_password is not None:
+            os.environ.pop("STAR_ISLE_OWNER_PASSWORD", None)
+            return env_password, env_password
+        if not sys.stdin.isatty():
+            raise PrivateRuntimeError("PASSWORD_TTY_REQUIRED")
+        import getpass
+
+        return getpass.getpass("Owner password: "), getpass.getpass("Repeat owner password: ")
+    first = sys.stdin.readline()
+    second = sys.stdin.readline()
+    first = first.removesuffix("\n").removesuffix("\r")
+    second = second.removesuffix("\n").removesuffix("\r")
+    return first, second
 
 
 def _accept_password(first: str, second: str) -> str:

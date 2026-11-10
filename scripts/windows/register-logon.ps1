@@ -1,5 +1,5 @@
-# Register the private desk to start at sign-in for the current user.
-# No administrator rights. ASCII output only.
+# Optional. Register the private desk to start at sign-in for the current user.
+# Skip this script to keep startup manual. No administrator rights. ASCII only.
 $ErrorActionPreference = "Stop"
 $env:PYTHONUTF8 = "1"
 try { [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding $false } catch {}

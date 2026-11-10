@@ -436,3 +436,93 @@ def test_owner_setup_creates_one_account_outside_the_repo(tmp_path: Path):
     )
     assert third.returncode == 2
     assert third.stdout.strip() == b"OWNER_EXISTS"
+
+
+def test_owner_setup_refuses_non_tty_without_hanging(tmp_path: Path):
+    env = os.environ.copy()
+    env.pop("STAR_ISLE_OWNER_PASSWORD", None)
+    env["PYTHON_DOTENV_DISABLED"] = "1"
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-B",
+            "-m",
+            "app.owner_setup",
+            "--data-root",
+            str(tmp_path / "data"),
+            "--backup-root",
+            str(tmp_path / "backup"),
+        ],
+        cwd=API_ROOT,
+        input=b"",
+        capture_output=True,
+        env=env,
+        check=False,
+        timeout=5,
+    )
+    assert completed.returncode == 2
+    assert completed.stdout.strip() == b"PASSWORD_TTY_REQUIRED"
+
+
+def test_owner_setup_accepts_password_from_env_not_argv(tmp_path: Path):
+    data = tmp_path / "data"
+    backup = tmp_path / "backup"
+    password = "env-password-12"
+    env = os.environ.copy()
+    env["PYTHON_DOTENV_DISABLED"] = "1"
+    env["STAR_ISLE_OWNER_PASSWORD"] = password
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-B",
+            "-m",
+            "app.owner_setup",
+            "--data-root",
+            str(data),
+            "--backup-root",
+            str(backup),
+        ],
+        cwd=API_ROOT,
+        input=b"",
+        capture_output=True,
+        env=env,
+        check=False,
+        timeout=30,
+    )
+    assert completed.returncode == 0, completed.stderr.decode()
+    assert completed.stdout.strip() == b"OWNER_CREATED"
+    assert password.encode() not in completed.stdout + completed.stderr
+    assert password not in (data / "runtime.env").read_text(encoding="utf-8")
+
+
+def test_desk_log_is_utf8_and_windows_scripts_do_not_capture_stderr(tmp_path: Path):
+    from app.private_server import configure_desk_log, write_pid_file
+
+    log = tmp_path / "logs" / "private-desk.log"
+    old_out, old_err = sys.stdout, sys.stderr
+    handle = None
+    try:
+        handle = configure_desk_log(log)
+        write_pid_file(log.with_name("private-desk.pid"))
+        print("PRIVATE_DESK_LISTENING")
+        sys.stdout.flush()
+    finally:
+        sys.stdout = old_out
+        sys.stderr = old_err
+        if handle is not None:
+            handle.close()
+    raw = log.read_bytes()
+    assert not raw.startswith((b"\xff\xfe", b"\xfe\xff"))
+    assert "PRIVATE_DESK_LISTENING" in raw.decode("utf-8")
+    assert (log.with_name("private-desk.pid")).read_text(encoding="ascii").strip() == str(os.getpid())
+    folder = REPO_ROOT / "scripts" / "windows"
+    names = {path.name for path in folder.glob("*.ps1")}
+    assert {"start-private.ps1", "stop-private.ps1", "register-logon.ps1"} <= names
+    for path in folder.glob("*.ps1"):
+        text = path.read_text(encoding="utf-8")
+        for token in ("*>>", "*>&", "2>&1", "2>>"):
+            assert token not in text
+    start = (folder / "start-private.ps1").read_text(encoding="utf-8")
+    assert "STAR_ISLE_DESK_LOG" in start
+    assert "UTF8Encoding" in start
+    assert "Continue" in start
