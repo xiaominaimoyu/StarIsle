@@ -13,10 +13,14 @@ const privateAreaEnabled = import.meta.env.PUBLIC_PRIVATE_AREA_ENABLED !== "fals
   noindex
 >
   <div class="flex min-h-dvh flex-col">
-    <header class="auth-header sticky top-0 z-40 bg-bg/80 backdrop-blur">
+    <header class="auth-header">
       <div class="auth-header__inner">
-        <a href="/" class="brand-lockup flex items-center gap-2 font-display text-lg font-semibold text-text focus-ring rounded">
-          <SealMonogramSvg className="brand-seal" variant="compact" /> 星屿 StarIsle
+        <a href="/" class="brand-lockup focus-ring rounded" aria-label="星屿 StarIsle 首页">
+          <SealMonogramSvg className="brand-seal" variant="compact" />
+          <span class="brand-lockup__text">
+            <strong>星屿</strong>
+            <small>StarIsle</small>
+          </span>
         </a>
       </div>
     </header>
