@@ -18,14 +18,17 @@ FastAPI、SQLite schema v5、文件/照片存储、邮件、知识库、worker �
 
 前置：仓库原有 pnpm/Python 依赖可用；临时 Wrangler 4.156.0 要求 Node.js 22+，本机为 24.14.1。CLI 使用单独临时 npm 缓存，不修改应用依赖或锁文件。
 
-已存在项目的更新流程如下。在项目根目录运行，只部署 dist，命令不执行 Git 暂存、提交或推送：
+已存在项目的更新流程如下。先确认工作区干净，再用该提交的 SHA 标记部署，不使用 `--commit-dirty`。命令不执行 Git 暂存、提交或推送：
 
 ```powershell
 $env:npm_config_cache = Join-Path $env:TEMP 'starisle-cloudflare-npm-cache'
 $env:PUBLIC_SITE_URL = 'https://starisle-6bt.pages.dev'
 pnpm build:pages
 if ($LASTEXITCODE -ne 0) { throw 'Pages build or release gate failed' }
-npx --yes wrangler@4.156.0 pages deploy apps/web/dist --project-name starisle --branch main --commit-dirty=true
+git status --porcelain
+if ($LASTEXITCODE -ne 0 -or (git status --porcelain)) { throw 'Deploy from a clean tree' }
+$sha = (git rev-parse HEAD).Trim()
+npx --yes wrangler@4.156.0 pages deploy apps/web/dist --project-name starisle --branch main --commit-hash $sha
 ```
 
 仅在 CLI 未认证时运行以下命令，并在浏览器内完成官方授权；不要将密码、验证码或 token 发到聊天或写入仓库：
@@ -37,9 +40,11 @@ npx --yes wrangler@4.156.0 login --scopes account:read user:read pages:write
 
 `build:pages` 先检查实际根 HTTPS URL，随后以 `PUBLIC_PRIVATE_AREA_ENABLED=false` 构建公开页，生成 `_redirects` 与 `_headers`，检查提示页无登录表单，再运行原有完整发布门禁。门禁同时要求仓库根目录的 `functions/` 存在，并拒绝把收取密钥或 Turnstile 私钥打进 dist。普通本地构建不生成这两份 Pages 专用规则。发布前必须再次通过该脚本，不能将后续普通构建覆盖后的 dist 直接上传。
 
-## 留言的一次性准备
+## 留言：先预览，合并后再上生产
 
-这些命令在仓库根目录 `D:\project file\StarIsle` 执行。密钥只在提示里输入，不要写进命令参数，也不要提交。Wrangler 用临时缓存，不改锁文件。
+这些命令在仓库根目录 `D:\project file\StarIsle` 执行。密钥只在提示里输入，不要写进命令参数。`database_id` 不是密钥，填进 `wrangler.toml` 后要提交。Wrangler 用临时缓存，不改锁文件。
+
+### 1. 创建 D1 并提交绑定
 
 ```powershell
 $env:npm_config_cache = Join-Path $env:TEMP 'starisle-cloudflare-npm-cache'
@@ -48,46 +53,112 @@ npx --yes wrangler@4.156.0 d1 create starisle-visitors
 npx --yes wrangler@4.156.0 d1 execute starisle-visitors --remote --file=functions/schema.sql
 ```
 
-`d1 create` 会打印 `database_id`。把它填进仓库根目录 `wrangler.toml` 里那一段被注释的 D1 绑定，绑定名必须是 `VISITOR_DB`，然后保存。这个文件如果含有你的 database_id，不要提交。
+`d1 create` 会打印 `database_id`。用它替换 `wrangler.toml` 里的 `REPLACE_AFTER_D1_CREATE`。绑定名保持 `VISITOR_DB`。预览部署和生产部署都使用这个 id；预览分支不会替换已经在线的生产站。然后提交这一处改动，工作区要干净：
 
-在 Cloudflare 控制台创建一个 Turnstile 小部件，主机名写 `starisle-6bt.pages.dev`。站点密钥是公开的，私钥只放进 Pages。
+```powershell
+git add wrangler.toml
+git commit -m "chore: record the visitor D1 database id"
+git status --porcelain
+```
+
+### 2. 合并前只部署预览
+
+在 Cloudflare 控制台的 Turnstile 小部件里加入主机名 `visitor-messages.starisle-6bt.pages.dev`。先不要只用生产主机名做这次试用。站点密钥是公开的，私钥按环境分开存放。
+
+`wrangler pages secret put` 不加 `--env` 时只写入 Production。预览部署读不到 Production 的密钥，所以试用前要用 `--env preview`。Turnstile 私钥和收取密钥是两个不同的值。生产环境的这两条密钥等到合并之后再写。
 
 ```powershell
 $env:PUBLIC_SITE_URL = 'https://starisle-6bt.pages.dev'
 $env:PUBLIC_TURNSTILE_SITE_KEY = Read-Host 'Turnstile site key'
 pnpm build:pages
 if ($LASTEXITCODE -ne 0) { throw 'Pages build or release gate failed' }
-npx --yes wrangler@4.156.0 pages secret put TURNSTILE_SECRET_KEY --project-name starisle
+npx --yes wrangler@4.156.0 pages secret put TURNSTILE_SECRET_KEY --project-name starisle --env preview
 & ".\apps\api\.venv\Scripts\python.exe" -c "import secrets; print(secrets.token_urlsafe(32))"
-npx --yes wrangler@4.156.0 pages secret put VISITOR_PULL_KEY --project-name starisle
-npx --yes wrangler@4.156.0 pages deploy apps/web/dist --project-name starisle --branch main --commit-dirty=true
+npx --yes wrangler@4.156.0 pages secret put VISITOR_PULL_KEY --project-name starisle --env preview
 ```
 
-`pages secret put` 会提示输入。第一次贴 Turnstile 私钥，第二次贴上一行打印出来的收取密钥。不要把这两样加到命令参数里。部署命令在仓库根目录运行，Wrangler 会连同根目录的 `functions/` 一起上传，而不是把函数源码放进公开的 dist。
-
-把同一把收取密钥写进 `D:\StarIsleData\runtime.env`。如果文件里已经有空的 `VISITOR_PULL_KEY=`，改那一行，不要再追加一份：
+第一次提示贴 Turnstile 私钥。上一行打印的收取密钥贴进第二次提示。不要把这两样加到命令参数里。
 
 ```powershell
-notepad D:\StarIsleData\runtime.env
+git status --porcelain
+if (git status --porcelain) { throw 'Deploy from a clean tree' }
+$sha = (git rev-parse HEAD).Trim()
+npx --yes wrangler@4.156.0 pages deploy apps/web/dist --project-name starisle --branch visitor-messages --commit-hash $sha
 ```
 
-需要写入的两行是：
+部署完成会给出本次的 `https://<hash>.starisle-6bt.pages.dev`，以及稳定的分支地址 `https://visitor-messages.starisle-6bt.pages.dev`。人机验证请打开稳定的分支地址。`<hash>` 每次部署都会变，不必加进 Turnstile。
 
-```text
-VISITOR_PULL_BASE_URL=https://starisle-6bt.pages.dev
-VISITOR_PULL_KEY=刚才打印的那一把
+把书桌的收取地址暂时指到预览。只改 `VISITOR_PULL_BASE_URL` 这一行，密钥仍是刚才那一把：
+
+```powershell
+$runtime = 'D:\StarIsleData\runtime.env'
+$utf8 = New-Object System.Text.UTF8Encoding $false
+$lines = [System.IO.File]::ReadAllLines($runtime)
+$next = foreach ($line in $lines) {
+  if ($line.StartsWith('VISITOR_PULL_BASE_URL=')) {
+    'VISITOR_PULL_BASE_URL=https://visitor-messages.starisle-6bt.pages.dev'
+  } else { $line }
+}
+[System.IO.File]::WriteAllLines($runtime, $next, $utf8)
 ```
 
-如果 `runtime.env` 里已经有这两行，改掉原来的空值，不要追加第二份。
+如果文件里还没有这一行，就补上上面的预览地址和 `VISITOR_PULL_KEY=`。然后启动书桌，或在来信页按「收取来信」。
 
-核对公开页和未授权的收取接口：
+核对预览，而不是生产站：
+
+```powershell
+Invoke-WebRequest -UseBasicParsing https://visitor-messages.starisle-6bt.pages.dev/contact/
+Invoke-WebRequest -UseBasicParsing -Method POST https://visitor-messages.starisle-6bt.pages.dev/api/visitor-messages/pull
+```
+
+第二句应当是 401。此时 `https://starisle-6bt.pages.dev` 仍是合并前的生产站。
+
+### 3. 合并之后再部署生产
+
+Turnstile 再加入主机名 `starisle-6bt.pages.dev`。把同一把收取密钥和 Turnstile 私钥写入 Production。预览里的密钥不会自动变成生产密钥。
+
+```powershell
+npx --yes wrangler@4.156.0 pages secret put TURNSTILE_SECRET_KEY --project-name starisle --env production
+npx --yes wrangler@4.156.0 pages secret put VISITOR_PULL_KEY --project-name starisle --env production
+```
+
+在干净的 `main` 上构建并部署。`$sha` 必须是 `git rev-parse HEAD` 的结果：
+
+```powershell
+git checkout main
+git pull
+git status --porcelain
+if (git status --porcelain) { throw 'Deploy from a clean tree' }
+$env:PUBLIC_SITE_URL = 'https://starisle-6bt.pages.dev'
+$env:PUBLIC_TURNSTILE_SITE_KEY = Read-Host 'Turnstile site key'
+pnpm build:pages
+if ($LASTEXITCODE -ne 0) { throw 'Pages build or release gate failed' }
+$sha = (git rev-parse HEAD).Trim()
+npx --yes wrangler@4.156.0 pages deploy apps/web/dist --project-name starisle --branch main --commit-hash $sha
+```
+
+再把书桌指回生产：
+
+```powershell
+$runtime = 'D:\StarIsleData\runtime.env'
+$utf8 = New-Object System.Text.UTF8Encoding $false
+$lines = [System.IO.File]::ReadAllLines($runtime)
+$next = foreach ($line in $lines) {
+  if ($line.StartsWith('VISITOR_PULL_BASE_URL=')) {
+    'VISITOR_PULL_BASE_URL=https://starisle-6bt.pages.dev'
+  } else { $line }
+}
+[System.IO.File]::WriteAllLines($runtime, $next, $utf8)
+```
 
 ```powershell
 Invoke-WebRequest -UseBasicParsing https://starisle-6bt.pages.dev/contact/
 Invoke-WebRequest -UseBasicParsing -Method POST https://starisle-6bt.pages.dev/api/visitor-messages/pull
 ```
 
-第二句应当是 401。然后按本地指南启动书桌。日志里 `VISITOR_PULL_OK` 或 `VISITOR_PULL_OFFLINE` 都表示进程还在；来信页可以再按「收取来信」。
+第二句应当是 401。D1 绑定跟着已提交的 `wrangler.toml` 走，预览和生产部署都会带上 `VISITOR_DB`。没有设置 `preview_database_id` 时，两边用同一个库；合并前的生产站本身不会因此被换掉。
+
+部署命令在仓库根目录运行，Wrangler 会连同根目录的 `functions/` 一起上传，而不是把函数源码放进公开的 dist。
 
 响应头包括 nosniff、Referrer-Policy、X-Frame-Options，以及 `/login` / `/login/*` 的 X-Robots-Tag。当前页面本身仍保留 noindex 语义。规则与两种构建均见 [构建脚本](../scripts/build_cloudflare_pages.py) 和 [登录页](../apps/web/src/pages/login.astro)。
 

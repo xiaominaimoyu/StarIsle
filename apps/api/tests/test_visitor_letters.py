@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import httpx
 from app.db import get_conn, init_db
@@ -81,6 +82,25 @@ def test_pull_imports_once_and_acks_then_lists_locally(monkeypatch):
     )
     assert deleted.status_code == 204
     assert client.get("/api/v1/visitor-letters").json()["items"] == []
+
+
+def test_pull_base_accepts_preview_and_production_hosts(monkeypatch):
+    from app.services.visitor_letters import pull_base_url
+
+    monkeypatch.setenv("VISITOR_PULL_BASE_URL", "https://visitor-messages.starisle-6bt.pages.dev")
+    assert pull_base_url() == "https://visitor-messages.starisle-6bt.pages.dev"
+    monkeypatch.setenv("VISITOR_PULL_BASE_URL", "https://starisle-6bt.pages.dev/")
+    assert pull_base_url() == "https://starisle-6bt.pages.dev"
+
+
+def test_d1_binding_is_committed_config():
+    repo = Path(__file__).resolve().parents[3]
+    text = (repo / "wrangler.toml").read_text(encoding="utf-8")
+    assert 'binding = "VISITOR_DB"' in text
+    assert 'database_name = "starisle-visitors"' in text
+    assert "database_id" in text
+    assert "commit-dirty" not in text
+    assert "不要提交" not in text
 
 
 def test_pull_offline_keeps_existing_letters(monkeypatch):
