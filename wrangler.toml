@@ -1,0 +1,11 @@
+name = "starisle"
+compatibility_date = "2026-11-10"
+pages_build_output_dir = "apps/web/dist"
+
+# database_id is a D1 identifier, not a secret. After `wrangler d1 create`
+# prints it, put that value here and commit the file.
+# Preview deploys use this same database unless preview_database_id is set.
+[[d1_databases]]
+binding = "VISITOR_DB"
+database_name = "starisle-visitors"
+database_id = "1788e9ed-0ab3-4163-a87e-5e137268ae1a"

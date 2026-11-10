@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>来信 · 星屿私人书桌</title>
+  <link rel="stylesheet" href="/private/assets/desk.css">
+</head>
+<body>
+  <a class="skip" href="#main">跳到内容</a>
+  <div class="shell">
+    <aside class="sidebar">
+      <a class="brand sidebar-brand" href="/private/">
+        <span class="seal" aria-hidden="true">星</span>
+        <span class="brand-text"><strong>星屿</strong><small>DESK</small></span>
+      </a>
+      <nav class="nav-list" data-nav aria-label="私人书桌">
+        <a class="nav-link" href="/private/album">相册</a>
+        <a class="nav-link" href="/private/messages" aria-current="page">来信</a>
+        <button class="nav-link is-disabled" type="button" aria-disabled="true">手记</button>
+        <button class="nav-link is-disabled" type="button" aria-disabled="true">问屿</button>
+        <button class="nav-link is-disabled" type="button" aria-disabled="true">总览</button>
+      </nav>
+    </aside>
+    <div class="shell-main">
+      <header class="shell-header">
+        <div>
+          <p class="eyebrow">VISITOR NOTES</p>
+          <h1>来信</h1>
+        </div>
+        <div class="header-actions">
+          <button class="primary" type="button" data-pull>收取来信</button>
+          <button class="ghost" type="button" data-logout>退出</button>
+        </div>
+      </header>
+      <main id="main">
+        <p id="letter-status" data-status role="status" hidden></p>
+        <div class="header-actions">
+          <button class="ghost" type="button" data-view="inbox">新来信</button>
+          <button class="ghost" type="button" data-view="archived">已归档</button>
+        </div>
+        <p class="empty" data-empty hidden>这里还没有来信。</p>
+        <div class="letter-list" data-list></div>
+      </main>
+    </div>
+  </div>
+  <dialog id="letter-dialog">
+    <p class="eyebrow" id="letter-meta"></p>
+    <h2 id="letter-name"></h2>
+    <p id="letter-body"></p>
+    <div class="dialog-actions">
+      <button id="letter-archive" class="ghost" type="button">归档</button>
+      <button id="letter-delete" class="danger" type="button">删除</button>
+      <button id="letter-close" class="ghost" type="button">关闭</button>
+    </div>
+  </dialog>
+  <dialog id="confirm-delete">
+    <h2>确认删除</h2>
+    <p>只从这台电脑拿掉。云上的副本在收取时已经删过。</p>
+    <div class="dialog-actions">
+      <button id="confirm-cancel" class="ghost" type="button">取消</button>
+      <button id="confirm-ok" class="danger" type="button">确认删除</button>
+    </div>
+  </dialog>
+  <script type="module" src="/private/assets/messages.js"></script>
+</body>
+</html>

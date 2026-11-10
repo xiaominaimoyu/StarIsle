@@ -16,7 +16,7 @@ if (await ensureSession()) {
     if (item.enabled && item.href) {
       const link = document.createElement("a");
       link.href = item.href;
-      link.textContent = "打开相册";
+      link.textContent = item.id === "album" ? "打开相册" : "打开来信";
       note.append(link);
     } else {
       note.textContent = "稍后开放";

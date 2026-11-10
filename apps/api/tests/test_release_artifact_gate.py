@@ -126,6 +126,13 @@ def release_fixture(
     source_root = tmp_path / "source-root"
     source_root.mkdir()
     _write_complete_dist(dist_root, site_url)
+    for relative_name in (
+        "functions/api/visitor-messages.js",
+        "functions/api/visitor-messages/pull.js",
+    ):
+        _write(source_root / relative_name, "export async function onRequestPost(){return new Response(null,{status:204})}\n")
+    _write(source_root / "functions" / "_lib" / "visitor-messages.js", "export const visitorMessages = true;\n")
+    _write(source_root / "functions" / "schema.sql", "CREATE TABLE visitor_message (id TEXT PRIMARY KEY);\n")
     monkeypatch.setattr(gate, "REPOSITORY_ROOT", source_root)
     monkeypatch.setattr(gate, "DIST_ROOT", dist_root)
     monkeypatch.setattr(gate, "RELEASE_INPUT_FILES", _write_release_inputs(tmp_path / "inputs"))
@@ -627,3 +634,17 @@ def test_config_only_reports_only_the_configuration_failure(
 
     assert captured.out == ""
     assert captured.err == "RELEASE_ARTIFACT_GATE: FAILED\nERROR_COUNT: 1\nCONFIG_INVALID_URL\n"
+
+
+def test_missing_visitor_function_fails_the_gate(release_fixture: tuple[ModuleType, Path, Path]):
+    gate, _, source_root = release_fixture
+    (source_root / "functions" / "schema.sql").unlink()
+
+    assert "VISITOR_FUNCTION_MISSING" in _result(gate).error_codes
+
+
+def test_public_dist_cannot_carry_visitor_secrets(release_fixture: tuple[ModuleType, Path, Path]):
+    gate, dist_root, _ = release_fixture
+    _write(dist_root / "leak.js", "const key = 'VISITOR_PULL_KEY';\n")
+
+    assert "VISITOR_SECRET_LEAK" in _result(gate).error_codes

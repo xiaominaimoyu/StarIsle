@@ -43,6 +43,12 @@ RELEASE_INPUT_FILES: tuple[tuple[str, Path], ...] = (
     ("apps/api/Dockerfile", REPOSITORY_ROOT / "apps" / "api" / "Dockerfile"),
 )
 
+VISITOR_FUNCTION_FILES = (
+    "functions/api/visitor-messages.js",
+    "functions/api/visitor-messages/pull.js",
+    "functions/_lib/visitor-messages.js",
+    "functions/schema.sql",
+)
 REQUIRED_ARTIFACTS = frozenset(
     {
         "index.html",
@@ -667,6 +673,41 @@ def _release_input_fingerprint(errors: set[str]) -> tuple[int, str] | None:
     return _fingerprint_files(safe_inputs, errors, "RELEASE_INPUT_INVALID")
 
 
+def _check_visitor_functions(errors: set[str]) -> None:
+    """Pages Functions are deployed beside dist, so they belong to the release."""
+
+    for relative_name in VISITOR_FUNCTION_FILES:
+        path = REPOSITORY_ROOT / relative_name
+        try:
+            if has_link_or_reparse_component(path) or is_link_or_reparse(path) or not path.is_file():
+                errors.add("VISITOR_FUNCTION_MISSING")
+                return
+            text = path.read_text(encoding="utf-8")
+        except (HarnessSafetyError, OSError, UnicodeError):
+            errors.add("VISITOR_FUNCTION_MISSING")
+            return
+        if not text.strip():
+            errors.add("VISITOR_FUNCTION_MISSING")
+            return
+        if relative_name.startswith("functions/api/") and "onRequestPost" not in text:
+            errors.add("VISITOR_FUNCTION_INVALID")
+        if _contains_loopback_url(text) or "127.0.0.1" in text:
+            errors.add("LOCAL_URL")
+        if 'VISITOR_PULL_KEY="' in text or 'TURNSTILE_SECRET_KEY="' in text:
+            errors.add("SECRET_INDICATOR")
+
+
+def _check_visitor_secret_leak(artifacts: list[tuple[str, Path]], errors: set[str]) -> None:
+    for _relative_name, path in artifacts:
+        if path.suffix.casefold() not in SCANNED_TEXT_EXTENSIONS:
+            continue
+        text = _read_text(path, errors)
+        if text is None:
+            continue
+        if "VISITOR_PULL_KEY" in text or "TURNSTILE_SECRET" in text or "siteverify" in text:
+            errors.add("VISITOR_SECRET_LEAK")
+
+
 def evaluate_gate(raw_site_url: str | None, *, config_only: bool = False) -> GateResult:
     """Evaluate the fixed production configuration and, unless requested, dist."""
 
@@ -715,6 +756,9 @@ def evaluate_gate(raw_site_url: str | None, *, config_only: bool = False) -> Gat
         sitemap_path = DIST_ROOT / "sitemap.xml"
         if "sitemap.xml" in artifact_names:
             _check_sitemap(sitemap_path, site_url, errors)
+
+    _check_visitor_functions(errors)
+    _check_visitor_secret_leak(artifacts, errors)
 
     if errors:
         return GateResult(frozenset(errors))

@@ -1,0 +1,58 @@
+---
+import Portal from "@/layouts/Portal.astro";
+
+const siteKey = String(import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || "");
+const formOpen = /^[0-9A-Za-z_-]{10,200}$/.test(siteKey);
+---
+
+<Portal title="留言 · 星屿 StarIsle" description="给星屿留一句问候。公开站只收下留言，不在这里保存主人的私人数据。">
+  <section class="editorial-section">
+    <div class="editorial-container editorial-section__grid">
+      <div>
+        <p class="section-kicker">02 · Note</p>
+        <p class="editorial-note mt-4">访客留言<br />A short note</p>
+      </div>
+      <div>
+        <div class="section-heading"><h1>给这座岛留一句</h1></div>
+        <p class="editorial-prose text-base text-text-dim">
+          写下称呼、联系方式和想说的话。留言先停在云上一小会儿，等主人的电脑醒来后取走，云上的副本就会删掉。
+        </p>
+        {formOpen ? (
+          <>
+            <form id="visitor-form" class="visitor-form">
+              <label for="visitor-name">怎么称呼</label>
+              <input id="visitor-name" name="name" required maxlength="80" autocomplete="name">
+              <label for="visitor-contact">邮箱或其他联系方式</label>
+              <input id="visitor-contact" name="contact" required maxlength="120" autocomplete="email">
+              <label for="visitor-body">想说的话</label>
+              <textarea id="visitor-body" name="body" required maxlength="2000" rows="6"></textarea>
+              <div class="cf-turnstile" data-sitekey={siteKey}></div>
+              <p id="visitor-status" class="visitor-status" role="status" hidden></p>
+              <button class="public-action public-action--primary" type="submit">留下这句话</button>
+            </form>
+            <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+            <script src="/visitor-form.js" defer></script>
+          </>
+        ) : (
+          <p class="draft-notice" role="status">留言窗口还没打开。仍可以从简历页的邮箱写信。</p>
+        )}
+      </div>
+    </div>
+  </section>
+</Portal>
+
+<style>
+  .visitor-form {
+    display: grid;
+    gap: 0.7rem;
+    margin-top: 1.2rem;
+    max-width: 38rem;
+  }
+  .visitor-form input,
+  .visitor-form textarea {
+    width: 100%;
+    padding: 0.65rem 0.75rem;
+  }
+  .visitor-status { margin: 0; color: var(--danger); }
+  .visitor-status--ok { color: var(--success); }
+</style>

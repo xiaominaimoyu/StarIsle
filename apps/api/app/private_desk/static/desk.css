@@ -245,6 +245,19 @@ a.nav-link[aria-current="page"] {
   border: 1px solid var(--border);
 }
 
+.letter-list { display: grid; gap: 0.6rem; margin-top: 1rem; }
+.letter-row {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.8rem 0.9rem;
+  color: var(--text);
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+#letter-body { white-space: pre-wrap; }
+
 .empty {
   padding: 2rem 1rem;
   text-align: center;
