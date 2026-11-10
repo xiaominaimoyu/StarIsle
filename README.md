@@ -248,3 +248,7 @@ $report = 'D:\recovery-reports\star-isle-drill.json'
 - 2026-11-01 已在首批实现与本轮修正后分别运行完整隔离浏览器 E2E，均为 12 组、0 失败；当前 Pages 公开站已真实部署并完成线上交互、HTTP 和移动 Lighthouse。本机 Caddy 的基础同源及受控上游长流/取消链路已通过；主动刷新、生产 TLS、邮件 Cloudflare 平台链路、真实业务账号与模型仍待补验。历史 production-preview 结果保持历史属性，详见当前实施进度。
 - `scripts/email-worker.js` 为 Cloudflare Worker 参考实现；失败会拒收并仅记录脱敏状态，实际 Cloudflare 平台重试/退信行为仍需在真实账号中验证。
 - 个人内容和仓库快照已部分补齐，仍由项目所有者按授权与真实性要求维护；当前空歌单的播放器入口已隐藏，其他空列表按组件提供空态。
+
+## 许可证
+
+本项目基于 [MIT License](./LICENSE) 开源。
