@@ -184,6 +184,8 @@ def test_default_policy_uses_exact_snapshotted_route_budgets(monkeypatch: pytest
         ("PATCH", "/api/v1/notes/{note_id}"): 128 * 1024,
         ("POST", "/api/v1/notes/preview"): 128 * 1024,
         ("PUT", "/api/v1/notes/diary/{day}"): 4 * 1024,
+        ("POST", "/api/v1/desk-ask/query"): 128 * 1024,
+        ("POST", "/api/v1/desk-ask/index"): 4 * 1024,
     }
 
     main_policy = _main_policy()

@@ -320,6 +320,11 @@ dialog::backdrop { background: rgb(8 5 3 / 0.72); }
 #photo-picker button { padding: 0; border: 0; background: transparent; }
 #photo-picker img { width: 100%; aspect-ratio: 1; object-fit: cover; }
 
+.ask-layout { display: grid; gap: 0.8rem; }
+.ask-layout form { display: grid; gap: 0.6rem; justify-items: start; }
+[data-embed], [data-chat], [data-index] { margin: 0.2rem 0; }
+.ask-layout .letter-row { text-decoration: none; }
+
 @media (max-width: 760px) {
   .notes-layout { grid-template-columns: 1fr; }
 }

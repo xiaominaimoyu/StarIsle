@@ -172,6 +172,11 @@ def main(argv: list[str] | None = None) -> int:
             "STAR_ISLE_BACKUP_ROOT": str(backup_root),
             "VISITOR_PULL_BASE_URL": "https://starisle-6bt.pages.dev",
             "VISITOR_PULL_KEY": "",
+            "LLAMA_EMBED_BASE_URL": "http://127.0.0.1:8001",
+            "LLAMA_CHAT_BASE_URL": "http://127.0.0.1:8000",
+            "EMBEDDING_MODEL_ID": "bge-m3",
+            "CHAT_MODEL_ID": "qwen",
+            "EMBEDDING_DIM": "1024",
         }
         _write_runtime_env(runtime_env, values)
         with get_conn(immediate=True) as conn:

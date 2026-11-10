@@ -732,6 +732,7 @@ def init_db() -> None:
                 raise SchemaVersionError("缺少已知的 schema 前向迁移")
         _ensure_visitor_letter_table(conn)
         _ensure_desk_note_tables(conn)
+        _ensure_desk_index_tables(conn)
         conn.commit()
         _assert_v5_layout(conn)
 
@@ -818,6 +819,46 @@ def _ensure_desk_note_tables(conn: sqlite3.Connection) -> None:
           grams,
           tokenize = "unicode61 remove_diacritics 0"
         )
+        """
+    )
+
+
+def _ensure_desk_index_tables(conn: sqlite3.Connection) -> None:
+    """问屿的索引附在同一份库里，不提升 schema 版本。
+
+    整库在线备份会带上这些表。向量也可以按原文重新算，所以嵌入服务恢复后不必整库重建。
+    """
+
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS desk_index_item (
+          source_kind TEXT NOT NULL,
+          source_id TEXT NOT NULL,
+          content_hash TEXT NOT NULL,
+          source_updated_at TEXT NOT NULL,
+          indexed_at TEXT,
+          status TEXT NOT NULL,
+          title TEXT NOT NULL,
+          PRIMARY KEY (source_kind, source_id)
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS desk_index_chunk (
+          id TEXT PRIMARY KEY,
+          source_kind TEXT NOT NULL,
+          source_id TEXT NOT NULL,
+          seq INTEGER NOT NULL,
+          text TEXT NOT NULL,
+          embedding BLOB NOT NULL
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_desk_index_chunk_source
+        ON desk_index_chunk(source_kind, source_id, seq)
         """
     )
 

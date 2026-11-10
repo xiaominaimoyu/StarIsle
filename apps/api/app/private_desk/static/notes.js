@@ -273,6 +273,8 @@ if (await ensureSession()) {
   bindLogout();
   setSave("saved");
   await loadList();
+  const wantedNote = new URLSearchParams(window.location.search).get("note");
+  if (wantedNote) await loadNote(wantedNote);
   window.addEventListener("beforeunload", (event) => {
     if (!hasUnsaved()) return;
     event.preventDefault();

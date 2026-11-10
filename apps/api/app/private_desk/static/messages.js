@@ -81,6 +81,11 @@ if (await ensureSession()) {
   renderNav("messages");
   bindLogout();
   await load();
+  const wantedLetter = new URLSearchParams(window.location.search).get("letter");
+  if (wantedLetter) {
+    const letter = letters.find((item) => item.id === wantedLetter);
+    if (letter) await openLetter(letter);
+  }
   document.querySelector("[data-pull]").addEventListener("click", async () => {
     try {
       const token = await csrfToken();
