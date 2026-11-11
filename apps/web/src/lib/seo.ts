@@ -69,7 +69,7 @@ export interface SitemapOptions {
   lastmod: string;
 }
 
-const PUBLIC_SITEMAP_PATHS = ["/", "/projects/", "/resume/"] as const;
+const PUBLIC_SITEMAP_PATHS = ["/", "/projects/", "/resume/", "/contact/"] as const;
 
 export function renderSitemapXml(
   siteUrl: PublicSiteUrl | undefined,

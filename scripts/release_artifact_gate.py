@@ -54,6 +54,7 @@ REQUIRED_ARTIFACTS = frozenset(
         "index.html",
         "projects/index.html",
         "resume/index.html",
+        "contact/index.html",
         "404.html",
         "login/index.html",
         "console/index.html",
@@ -71,6 +72,7 @@ PUBLIC_HTML_ROUTES = {
     "index.html": "/",
     "projects/index.html": "/projects/",
     "resume/index.html": "/resume/",
+    "contact/index.html": "/contact/",
 }
 PRIVATE_HTML_ARTIFACTS = frozenset(
     {
@@ -634,7 +636,7 @@ def _check_sitemap(path: Path, site_url: str, errors: set[str]) -> None:
             return
         locations.append((loc_elements[0].text or "").strip())
     expected_locations = {_expected_page_url(site_url, route) for route in PUBLIC_HTML_ROUTES.values()}
-    if len(locations) != 3 or len(set(locations)) != 3 or set(locations) != expected_locations:
+    if len(locations) != len(expected_locations) or set(locations) != expected_locations:
         errors.add("SITEMAP_INVALID")
 
 

@@ -152,7 +152,7 @@ const structuredData = {
       <h2 id="projects-title" class="sr-only">项目文章</h2>
       <div class="project-story-list">
         {projects.map((p) => (
-          <a href="/projects" class="project-story focus-ring">
+          <a href={`/projects/#${encodeURIComponent(`project-${p.id}`)}`} class="project-story focus-ring">
             <h3 class="font-display text-lg font-semibold text-text">{p.data.title}</h3>
             <p class="mt-1 line-clamp-2 text-sm text-text-dim">{stripMd(p.body).slice(0, 120)}…</p>
             <div class="mt-3 flex flex-wrap gap-2">

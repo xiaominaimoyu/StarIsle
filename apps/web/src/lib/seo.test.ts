@@ -53,13 +53,14 @@ describe("public SEO URL helpers", () => {
     expect(sitemap).not.toContain("localhost");
   });
 
-  it("renders exactly three absolute public URLs when configured", () => {
+  it("renders exactly four absolute public URLs when configured", () => {
     const sitemap = renderSitemapXml(getPublicSiteUrl("https://example.test"), { lastmod: LASTMOD });
 
-    expect(sitemap.match(/<url>/g)).toHaveLength(3);
+    expect(sitemap.match(/<url>/g)).toHaveLength(4);
     expect(sitemap).toContain("<loc>https://example.test/</loc>");
     expect(sitemap).toContain("<loc>https://example.test/projects/</loc>");
     expect(sitemap).toContain("<loc>https://example.test/resume/</loc>");
+    expect(sitemap).toContain("<loc>https://example.test/contact/</loc>");
     expect(sitemap).toContain(`<lastmod>${LASTMOD}</lastmod>`);
   });
 

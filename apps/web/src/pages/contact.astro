@@ -1,8 +1,12 @@
 ---
 import Portal from "@/layouts/Portal.astro";
+import { getCollection } from "astro:content";
 
 const siteKey = String(import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || "");
 const formOpen = /^[0-9A-Za-z_-]{10,200}$/.test(siteKey);
+const resume = (await getCollection("resume"))[0];
+const email = resume?.data.email?.trim();
+const hasPublicEmail = Boolean(email) && !/(?:example\.com|yourname|待填写)/i.test(email ?? "");
 ---
 
 <Portal title="留言 · 星屿 StarIsle" description="给星屿留一句问候。公开站只收下留言，不在这里保存主人的私人数据。">
@@ -12,47 +16,158 @@ const formOpen = /^[0-9A-Za-z_-]{10,200}$/.test(siteKey);
         <p class="section-kicker">02 · Note</p>
         <p class="editorial-note mt-4">访客留言<br />A short note</p>
       </div>
-      <div>
+      <div class="visitor-content">
         <div class="section-heading"><h1>给这座岛留一句</h1></div>
         <p class="editorial-prose text-base text-text-dim">
-          写下称呼、联系方式和想说的话。留言先停在云上一小会儿，等主人的电脑醒来后取走，云上的副本就会删掉。
+          问候、想法，或一个值得聊聊的项目，都可以写在这里。
         </p>
         {formOpen ? (
           <>
-            <form id="visitor-form" class="visitor-form">
-              <label for="visitor-name">怎么称呼</label>
-              <input id="visitor-name" name="name" required maxlength="80" autocomplete="name">
-              <label for="visitor-contact">邮箱或其他联系方式</label>
-              <input id="visitor-contact" name="contact" required maxlength="120" autocomplete="email">
-              <label for="visitor-body">想说的话</label>
-              <textarea id="visitor-body" name="body" required maxlength="2000" rows="6"></textarea>
-              <div class="cf-turnstile" data-sitekey={siteKey}></div>
-              <p id="visitor-status" class="visitor-status" role="status" hidden></p>
-              <button class="public-action public-action--primary" type="submit">留下这句话</button>
+            <form id="visitor-form" class="visitor-form" method="post" action="/api/visitor-messages">
+              <p class="visitor-help">以下三项均需填写，联系方式仅用于回复你。</p>
+              <div class="visitor-field">
+                <label for="visitor-name">怎么称呼</label>
+                <input id="visitor-name" name="name" required maxlength="80" autocomplete="name">
+              </div>
+              <div class="visitor-field">
+                <label for="visitor-contact">邮箱或其他联系方式</label>
+                <input id="visitor-contact" name="contact" required minlength="3" maxlength="120" autocomplete="email" aria-describedby="visitor-contact-help">
+                <p id="visitor-contact-help" class="visitor-help">请留下一个方便收到回复的地址或账号。</p>
+              </div>
+              <div class="visitor-field">
+                <div class="visitor-label-row">
+                  <label for="visitor-body">想说的话</label>
+                  <span id="visitor-body-count" class="visitor-count">0 / 2000</span>
+                </div>
+                <textarea id="visitor-body" name="body" required maxlength="2000" rows="6" aria-describedby="visitor-body-count"></textarea>
+              </div>
+              <div class="visitor-verification">
+                <div id="visitor-turnstile" data-sitekey={siteKey}></div>
+                <p id="visitor-verification" class="visitor-help" role="status">正在准备人机验证…</p>
+                <button id="visitor-verification-retry" class="public-action focus-ring" type="button" hidden>重新验证</button>
+              </div>
+              <p id="visitor-status" class="visitor-status" role="status" aria-live="polite" aria-atomic="true"></p>
+              <button class="public-action public-action--primary focus-ring visitor-submit" type="submit" disabled>留下这句话</button>
+              <p class="visitor-help">留言不会公开展示。主人取回留言后，云上的副本会删除。</p>
             </form>
-            <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-            <script src="/visitor-form.js" defer></script>
+            <noscript><p class="draft-notice">留言表单需要启用 JavaScript。你也可以通过下方邮箱直接写信。</p></noscript>
+            <script is:inline src="/visitor-form.js" defer></script>
+            <script is:inline id="visitor-turnstile-api" src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" defer></script>
           </>
         ) : (
-          <p class="draft-notice" role="status">留言窗口还没打开。仍可以从简历页的邮箱写信。</p>
+          <p class="draft-notice" role="status">留言窗口还没打开，可以先通过下方联系方式找到我。</p>
         )}
+        <aside class="visitor-alternative" aria-label="其他联系方式">
+          <p class="visitor-alternative__title">也可以直接写信</p>
+          {hasPublicEmail ? <a class="visitor-email focus-ring" href={`mailto:${email}`}>{email}</a> : null}
+          <a class="visitor-resume focus-ring" href="/resume/">查看简历与项目经历 <span aria-hidden="true">→</span></a>
+        </aside>
       </div>
     </div>
   </section>
 </Portal>
 
 <style>
+  .section-heading h1 {
+    font-family: var(--font-display);
+    font-size: clamp(1.6rem, 4vw, 2.2rem);
+    line-height: 1.35;
+  }
+  .visitor-content {
+    min-width: 0;
+    max-width: 40rem;
+  }
   .visitor-form {
     display: grid;
-    gap: 0.7rem;
-    margin-top: 1.2rem;
-    max-width: 38rem;
+    gap: 1.25rem;
+    margin-top: 1.75rem;
+    padding: clamp(1rem, 3vw, 1.75rem);
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--accent);
+    background: color-mix(in srgb, var(--surface) 80%, transparent);
+  }
+  .visitor-field {
+    display: grid;
+    gap: 0.5rem;
+    min-width: 0;
+  }
+  .visitor-label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .visitor-form label {
+    font-size: 1rem;
+    font-weight: 500;
   }
   .visitor-form input,
   .visitor-form textarea {
+    box-sizing: border-box;
+    min-width: 0;
+    min-height: 44px;
     width: 100%;
+    border: 1px solid var(--border);
     padding: 0.65rem 0.75rem;
+    font-size: 1rem;
+    line-height: 1.65;
   }
-  .visitor-status { margin: 0; color: var(--danger); }
+  .visitor-form textarea { resize: vertical; }
+  .visitor-form input:read-only,
+  .visitor-form textarea:read-only { opacity: 0.7; }
+  .visitor-help,
+  .visitor-count {
+    margin: 0;
+    color: var(--text-dim);
+    font-size: 0.875rem;
+    line-height: 1.7;
+  }
+  .visitor-count { font-variant-numeric: tabular-nums; }
+  .visitor-verification { min-width: 0; }
+  #visitor-turnstile { max-width: 100%; }
+  #visitor-verification-retry { margin-top: 0.5rem; }
+  .visitor-status {
+    margin: 0;
+    color: var(--danger);
+    overflow-wrap: anywhere;
+  }
   .visitor-status--ok { color: var(--success); }
+  .visitor-submit { justify-self: start; }
+  .visitor-form button { min-height: 44px; }
+  .visitor-form button[hidden] { display: none; }
+  .visitor-form button:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+  .visitor-alternative {
+    display: grid;
+    justify-items: start;
+    gap: 0.25rem;
+    margin-top: 2rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border);
+  }
+  .visitor-alternative__title {
+    margin: 0 0 0.25rem;
+    color: var(--text-dim);
+    font-size: 0.875rem;
+  }
+  .visitor-email,
+  .visitor-resume {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    max-width: 100%;
+    color: var(--accent);
+    overflow-wrap: anywhere;
+  }
+  .visitor-email { font-size: 1rem; }
+  .visitor-resume { gap: 0.5rem; font-size: 0.875rem; }
+  .visitor-email:hover,
+  .visitor-resume:hover { text-decoration: underline; }
+  @media (max-width: 30rem) {
+    .visitor-form { padding: 1rem 0.75rem; }
+    .visitor-submit { width: 100%; }
+  }
 </style>

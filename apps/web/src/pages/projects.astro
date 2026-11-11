@@ -43,7 +43,7 @@ const isPlaceholderUrl = (value: string) => /(?:example\.com|yourname)/i.test(va
       ) : (
         <div class="project-essay-list">
           {projects.map(({ entry: p, Content }) => (
-            <article class="project-essay">
+            <article id={`project-${p.id}`} class="project-essay">
               <div class="project-essay__meta">
                 <p>LOG {p.data.date.toLocaleDateString("zh-CN")}</p>
                 {p.data.featured ? <p class="mt-2 text-accent-warm">精选记录</p> : null}
@@ -78,3 +78,9 @@ const isPlaceholderUrl = (value: string) => /(?:example\.com|yourname)/i.test(va
     </section>
   </div>
 </Portal>
+
+<style>
+  .project-essay {
+    scroll-margin-top: 6rem;
+  }
+</style>

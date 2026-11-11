@@ -70,6 +70,7 @@ def _sitemap(site_url: str, locations: list[str] | None = None) -> str:
         f"{site_url}",
         f"{site_url}projects/",
         f"{site_url}resume/",
+        f"{site_url}contact/",
     ]
     entries = "".join(f"<url><loc>{location}</loc></url>" for location in expected_locations)
     return f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="https://www.sitemaps.org/schemas/sitemap/0.9">{entries}</urlset>'
@@ -87,6 +88,7 @@ def _write_complete_dist(dist_root: Path, site_url: str) -> None:
     _write(dist_root / "index.html", _public_page(site_url, "/", index_json_ld))
     _write(dist_root / "projects" / "index.html", _public_page(site_url, "/projects/"))
     _write(dist_root / "resume" / "index.html", _public_page(site_url, "/resume/", resume_json_ld))
+    _write(dist_root / "contact" / "index.html", _public_page(site_url, "/contact/"))
     for relative_name in (
         "404.html",
         "login/index.html",
@@ -150,7 +152,7 @@ def test_complete_fixture_passes_and_reports_fingerprints(release_fixture: tuple
     result = _result(gate)
 
     assert result.error_codes == frozenset()
-    assert result.dist_file_count == 14
+    assert result.dist_file_count == 15
     assert result.dist_fingerprint is not None and len(result.dist_fingerprint) == 64
     assert result.input_file_count == 5
     assert result.input_inventory is not None and len(result.input_inventory) == 64
@@ -340,6 +342,14 @@ def test_robots_requires_the_single_expected_sitemap(
                 "https://candidate.dev/",
                 "https://candidate.dev/projects/",
                 "https://candidate.dev/resume/",
+            ],
+        ),
+        _sitemap(
+            "https://candidate.dev/",
+            [
+                "https://candidate.dev/",
+                "https://candidate.dev/projects/",
+                "https://candidate.dev/resume/",
                 "https://candidate.dev/extra/",
             ],
         ),
@@ -349,12 +359,13 @@ def test_robots_requires_the_single_expected_sitemap(
                 "https://candidate.dev/",
                 "https://candidate.dev/projects/",
                 "https://candidate.dev/projects/",
+                "https://candidate.dev/contact/",
             ],
         ),
         "<urlset><url><loc>not closed</urlset>",
     ),
 )
-def test_sitemap_requires_exactly_the_three_public_locations(
+def test_sitemap_requires_exactly_the_four_public_locations(
     release_fixture: tuple[ModuleType, Path, Path], sitemap: str
 ):
     gate, dist_root, _ = release_fixture
